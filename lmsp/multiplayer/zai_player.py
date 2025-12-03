@@ -81,7 +81,8 @@ class ZAIPlayer:
         self.current_challenge = challenge
         self.challenge_context = f"""
 Challenge: {challenge.name}
-Description: {challenge.description}
+Description: {challenge.description_brief}
+Details: {challenge.description_detailed}
 Skeleton Code:
 {challenge.skeleton_code}
 Test Cases: {len(challenge.test_cases)} tests

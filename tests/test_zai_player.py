@@ -18,7 +18,21 @@ import asyncio
 from lmsp.multiplayer.zai_player import ZAIPlayer, PlaytestFeedback
 from lmsp.game.engine import GameEngine, GameConfig
 from lmsp.adaptive.engine import LearnerProfile
-from lmsp.python.challenges import Challenge
+from lmsp.python.challenges import Challenge, TestCase
+
+
+def make_test_challenge(id="test", name="Test", desc="Test challenge", skeleton="", level=1):
+    """Helper to create Challenge objects for testing."""
+    return Challenge(
+        id=id,
+        name=name,
+        description_brief=desc,
+        description_detailed=desc,
+        skeleton_code=skeleton,
+        test_cases=[],  # Empty for most tests
+        level=level,
+        prerequisites=[],
+    )
 
 
 class TestZAIPlayerInit:
@@ -55,13 +69,16 @@ class TestGameStateObservation:
 
     def test_observe_challenge(self, player):
         """Should observe and understand challenge."""
+        from lmsp.python.challenges import TestCase
         challenge = Challenge(
             id="test_01",
             name="Test Challenge",
-            description="Write a function that returns 42",
+            description_brief="Write a function that returns 42",
+            description_detailed="Write a function that returns 42",
             skeleton_code="def answer():\n    pass",
-            test_cases=["assert answer() == 42"],
+            test_cases=[TestCase(name="basic", input=None, expected=42)],
             level=1,
+            prerequisites=[],
         )
 
         player.observe_challenge(challenge)
@@ -79,14 +96,7 @@ class TestGameStateObservation:
 
     def test_build_observation_context(self, player):
         """Should build context from observations."""
-        challenge = Challenge(
-            id="test_01",
-            name="Test",
-            description="Test challenge",
-            skeleton_code="",
-            test_cases=[],
-            level=1,
-        )
+        challenge = make_test_challenge(id="test_01", name="Test", desc="Test challenge")
 
         player.observe_challenge(challenge)
         player.observe_code("x = 5")
@@ -110,10 +120,14 @@ class TestCodeGeneration:
         challenge = Challenge(
             id="test_01",
             name="Return 42",
-            description="Write a function that returns 42",
+            description_brief="Write a function that returns 42",
+            description_detailed="Write a function that returns 42",
             skeleton_code="def answer():\n    pass",
-            test_cases=["assert answer() == 42"],
+            test_cases=[
+                TestCase(name="basic", input=None, expected=42)
+            ],
             level=1,
+            prerequisites=[],
         )
 
         player.observe_challenge(challenge)
@@ -190,13 +204,10 @@ class TestUXFeedback:
 
     def test_generate_feedback(self, player):
         """Should generate structured feedback."""
-        challenge = Challenge(
+        challenge = make_test_challenge(
             id="test_01",
             name="Confusing Challenge",
-            description="Unclear instructions",
-            skeleton_code="",
-            test_cases=[],
-            level=1,
+            desc="Unclear instructions"
         )
 
         player.observe_challenge(challenge)
@@ -230,10 +241,14 @@ class TestEndToEnd:
         challenge = Challenge(
             id="test_01",
             name="Simple Challenge",
-            description="Return 42",
+            description_brief="Return 42",
+            description_detailed="Return 42",
             skeleton_code="def answer():\n    pass",
-            test_cases=["assert answer() == 42"],
+            test_cases=[
+                TestCase(name="basic", input=None, expected=42)
+            ],
             level=1,
+            prerequisites=[],
         )
 
         with patch("lmsp.multiplayer.zai_player.requests.post") as mock_post:
