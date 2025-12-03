@@ -537,16 +537,16 @@ def player_file():
                 test_results=result["test_results"]
             )
 
-    def _find_test_file(self, challenge_id: str, test_file: str) -> Optional[Path]:
-        """Find the test file for a challenge."""
-        # Search in challenge directories
+    def _find_test_file(self, item_id: str, test_file: str) -> Optional[Path]:
+        """Find the test file for a challenge or concept lesson."""
+        # Search for the test file anywhere in the directory tree
         for path in self.challenges_dir.rglob(test_file):
-            # Check if it's in the right challenge folder
-            if challenge_id in str(path.parent):
+            # Prefer match where item_id appears in path
+            if item_id in str(path.parent) or item_id in str(path):
                 return path
 
-        # Try direct match
-        for path in self.challenges_dir.rglob(f"*/{test_file}"):
+        # Fall back to first match
+        for path in self.challenges_dir.rglob(test_file):
             return path
 
         return None

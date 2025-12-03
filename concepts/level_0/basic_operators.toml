@@ -7,6 +7,31 @@ level = 0
 category = "operators"
 order = 6
 
+[description]
+brief = "Use Python's operators to do math, compare values, and combine strings"
+detailed = """
+Operators are the verbs of programming - they DO things with your data.
+
+Your mission:
+1. Create a variable `health` set to 100
+2. Create a variable `damage` set to 25
+3. Subtract damage from health using `-=`
+4. Create a variable `is_alive` that checks if health > 0
+5. Print both the final health AND whether you're alive
+
+Expected output:
+```
+75
+True
+```
+
+This teaches you:
+- Arithmetic operators (`+`, `-`, `*`, `/`)
+- Assignment shortcuts (`+=`, `-=`)
+- Comparison operators (`>`, `<`, `==`)
+- Storing comparison results in variables
+"""
+
 [content]
 lesson = """
 ## Arithmetic Operators
@@ -63,26 +88,49 @@ stars = "*" * 5   # "*****"
 """
 
 [content.try_it]
-prompt = "Use operators to calculate and compare"
+prompt = "Calculate damage to health and check if still alive"
 starter = '''
 health = 100
 damage = 25
 
-# Subtract damage from health
-# Check if health is greater than 50
+# Subtract damage from health using -=
 
+# Check if health > 0 and store in is_alive
+
+# Print the health value
+
+# Print whether you're alive (True or False)
 '''
 solution = '''
 health = 100
 damage = 25
 
-# Subtract damage from health
 health -= damage
-print(health)
+is_alive = health > 0
 
-# Check if health is greater than 50
-print(health > 50)
+print(health)
+print(is_alive)
 '''
+
+[validation]
+type = "pytest"
+test_file = "test_basic_operators.py"
+
+[hints]
+level_1 = "Use `-=` to subtract: `health -= damage`"
+level_2 = "Store a comparison: `is_alive = health > 0`"
+level_3 = "Print both values on separate lines"
+level_4 = """
+Complete solution:
+```python
+health = 100
+damage = 25
+health -= damage
+is_alive = health > 0
+print(health)
+print(is_alive)
+```
+"""
 
 [connections]
 prerequisites = ["variables", "numbers"]

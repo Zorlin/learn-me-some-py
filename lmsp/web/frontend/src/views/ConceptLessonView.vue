@@ -39,6 +39,13 @@ const testResult = ref<{
   total: number
   output: string
   error?: string
+  test_results?: Array<{
+    name: string
+    passed: boolean
+    expected?: unknown
+    actual?: unknown
+    error?: string
+  }>
 } | null>(null)
 
 // Lesson explainer collapsed state
@@ -146,7 +153,7 @@ function nextHint() {
   if (hintIndex.value < viewedHints.value.length - 1) hintIndex.value++
 }
 
-// Run tests (validates against solution pattern)
+// Run tests (uses /api/code/submit with lesson_id, same as challenges)
 async function runTests() {
   if (!lesson.value?.try_it) return
 
@@ -154,25 +161,24 @@ async function runTests() {
   testResult.value = null
 
   try {
-    const response = await fetch('/api/code/run', {
+    const response = await fetch('/api/code/submit', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        lesson_id: lesson.value.id,
         code: tryItCode.value,
-        concept_id: lesson.value.id,
       }),
     })
 
     const data = await response.json()
 
-    // Simple validation: code ran without errors
-    const hasError = !!data.error
     testResult.value = {
-      success: !hasError,
-      passing: hasError ? 0 : 1,
-      total: 1,
+      success: data.success,
+      passing: data.tests_passing,
+      total: data.tests_total,
       output: data.output || '',
       error: data.error,
+      test_results: data.test_results,
     }
   } catch (error) {
     testResult.value = {
@@ -404,21 +410,18 @@ const conceptContext = computed(() => {
                 </div>
               </div>
             </div>
+
+            <!-- Detailed Description (the mission/task) -->
+            <div v-if="lesson.description_detailed" class="mt-4 pt-4 border-t border-oled-border">
+              <div class="text-xs text-text-muted mb-2">🎯 Your Mission</div>
+              <div class="lesson-content prose prose-invert text-sm" v-html="renderedDescription"></div>
+            </div>
           </div>
         </div>
 
-        <!-- Right Panel: Description + Editor + Results + Reference -->
+        <!-- Right Panel: Editor + Results + Reference -->
         <div class="lg:col-span-2 space-y-6">
-          <!-- Detailed Description (the mission/task) -->
-          <div v-if="lesson.description_detailed" class="oled-panel">
-            <div class="flex items-center gap-2 mb-3">
-              <span class="text-lg">🎯</span>
-              <span class="font-medium text-accent-primary">Your Mission</span>
-            </div>
-            <div class="lesson-content prose prose-invert" v-html="renderedDescription"></div>
-          </div>
-
-          <!-- Code Editor (if has try_it) -->
+          <!-- Code Editor (if has try_it) - FIRST -->
           <div v-if="lesson.try_it">
             <CodeEditor
               :code="tryItCode"
@@ -436,7 +439,7 @@ const conceptContext = computed(() => {
           </div>
 
           <!-- No code exercise -->
-          <div v-else-if="!lesson.description_detailed" class="oled-panel text-center py-8">
+          <div v-else class="oled-panel text-center py-8">
             <div class="text-4xl mb-4">📖</div>
             <div class="text-text-secondary">This is a reading lesson</div>
             <div class="text-text-muted text-sm mt-2">

@@ -31,11 +31,19 @@ class ConceptLesson:
     category: str
     order: int = 0
 
+    # Descriptions (like challenges)
+    description_brief: str = ""  # Short desc under title
+    description_detailed: str = ""  # Detailed desc for left column
+
     # The actual lesson content (markdown)
     lesson: str = ""
 
     # Optional interactive sandbox
     try_it: Optional[TryIt] = None
+
+    # Validation config (like challenges)
+    validation_type: str = "legacy"  # "legacy" or "pytest"
+    test_file: Optional[str] = None  # e.g., "test_basic_operators.py"
 
     # Connections
     prerequisites: list[str] = field(default_factory=list)
@@ -96,6 +104,8 @@ class ConceptLessonLoader:
         content = data.get("content", {})
         connections = data.get("connections", {})
         meta = data.get("meta", {})
+        description = data.get("description", {})
+        validation = data.get("validation", {})
 
         # Parse try_it if present
         try_it = None
@@ -113,8 +123,12 @@ class ConceptLessonLoader:
             level=concept.get("level", 1),
             category=concept.get("category", "uncategorized"),
             order=concept.get("order", 0),
+            description_brief=description.get("brief", ""),
+            description_detailed=description.get("detailed", ""),
             lesson=content.get("lesson", ""),
             try_it=try_it,
+            validation_type=validation.get("type", "legacy"),
+            test_file=validation.get("test_file"),
             prerequisites=connections.get("prerequisites", []),
             enables=connections.get("enables", []),
             used_in=connections.get("used_in", []),
