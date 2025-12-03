@@ -25,7 +25,8 @@ from lmsp.python.concepts import ConceptDAG, Concept
 from lmsp.python.challenges import ChallengeLoader, Challenge
 from lmsp.python.validator import CodeValidator, ValidationResult
 from lmsp.adaptive.engine import AdaptiveEngine, LearnerProfile
-from lmsp.input.emotional import EmotionalState, EmotionalPrompt, EmotionalSample
+from lmsp.input.emotional import EmotionalState, EmotionalPrompt, EmotionalSample, EmotionalDimension
+from lmsp.ui.emotional_feedback import EmotionalFeedbackRenderer
 
 
 class GamePhase(Enum):
@@ -115,6 +116,7 @@ class GameEngine:
         # Core systems
         self.adaptive_engine = AdaptiveEngine(profile)
         self.validator = CodeValidator(timeout_seconds=self.config.timeout_seconds)
+        self.emotional_feedback_renderer = EmotionalFeedbackRenderer(self.console)
 
         # Load concepts and challenges
         self.concept_dag: Optional[ConceptDAG] = None

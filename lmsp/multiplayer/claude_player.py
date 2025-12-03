@@ -50,6 +50,15 @@ class ApproachHint(Enum):
 
 
 @dataclass
+class TeachingConfig:
+    """Configuration for Claude's teaching approach."""
+
+    allow_direct_answers: bool = False  # Give direct answers vs guide student
+    encouragement_level: float = 0.7    # 0.0-1.0: how much positive reinforcement
+    patience_level: float = 0.8         # 0.0-1.0: how many hints before direct answer
+
+
+@dataclass
 class ClaudePlayer:
     """
     AI player powered by Claude API.
