@@ -1,0 +1,98 @@
+# Level 2: Len Function
+# Prerequisite for: iteration bounds, size checking
+
+[concept]
+id = "len_function"
+name = "Len Function: How Big Is This?"
+level = 2
+prerequisites = ["lists_basics", "strings"]
+unlocks = ["range_with_len", "empty_checks"]
+
+[description]
+brief = "Get the size/length of a container"
+detailed = """
+len() tells you how many items are in something. It works on almost all containers.
+
+```python
+inventory = ["sword", "shield", "potion"]
+print(len(inventory))  # 3
+
+name = "Alex"
+print(len(name))       # 4
+
+# Empty check
+if len(inventory) == 0:
+    print("Inventory is empty!")
+```
+
+The most-used function after print()!
+"""
+
+[examples]
+basic = """
+# Length of different types
+print(len([1, 2, 3]))          # 3 (list)
+print(len("hello"))            # 5 (string)
+print(len({"a": 1, "b": 2}))  # 2 (dict - counts keys)
+print(len({1, 2, 3}))          # 3 (set)
+"""
+
+advanced = """
+# Using len in loops
+items = ["a", "b", "c", "d"]
+for i in range(len(items)):
+    print(f"Item {i}: {items[i]}")
+
+# Better way (enumerate)
+for i, item in enumerate(items):
+    print(f"Item {i}: {item}")
+
+# Empty check (Pythonic way)
+if not items:  # Better than: if len(items) == 0
+    print("List is empty")
+"""
+
+[usage]
+lists = "len(my_list) - number of items"
+strings = "len(my_string) - number of characters"
+dicts = "len(my_dict) - number of key-value pairs"
+sets = "len(my_set) - number of unique items"
+tuples = "len(my_tuple) - number of items"
+
+[common_mistakes]
+len_parentheses = "It's len(x), not len x - function needs parentheses!"
+zero_vs_empty = "Use 'if not container:' instead of 'if len(container) == 0:' (more Pythonic)"
+off_by_one = "len([1,2,3]) is 3, but last index is 2! Length ≠ last index"
+
+[fun_facts]
+o_1_complexity = "len() is O(1) - instant, doesn't count items every time"
+stored_value = "Containers store their size, so len() just reads that value"
+no_len_on_int = "Can't do len(42) - only works on containers, not single values"
+
+[gamepad_tutorial]
+text = """
+🎮 SIZE CHECKER:
+- Press A on container name to wrap with len()
+- D-pad DOWN to see length live during execution
+- Hold RB to show size of all containers in scope
+- Press Y to convert 'len(x) == 0' to 'not x' (more Pythonic)
+"""
+
+[challenges]
+starter = "len_basic_usage"
+intermediate = "len_empty_validator"
+mastery = "len_capacity_system"
+
+[fun_factor]
+type = "measurement"
+description = "Like a ruler for containers"
+examples = ["inventory counter", "validation checker", "progress tracker"]
+
+[adaptive]
+weakness_signals = ["len_without_parens", "inefficient_empty_check", "off_by_one_with_len"]
+strength_indicators = ["pythonic_empty_check", "enumerate_over_range_len", "correct_bounds"]
+
+[pythonic_patterns]
+empty_check = "if not container: (instead of len(container) == 0)"
+non_empty_check = "if container: (instead of len(container) > 0)"
+avoid_range_len = "Use enumerate() instead of range(len())"

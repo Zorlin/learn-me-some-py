@@ -1,0 +1,103 @@
+# Level 2: Sorted Function
+# Prerequisite for: data organization, high scores
+
+[concept]
+id = "sorted_function"
+name = "Sorted: Put Things in Order"
+level = 2
+prerequisites = ["lists_basics", "for_loops_basics"]
+unlocks = ["sorting_algorithms", "custom_sort_keys"]
+
+[description]
+brief = "Organize lists in order (numbers, strings, anything!)"
+detailed = """
+sorted() takes a messy list and returns a clean, ordered one.
+
+```python
+scores = [95, 102, 88, 110, 91]
+print(sorted(scores))
+# [88, 91, 95, 102, 110]
+
+names = ["Zoe", "Alex", "Maya"]
+print(sorted(names))
+# ['Alex', 'Maya', 'Zoe']
+```
+
+Your original list stays unchanged!
+"""
+
+[examples]
+basic = """
+# Sort numbers
+numbers = [3, 1, 4, 1, 5, 9]
+print(sorted(numbers))           # [1, 1, 3, 4, 5, 9]
+print(sorted(numbers, reverse=True))  # [9, 5, 4, 3, 1, 1]
+
+# Sort strings
+words = ["zebra", "apple", "mango"]
+print(sorted(words))             # ['apple', 'mango', 'zebra']
+"""
+
+advanced = """
+# Sort by custom key
+players = [
+    {"name": "Alex", "score": 95},
+    {"name": "Zoe", "score": 110},
+    {"name": "Maya", "score": 88}
+]
+
+# Sort by score
+by_score = sorted(players, key=lambda p: p["score"])
+print(by_score)  # Maya(88), Alex(95), Zoe(110)
+
+# Sort by name length
+words = ["cat", "elephant", "dog", "hippopotamus"]
+print(sorted(words, key=len))  # ['cat', 'dog', 'elephant', 'hippopotamus']
+"""
+
+[usage]
+sorted_returns = "sorted(list) - returns NEW sorted list, original unchanged"
+list_sort = "list.sort() - modifies list in-place, returns None"
+reverse = "sorted(list, reverse=True) - sort descending"
+key_function = "sorted(list, key=func) - sort by custom comparison"
+
+[common_mistakes]
+sorted_returns_new = "sorted() returns new list! Must capture: new_list = sorted(old_list)"
+sort_returns_none = "list.sort() modifies in-place and returns None - don't do: x = list.sort()"
+strings_case = "sorted() is case-sensitive: ['Zebra', 'apple'] → ['Zebra', 'apple'] (capitals first)"
+mixed_types = "Can't sort [1, 'two', 3] - mixed types don't compare"
+
+[fun_facts]
+timsort = "Python uses Timsort algorithm - super fast and stable"
+stable_sort = "Equal items keep their original order (stability)"
+key_once = "key function called only once per item (efficient!)"
+
+[gamepad_tutorial]
+text = """
+🎮 SORTER:
+- Press A on list to wrap with sorted()
+- D-pad LEFT for reverse=True
+- Hold RB to show sorted() vs .sort() comparison
+- Press Y to add key=lambda for custom sort
+"""
+
+[challenges]
+starter = "sorted_basic_numbers"
+intermediate = "sorted_high_scores"
+mastery = "sorted_leaderboard_multi_key"
+
+[fun_factor]
+type = "organization"
+description = "Like organizing your game library alphabetically"
+examples = ["high score board", "alphabetical roster", "ranked leaderboard"]
+
+[adaptive]
+weakness_signals = ["using_assignment_with_sort", "case_sensitivity_surprise", "lost_return_value"]
+strength_indicators = ["sorted_vs_sort_choice", "key_parameter_usage", "reverse_parameter"]
+
+[comparison]
+feature = ["sorted()", "list.sort()"]
+returns = ["New list", "None"]
+modifies_original = ["No", "Yes"]
+works_on = ["Any iterable", "Only lists"]
+when_to_use = ["Keep original", "Save memory"]

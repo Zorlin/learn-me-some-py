@@ -1,0 +1,520 @@
+# Level 6: Pytest Fixtures
+# Reusable test setup and dependency injection
+
+[concept]
+id = "pytest_fixtures"
+name = "Pytest Fixtures: Test Setup Done Right"
+level = 6
+category = "testing"
+prerequisites = ["pytest_basics", "decorators", "generators", "context_managers"]
+unlocks = ["advanced_testing", "test_architecture", "dependency_injection"]
+
+[description]
+brief = "Reusable setup code that pytest automatically injects into tests"
+detailed = """
+Fixtures are pytest's killer feature. They provide test data, set up state,
+and clean up automatically. Tests request fixtures by name, and pytest
+handles the dependency injection.
+
+```python
+import pytest
+
+# Define a fixture
+@pytest.fixture
+def game_character():
+    \"\"\"Create a character for testing.\"\"\"
+    char = Character(name="Hero", hp=100, level=1)
+    return char
+
+# Use fixture in test (just add parameter with fixture name!)
+def test_character_takes_damage(game_character):
+    game_character.take_damage(20)
+    assert game_character.hp == 80
+
+def test_character_levels_up(game_character):
+    game_character.gain_xp(1000)
+    assert game_character.level == 2
+
+# Each test gets a FRESH character!
+```
+
+No more copy-pasted setup code. No more forgetting cleanup. Just clean tests.
+"""
+
+[key_concepts]
+basic_fixture = """
+Define fixtures with @pytest.fixture:
+
+```python
+import pytest
+
+@pytest.fixture
+def sample_data():
+    return [1, 2, 3, 4, 5]
+
+def test_sum(sample_data):
+    assert sum(sample_data) == 15
+
+def test_length(sample_data):
+    assert len(sample_data) == 5
+```
+
+Fixtures run BEFORE the test and return the value.
+"""
+
+fixture_scope = """
+Control fixture lifetime with `scope`:
+
+```python
+@pytest.fixture(scope="function")  # Default - new for each test
+def fresh_data():
+    return []
+
+@pytest.fixture(scope="class")  # Shared by all tests in a class
+def class_data():
+    return expensive_setup()
+
+@pytest.fixture(scope="module")  # Shared by all tests in a file
+def module_data():
+    return very_expensive_setup()
+
+@pytest.fixture(scope="session")  # Shared by ALL tests
+def session_data():
+    return connect_to_database()
+```
+
+Scopes: `function` (default), `class`, `module`, `session`
+"""
+
+fixture_cleanup = """
+Use `yield` for setup and teardown:
+
+```python
+@pytest.fixture
+def database():
+    # Setup
+    db = Database("test.db")
+    db.connect()
+
+    # Test runs here
+    yield db
+
+    # Teardown (always runs, even if test fails)
+    db.disconnect()
+    db.delete()
+
+def test_insert(database):
+    database.insert("data")
+    assert database.count() == 1
+    # After test: db.disconnect() and db.delete() run automatically
+```
+
+This is like a context manager for tests!
+"""
+
+[patterns]
+fixture_dependencies = """
+Fixtures can depend on other fixtures:
+
+```python
+@pytest.fixture
+def database():
+    db = Database()
+    yield db
+    db.close()
+
+@pytest.fixture
+def user(database):
+    # This fixture uses the database fixture
+    user = database.create_user("alice")
+    return user
+
+@pytest.fixture
+def logged_in_user(user, database):
+    # This fixture uses both user and database
+    session = database.login(user)
+    yield session
+    database.logout(session)
+
+def test_user_profile(logged_in_user):
+    # Pytest automatically runs: database → user → logged_in_user
+    assert logged_in_user.username == "alice"
+```
+
+Pytest handles the dependency graph automatically!
+"""
+
+parametrized_fixtures = """
+Create multiple variations of a fixture:
+
+```python
+@pytest.fixture(params=["sqlite", "postgres", "mysql"])
+def database(request):
+    # request.param contains the current parameter
+    db = Database(request.param)
+    db.connect()
+    yield db
+    db.disconnect()
+
+def test_insert(database):
+    # This test runs 3 times, once for each database!
+    database.insert("data")
+    assert database.count() == 1
+```
+"""
+
+conftest_py = """
+Share fixtures across files using conftest.py:
+
+```
+tests/
+├── conftest.py          # Fixtures available to ALL tests
+├── test_user.py
+├── test_game.py
+└── integration/
+    ├── conftest.py      # Additional fixtures for this directory
+    └── test_api.py
+```
+
+```python
+# tests/conftest.py
+import pytest
+
+@pytest.fixture
+def app():
+    \"\"\"Available to all test files.\"\"\"
+    return create_app()
+
+# tests/test_user.py
+def test_user_creation(app):
+    # 'app' fixture automatically discovered!
+    user = app.create_user("Alice")
+    assert user.name == "Alice"
+```
+"""
+
+autouse_fixtures = """
+Fixtures that run automatically without being requested:
+
+```python
+@pytest.fixture(autouse=True)
+def reset_database():
+    # Runs before EVERY test in this file
+    database.clear()
+    database.seed_initial_data()
+
+def test_user_count():
+    # reset_database ran automatically
+    assert database.count_users() == 0
+```
+
+Use sparingly - explicit is usually better!
+"""
+
+[common_mistakes]
+modifying_shared_fixture = """
+WRONG (tests affect each other):
+```python
+@pytest.fixture(scope="module")  # Shared!
+def game_state():
+    return {"score": 0, "level": 1}
+
+def test_score(game_state):
+    game_state["score"] = 100  # Modifies shared state!
+
+def test_level(game_state):
+    assert game_state["score"] == 0  # FAILS! Score is 100 from previous test
+```
+
+RIGHT (use function scope or return fresh copies):
+```python
+@pytest.fixture  # scope="function" by default
+def game_state():
+    return {"score": 0, "level": 1}  # Fresh copy each time
+```
+"""
+
+forgetting_yield = """
+WRONG (cleanup won't run):
+```python
+@pytest.fixture
+def temp_file():
+    f = open("temp.txt", "w")
+    return f
+    f.close()  # Never runs!
+```
+
+RIGHT:
+```python
+@pytest.fixture
+def temp_file():
+    f = open("temp.txt", "w")
+    yield f
+    f.close()  # Always runs
+```
+"""
+
+fixture_name_collision = """
+Be careful with fixture names vs test parameters:
+
+```python
+@pytest.fixture
+def data():
+    return [1, 2, 3]
+
+def test_with_data(data):  # Gets fixture
+    assert len(data) == 3
+
+@pytest.mark.parametrize("data", [[1], [1,2]])
+def test_parametrized(data):  # Gets parameter, NOT fixture!
+    assert len(data) <= 2
+```
+"""
+
+[when_to_use]
+perfect_for = [
+    "Database connections",
+    "Test data setup",
+    "Mocking external services",
+    "Temporary files/directories",
+    "Shared test state",
+    "Resource cleanup",
+]
+
+avoid_for = [
+    "Simple values (just use variables)",
+    "Test-specific logic (put in test function)",
+    "When explicit setup is clearer",
+]
+
+[gotchas]
+fixture_execution_order = """
+Fixtures execute in dependency order, then scope order:
+
+```python
+@pytest.fixture(scope="session")
+def session_fix():
+    print("Session")
+
+@pytest.fixture(scope="module")
+def module_fix(session_fix):  # Depends on session_fix
+    print("Module")
+
+@pytest.fixture
+def func_fix(module_fix):  # Depends on module_fix
+    print("Function")
+
+def test_it(func_fix):
+    print("Test")
+
+# Output:
+# Session
+# Module
+# Function
+# Test
+```
+"""
+
+fixture_return_vs_yield = """
+Use `return` for simple fixtures, `yield` for cleanup:
+
+```python
+@pytest.fixture
+def simple():
+    return [1, 2, 3]  # No cleanup needed
+
+@pytest.fixture
+def with_cleanup():
+    resource = acquire_resource()
+    yield resource  # Use yield for cleanup
+    release_resource(resource)
+```
+"""
+
+[gamepad_tutorial]
+text = """
+🎮 PYTEST FIXTURES CHALLENGE MODE:
+- RT: Visualize fixture dependency graph
+- LT: Show fixture scope and lifetime
+- Y: Generate fixture boilerplate
+- B: Convert setup code to fixture
+- A: Add yield for cleanup
+- D-pad: Navigate between fixtures and tests
+"""
+
+[challenges]
+starter = "fixture_simple_data"
+intermediate = "fixture_with_cleanup"
+mastery = "fixture_dependency_chain"
+expert = "fixture_lmsp_game_state"
+
+[fun_factor]
+type = "testing"
+description = "Test setup that just works"
+examples = [
+    "Database that resets between tests",
+    "Mock API server that cleans up",
+    "Temporary game state that never leaks",
+]
+
+[adaptive]
+weakness_signals = [
+    "modifying_shared_fixtures",
+    "forgetting_cleanup",
+    "wrong_scope_choice",
+    "fixture_name_collisions",
+    "not_using_conftest",
+]
+strength_indicators = [
+    "proper_fixture_dependencies",
+    "appropriate_scope_usage",
+    "clean_setup_teardown",
+    "organized_conftest_structure",
+]
+
+[fun_facts]
+dependency_injection = """
+Pytest fixtures are a form of dependency injection! Tests declare what they
+need, and pytest provides it. This is the same pattern used in frameworks
+like Spring (Java) and FastAPI (Python).
+"""
+
+unittest_comparison = """
+Compare pytest fixtures to unittest:
+
+unittest (verbose):
+```python
+class TestGame(unittest.TestCase):
+    def setUp(self):
+        self.game = Game()
+    def tearDown(self):
+        self.game.cleanup()
+    def test_score(self):
+        self.game.add_points(10)
+        self.assertEqual(self.game.score, 10)
+```
+
+pytest (clean):
+```python
+@pytest.fixture
+def game():
+    g = Game()
+    yield g
+    g.cleanup()
+
+def test_score(game):
+    game.add_points(10)
+    assert game.score == 10
+```
+"""
+
+builtin_fixtures = """
+Pytest includes useful built-in fixtures:
+
+- `tmp_path` - Temporary directory (pathlib.Path)
+- `tmp_path_factory` - For session-scoped temp dirs
+- `capsys` - Capture stdout/stderr
+- `monkeypatch` - Modify objects temporarily
+- `request` - Access test request context
+
+```python
+def test_file_write(tmp_path):
+    file = tmp_path / "test.txt"
+    file.write_text("hello")
+    assert file.read_text() == "hello"
+    # Automatically cleaned up!
+```
+"""
+
+[real_world]
+django = "pytest-django provides fixtures for database, client, settings"
+fastapi = "TestClient fixture for API testing"
+flask = "pytest-flask provides app and client fixtures"
+async_code = "pytest-asyncio provides event_loop fixture"
+
+[see_also]
+concepts = ["pytest_basics", "decorators", "generators", "context_managers"]
+built_in = ["tmp_path", "capsys", "monkeypatch", "request"]
+plugins = ["pytest-django", "pytest-asyncio", "pytest-mock"]
+patterns = ["dependency_injection", "test_doubles"]
+
+[best_practices]
+fixture_naming = """
+Use descriptive names that indicate what the fixture provides:
+
+GOOD:
+```python
+@pytest.fixture
+def authenticated_user():
+
+@pytest.fixture
+def empty_database():
+
+@pytest.fixture
+def mock_payment_gateway():
+```
+
+NOT SO GOOD:
+```python
+@pytest.fixture
+def setup():  # Setup for what?
+
+@pytest.fixture
+def data():  # What kind of data?
+```
+"""
+
+fixture_scope_choice = """
+Choose scope based on expense and mutability:
+
+- `function` (default) - Safe, fresh state
+- `class` - Group related tests
+- `module` - Expensive setup (database connection)
+- `session` - Very expensive (start test server)
+
+```python
+@pytest.fixture(scope="session")
+def test_database():
+    # Expensive: Start PostgreSQL in Docker
+    db = start_test_db()
+    yield db
+    stop_test_db(db)
+
+@pytest.fixture  # function scope - reset between tests
+def clean_tables(test_database):
+    # Fast: Clear tables
+    test_database.clear_all_tables()
+```
+"""
+
+conftest_organization = """
+Organize fixtures by scope:
+
+```
+tests/
+├── conftest.py              # Global fixtures (app, database)
+├── unit/
+│   ├── conftest.py          # Unit test fixtures
+│   └── test_models.py
+└── integration/
+    ├── conftest.py          # Integration fixtures (API client)
+    └── test_api.py
+```
+"""
+
+fixture_factories = """
+Use fixture factories for variations:
+
+```python
+@pytest.fixture
+def make_user(database):
+    def _make_user(name="Alice", age=30, **kwargs):
+        return database.create_user(name, age, **kwargs)
+    return _make_user
+
+def test_user_variations(make_user):
+    alice = make_user("Alice", age=25)
+    bob = make_user("Bob", age=30, admin=True)
+    charlie = make_user("Charlie")  # Uses defaults
+```
+"""

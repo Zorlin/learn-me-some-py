@@ -16,6 +16,7 @@ dependencies = [
     "apscheduler>=3.10.0",        # Spaced repetition scheduling
     "pillow>=10.0.0",             # Image processing
     "webp>=0.3.0",                # WebP encoding
+    "networkx>=3.0",              # Graph algorithms for concept DAG
 ]
 
 [project.optional-dependencies]

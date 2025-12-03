@@ -1,0 +1,106 @@
+# Level 1: Match/Case
+# Prerequisite for: pattern matching, structural pattern matching
+
+[concept]
+id = "match_case_basics"
+name = "Match/Case: Elegant Multiple Choices"
+level = 1
+prerequisites = ["if_else_basics"]
+unlocks = ["match_case_patterns", "structural_pattern_matching"]
+
+[description]
+brief = "Check one value against many possibilities (Python 3.10+)"
+detailed = """
+Match/case is like a fancy if/elif/else for when you're checking one thing
+against many possibilities. It's cleaner than a long chain of if/elif.
+
+```python
+command = input("What do? ")
+match command:
+    case "go":
+        print("You venture forth")
+    case "look":
+        print("You see a room")
+    case "quit":
+        print("Goodbye!")
+    case _:
+        print("Unknown command")
+```
+
+The underscore (_) is the catch-all, like 'else'.
+"""
+
+[examples]
+basic = """
+# Simple matching
+status = 404
+match status:
+    case 200:
+        print("OK")
+    case 404:
+        print("Not Found")
+    case 500:
+        print("Server Error")
+    case _:
+        print("Unknown status")
+"""
+
+advanced = """
+# Matching multiple values
+direction = "north"
+match direction:
+    case "north" | "n":
+        print("Going north")
+    case "south" | "s":
+        print("Going south")
+    case "east" | "e":
+        print("Going east")
+    case "west" | "w":
+        print("Going west")
+    case _:
+        print("Invalid direction")
+"""
+
+[syntax]
+match_statement = "match variable: (must end with colon)"
+case_pattern = "case value: (each case must end with colon)"
+wildcard = "case _: catches everything else (like 'else')"
+multiple = "case 'a' | 'b' | 'c': matches any of these"
+
+[common_mistakes]
+missing_underscore = "Forgetting case _: means unmatched values do nothing (no error!)"
+no_fallthrough = "Unlike some languages, Python doesn't fall through cases - only ONE runs"
+requires_python_310 = "match/case is NEW in Python 3.10. Won't work in older versions!"
+
+[fun_facts]
+no_break_needed = "Unlike switch in other languages, no 'break' needed - only one case runs"
+pattern_matching = "Advanced: match can destructure tuples, lists, and objects!"
+when_guard = "Can add conditions: case x if x > 10: for extra filtering"
+
+[gamepad_tutorial]
+text = """
+🎮 CHOICE TREE:
+- Press A to create match statement
+- D-pad DOWN to add new case
+- Press Y on case to add '|' alternate pattern
+- RB to insert wildcard case (_)
+"""
+
+[challenges]
+starter = "match_simple_menu"
+intermediate = "match_command_parser"
+mastery = "match_game_state_handler"
+
+[fun_factor]
+type = "branching"
+description = "Like a choose-your-own-adventure book with style"
+examples = ["menu system", "command parser", "state machine"]
+
+[adaptive]
+weakness_signals = ["missing_wildcard", "using_if_instead", "old_python_version"]
+strength_indicators = ["clean_cases", "appropriate_patterns", "wildcard_usage"]
+
+[version_requirement]
+minimum = "3.10"
+warning = "This feature requires Python 3.10 or newer"
+fallback = "Use if/elif/else chain in older Python versions"

@@ -1,0 +1,194 @@
+# Level 3: def and return
+# The foundation of all functions
+# Prerequisite for: parameters, scope, classes
+
+[concept]
+id = "def_return"
+name = "def and return: Your First Function"
+level = 3
+category = "functions"
+prerequisites = ["variables", "types_int_str", "conditionals"]
+unlocks = ["parameters", "scope", "lambda"]
+
+[description]
+brief = "Create reusable code blocks that give back a result"
+detailed = """
+Every function needs two things:
+1. `def` tells Python "I'm defining a function"
+2. `return` tells Python "here's the answer"
+
+```python
+def get_health():
+    return 100
+
+health = get_health()  # health is now 100
+```
+
+Think of it like a quest in a game:
+- `def quest_name():` starts the quest
+- The code inside does the work
+- `return reward` completes the quest and gives you something
+"""
+
+[syntax]
+basic = """
+def function_name():
+    return value
+"""
+
+with_work = """
+def calculate_score():
+    base = 100
+    bonus = 50
+    return base + bonus
+"""
+
+multiple_functions = """
+def get_max_hp():
+    return 100
+
+def get_current_hp():
+    return 75
+
+hp_percent = get_current_hp() / get_max_hp()  # 0.75
+"""
+
+[examples]
+simple = """
+def get_player_name():
+    return "Hero"
+
+name = get_player_name()
+print(name)  # "Hero"
+"""
+
+calculation = """
+def double(x):
+    return x * 2
+
+def triple(x):
+    return x * 3
+
+result = double(5) + triple(3)  # 10 + 9 = 19
+"""
+
+early_return = """
+def check_game_over(hp):
+    if hp <= 0:
+        return True
+    return False
+"""
+
+[common_mistakes]
+no_return = """
+# WRONG: Forgot to return!
+def add_five(x):
+    x + 5  # This calculates but doesn't return
+
+result = add_five(10)  # result is None, not 15!
+
+# RIGHT: Always return the result
+def add_five(x):
+    return x + 5
+"""
+
+return_nothing = """
+# Functions without return give back None
+def print_message():
+    print("Hello!")
+    # No return statement
+
+result = print_message()  # result is None
+print(result)  # None
+"""
+
+multiple_returns = """
+# Only the FIRST return runs
+def get_status(hp):
+    return "Alive"
+    return "Dead"  # This line NEVER runs!
+
+# Use conditions for multiple returns
+def get_status(hp):
+    if hp > 0:
+        return "Alive"
+    return "Dead"
+"""
+
+[gotchas]
+return_exits = """
+`return` immediately exits the function - nothing after it runs!
+
+```python
+def broken():
+    return "Done"
+    print("This never prints!")
+```
+"""
+
+must_call = """
+Functions don't run until you call them!
+
+```python
+def get_gold():
+    return 100
+
+get_gold  # Does nothing! Missing ()
+gold = get_gold()  # Now it runs!
+```
+"""
+
+calling_syntax = """
+Function definition uses `def` with colon `:`,
+function call uses just the name with `()`:
+
+```python
+def get_score():  # Define: def name():
+    return 10
+
+score = get_score()  # Call: name()
+```
+"""
+
+[gamepad_tutorial]
+text = """
+🎮 FUNCTION CREATION:
+- Press Y to insert `def` keyword
+- Press B to insert `return` keyword
+- RT to auto-indent function body
+- RB to suggest a return value based on function name
+- A to confirm and create the function
+
+Example flow:
+1. Y → types "def "
+2. Type function name with radial
+3. RT → auto-indents
+4. Write function body
+5. B → types "return "
+6. Type what to return
+"""
+
+[challenges]
+starter = "def_return_simple"
+intermediate = "def_return_calculation"
+mastery = "def_return_game_logic"
+
+[fun_facts]
+naming = "Function names should be verbs: get_health(), calculate_damage(), is_alive()"
+reusable = "Write once, use everywhere! That's the power of functions."
+composition = "You can call one function from inside another function!"
+
+[fun_factor]
+type = "creation"
+description = "Build your own mini-programs that you can reuse"
+examples = ["get_max_damage()", "calculate_xp()", "is_level_up()"]
+
+[adaptive]
+weakness_signals = ["missing_return", "calling_without_parens", "return_unreachable_code"]
+strength_indicators = ["clean_function_names", "consistent_returns", "proper_calling"]
+
+[meta]
+the_bug_preview = """
+Later you'll learn about `scope` - where variables live.
+That's where Wings had THE BUG - mixing up local and global variables!
+"""

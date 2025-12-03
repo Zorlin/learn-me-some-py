@@ -1,0 +1,415 @@
+# Level 3: Scope - Where Variables Live
+# THIS IS THE BIG ONE: Where Wings had THE BUG
+# Prerequisite for: classes, closures, global state management
+
+[concept]
+id = "scope"
+name = "Scope: Local vs Global (THE BUG)"
+level = 3
+category = "functions"
+prerequisites = ["def_return", "parameters", "variables"]
+unlocks = ["classes", "closures", "nonlocal"]
+
+[description]
+brief = "Where can you see and use a variable?"
+detailed = """
+**SCOPE** determines where a variable exists and can be used.
+
+Think of variables like NPCs in a game:
+- Local variables = NPCs in a dungeon (only exist in that dungeon)
+- Global variables = NPCs in the town (exist everywhere)
+
+```python
+hp = 100  # Global - exists everywhere
+
+def take_damage(damage):
+    hp = hp - damage  # ERROR! Can't modify global hp like this
+    return hp
+
+# This is THE BUG that Wings hit!
+```
+
+The rule: **Functions see global variables but can't change them (unless you use `global`)**.
+"""
+
+[syntax]
+local_scope = """
+def calculate():
+    result = 10  # LOCAL - only exists inside this function
+    return result
+
+print(result)  # ERROR: 'result' doesn't exist out here!
+"""
+
+global_scope = """
+score = 0  # GLOBAL - exists everywhere
+
+def get_score():
+    return score  # Can READ global variables
+
+print(get_score())  # 0
+"""
+
+global_modification = """
+score = 0
+
+def add_points(points):
+    global score  # Say "I want to modify the global score"
+    score = score + points
+
+add_points(10)
+print(score)  # 10 - it worked!
+"""
+
+[the_bug]
+what_happened = """
+Wings wrote code like this and got confused:
+
+```python
+hp = 100  # Global variable
+
+def take_damage(damage):
+    hp = hp - damage  # UnboundLocalError!
+    return hp
+
+take_damage(10)
+```
+
+**Why it breaks:**
+1. Python sees `hp = ...` and thinks "hp is a LOCAL variable"
+2. But then `hp - damage` tries to READ hp BEFORE it's created
+3. Python says: "You're trying to use hp before defining it!"
+
+This is one of Python's most confusing errors for beginners.
+"""
+
+the_fix = """
+**Option 1: Use global keyword**
+```python
+hp = 100
+
+def take_damage(damage):
+    global hp  # "I'm using the global hp"
+    hp = hp - damage
+    return hp
+```
+
+**Option 2: Return new value (BETTER!)**
+```python
+hp = 100
+
+def take_damage(current_hp, damage):
+    return current_hp - damage
+
+hp = take_damage(hp, 10)  # hp is now 90
+```
+
+Option 2 is better because it's clearer and safer!
+"""
+
+why_option2_better = """
+Modifying global variables makes code hard to understand:
+- Hard to track who changed what
+- Functions can have "spooky action at a distance"
+- Testing becomes difficult
+- Bugs are harder to find
+
+Functions that take inputs and return outputs are:
+- Easy to understand
+- Easy to test
+- Easy to reuse
+- Less buggy
+"""
+
+[scoping_rules]
+read_vs_write = """
+**Reading** global variables: Just use them!
+```python
+max_hp = 100
+
+def is_dead(current_hp):
+    return current_hp <= 0  # Can read max_hp, but we don't need to
+```
+
+**Writing** global variables: Need `global` keyword!
+```python
+score = 0
+
+def add_score(points):
+    global score
+    score += points
+```
+"""
+
+parameter_scope = """
+Parameters are LOCAL to the function:
+```python
+def greet(name):  # 'name' only exists inside greet()
+    return f"Hello, {name}"
+
+print(name)  # ERROR: 'name' doesn't exist out here!
+```
+"""
+
+function_scope = """
+Variables created inside functions are LOCAL:
+```python
+def calculate():
+    result = 10  # LOCAL
+    temp = result * 2  # LOCAL
+    return temp
+
+print(result)  # ERROR: doesn't exist out here!
+print(temp)    # ERROR: doesn't exist out here!
+```
+"""
+
+nested_scope = """
+Inner functions can see outer function variables:
+```python
+def outer():
+    x = 10  # Outer scope
+
+    def inner():
+        return x  # Can see x from outer!
+
+    return inner()
+
+print(outer())  # 10
+```
+"""
+
+[common_mistakes]
+the_classic_bug = """
+# THE BUG: Trying to modify global without declaring it
+lives = 3
+
+def lose_life():
+    lives = lives - 1  # UnboundLocalError!
+    return lives
+
+# FIX 1: Use global
+def lose_life():
+    global lives
+    lives = lives - 1
+    return lives
+
+# FIX 2: Pass and return (BETTER!)
+def lose_life(current_lives):
+    return current_lives - 1
+
+lives = lose_life(lives)
+```
+"""
+
+shadowing = """
+# Variable shadowing - creates LOCAL variable with same name
+count = 10  # Global
+
+def increment():
+    count = 0  # New LOCAL variable, doesn't affect global!
+    count += 1
+    return count
+
+print(increment())  # 1
+print(count)  # Still 10! The global wasn't changed.
+
+# If you wanted to modify global:
+def increment():
+    global count
+    count += 1
+    return count
+```
+"""
+
+thinking_local_is_global = """
+# WRONG: Thinking variables escape function scope
+def set_name():
+    player_name = "Hero"
+
+set_name()
+print(player_name)  # ERROR: player_name doesn't exist!
+
+# RIGHT: Return the value
+def get_name():
+    return "Hero"
+
+player_name = get_name()
+print(player_name)  # "Hero"
+```
+"""
+
+mutable_gotcha = """
+# SNEAKY: Lists and dicts CAN be modified without global!
+inventory = []  # Global
+
+def add_item(item):
+    inventory.append(item)  # This WORKS! No error!
+    # Because we're not ASSIGNING to inventory
+    # We're calling a method on it
+
+add_item("sword")
+print(inventory)  # ["sword"]
+
+# But this would fail:
+def reset_inventory():
+    inventory = []  # UnboundLocalError! Trying to assign.
+
+# Fix:
+def reset_inventory():
+    global inventory
+    inventory = []
+```
+"""
+
+[debugging_scope_issues]
+check_for_assignment = """
+If you get UnboundLocalError, look for ANY assignment to that variable:
+
+```python
+x = 10
+
+def broken():
+    print(x)  # Try to read x
+    x = 5     # Oops! Assignment makes x local for ENTIRE function
+              # Even lines BEFORE this!
+
+# Python sees the assignment and says "x is local"
+# So print(x) tries to use local x before it's defined!
+```
+"""
+
+use_global_keyword = """
+If you MUST modify a global variable, use global:
+
+```python
+score = 0
+
+def add_points(points):
+    global score  # Must be FIRST line
+    score += points
+```
+"""
+
+prefer_return = """
+Best practice: Avoid global state, use return values:
+
+```python
+def update_score(current_score, points):
+    return current_score + points
+
+score = 0
+score = update_score(score, 10)  # Clear and testable!
+```
+"""
+
+[gotchas]
+assignment_makes_local = "ANY assignment to a variable makes it local for the ENTIRE function!"
+read_only_ok = "You can READ global variables without global keyword"
+global_must_be_first = "global declaration must come before using the variable"
+builtins = "Don't shadow built-in names: avoid naming variables 'list', 'dict', 'str', etc."
+
+[gamepad_tutorial]
+text = """
+🎮 SCOPE DEBUGGING MODE:
+- LB (while on a variable) shows its scope (local/global)
+- RB suggests if you need `global` keyword
+- D-pad UP to see all variables in current scope
+- D-pad DOWN to see all global variables
+- Y to toggle "scope visualizer" overlay
+
+When you get UnboundLocalError:
+1. Find the variable name in error
+2. Press LB on that variable
+3. Look for assignments that make it local
+4. Add `global` keyword OR use parameter instead
+"""
+
+[challenges]
+starter = "scope_read_global"
+intermediate = "scope_the_bug"  # Reproduce Wings' bug!
+mastery = "scope_proper_functions"
+
+[fun_facts]
+legb_rule = "Python looks for variables in this order: Local, Enclosing, Global, Built-in"
+nonlocal_keyword = "There's also `nonlocal` for nested functions!"
+closure = "Functions can 'capture' variables from outer scopes - that's a closure!"
+
+[fun_factor]
+type = "mastery"
+description = "Understanding scope prevents THE BUG and makes you a better programmer"
+examples = ["Avoiding global state bugs", "Writing testable functions", "Clear data flow"]
+
+[adaptive]
+weakness_signals = [
+    "UnboundLocalError",
+    "using_global_unnecessarily",
+    "shadowing_globals",
+    "mutable_global_modification"
+]
+strength_indicators = [
+    "parameter_passing",
+    "return_values",
+    "minimal_global_usage",
+    "clear_scope_boundaries"
+]
+
+[wings_story]
+the_bug = """
+Wings was building a game and had global HP that multiple functions needed to modify.
+He kept getting UnboundLocalError and couldn't figure out why.
+
+The breakthrough: Understanding that `hp = hp - damage` creates a LOCAL variable,
+even though it looks like it should modify the global!
+
+The solution: Either use `global hp` or (better) pass hp as a parameter and return the new value.
+
+This is one of Python's most confusing gotchas for beginners, but once you get it,
+you understand how Python thinks about variables!
+"""
+
+lesson_learned = """
+After understanding scope, Wings rewrote his game to use functions that:
+1. Take current state as parameters
+2. Return new state
+3. Don't modify globals
+
+This made the code:
+- Easier to test (no hidden global state)
+- Easier to debug (clear input/output)
+- Easier to understand (no spooky action at a distance)
+
+Global variables aren't evil, but using them wisely is a sign of mastery!
+"""
+
+[real_world]
+when_globals_ok = """
+Globals are fine for:
+- Configuration: MAX_RETRIES = 3
+- Constants: PI = 3.14159
+- Read-only state: GAME_VERSION = "1.0"
+
+Globals are risky for:
+- Mutable state: player_hp = 100 (use classes instead!)
+- Data that changes: score = 0 (pass as parameters!)
+- Anything multiple functions modify (use return values!)
+"""
+
+professional_pattern = """
+Professional Python uses classes to manage state:
+
+```python
+class Player:
+    def __init__(self):
+        self.hp = 100
+
+    def take_damage(self, damage):
+        self.hp = max(0, self.hp - damage)
+
+player = Player()
+player.take_damage(10)
+# No global variables! State lives in the object.
+```
+
+You'll learn this pattern in Level 5: Classes!
+"""

@@ -12,13 +12,14 @@ The learner's journey through Python is mapped as a graph,
 not a linear list. Some concepts unlock multiple paths.
 """
 
-from lmsp.python.concepts import Concept, ConceptLoader, ConceptRegistry
+from lmsp.python.concepts import Concept, ConceptLoader, ConceptRegistry, ConceptDAG
 from lmsp.python.challenges import Challenge, TestCase, ChallengeLoader
 
 __all__ = [
     "Concept",
     "ConceptLoader",
     "ConceptRegistry",
+    "ConceptDAG",
     "Challenge",
     "TestCase",
     "ChallengeLoader",

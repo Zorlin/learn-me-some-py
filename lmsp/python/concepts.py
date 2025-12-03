@@ -448,17 +448,32 @@ class ConceptDAG:
                 errors.append(f"Orphaned concept: '{node_id}' (no connections)")
 
         # Check for multiple components (disconnected subgraphs)
+        # Note: Multiple root nodes (level 0) can create separate components, which is OK
         if not nx.is_weakly_connected(self.graph):
             num_components = nx.number_weakly_connected_components(self.graph)
-            errors.append(
-                f"Graph is disconnected: {num_components} separate components"
+            # Only warn if we have truly disconnected non-root concepts
+            components = list(nx.weakly_connected_components(self.graph))
+            # Check if all components have at least one root node
+            all_have_roots = all(
+                any(
+                    self.concepts.get(node_id) and len(self.concepts[node_id].prerequisites) == 0
+                    for node_id in component
+                )
+                for component in components
             )
+            if not all_have_roots:
+                errors.append(
+                    f"Graph is disconnected: {num_components} separate components without root nodes"
+                )
 
         return errors
 
     def get_learning_path(self, from_concept: str, to_concept: str) -> list[str]:
         """
         Find the shortest learning path between two concepts.
+
+        The path follows edges in the graph direction (prereq -> concept).
+        This means from_concept should be a prerequisite of concepts leading to to_concept.
 
         Returns:
             List of concept IDs forming a path from from_concept to to_concept.
@@ -468,9 +483,13 @@ class ConceptDAG:
             return []
 
         try:
+            # The graph edges go from prereq -> dependent concept
+            # So shortest_path naturally gives us the learning order
             path = nx.shortest_path(self.graph, from_concept, to_concept)
             return path
         except nx.NetworkXNoPath:
+            return []
+        except nx.NodeNotFound:
             return []
 
     def get_concepts_by_level(self, level: int) -> list[Concept]:

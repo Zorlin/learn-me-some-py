@@ -1,0 +1,101 @@
+# Level 2: In Operator
+# Prerequisite for: list filtering, membership testing
+
+[concept]
+id = "in_operator"
+name = "In Operator: Is This Thing Here?"
+level = 2
+prerequisites = ["lists_basics", "for_loops_basics"]
+unlocks = ["list_comprehensions", "filtering_patterns"]
+
+[description]
+brief = "Check if something is in a container"
+detailed = """
+The 'in' operator is your membership tester. It answers "Is X in this container?"
+
+```python
+inventory = ["sword", "shield", "potion"]
+
+if "sword" in inventory:
+    print("Ready for battle!")
+
+if "map" not in inventory:
+    print("Need to find a map")
+```
+
+Works with lists, strings, dictionaries, sets, and tuples.
+"""
+
+[examples]
+basic = """
+# Check list membership
+fruits = ["apple", "banana", "cherry"]
+print("apple" in fruits)     # True
+print("grape" in fruits)     # False
+
+# Check string membership
+text = "Hello, World!"
+print("World" in text)       # True
+print("xyz" in text)         # False
+"""
+
+advanced = """
+# Check dict keys (not values!)
+player = {"name": "Alex", "level": 5}
+print("name" in player)      # True (key exists)
+print("Alex" in player)      # False (that's a value, not a key)
+
+# Check in values explicitly
+print("Alex" in player.values())  # True
+
+# Efficient set membership
+valid_commands = {"go", "look", "take", "quit"}
+cmd = "go"
+if cmd in valid_commands:    # O(1) for sets!
+    print("Valid command")
+"""
+
+[usage]
+lists = "item in my_list - searches through list (slow for big lists)"
+strings = "'sub' in 'substring' - checks if substring exists"
+dicts = "key in my_dict - checks if KEY exists (not value)"
+sets = "item in my_set - super fast membership check"
+tuples = "item in my_tuple - same as lists"
+
+[common_mistakes]
+dict_values = "'in' checks dict KEYS, not values. Use 'in dict.values()' for values"
+case_sensitive = "'Hello' in 'hello' is False - case matters in strings!"
+not_in_parentheses = "Use 'if x not in list' NOT 'if not x in list' (works but ugly)"
+
+[fun_facts]
+performance = "Sets use 'in' way faster than lists (O(1) vs O(n))"
+string_substring = "'in' finds substrings: 'cat' in 'catch' is True"
+negation = "Use 'not in' to check absence: if 'poison' not in inventory:"
+
+[gamepad_tutorial]
+text = """
+🎮 MEMBERSHIP CHECKER:
+- Press A on a container to insert 'in' check
+- D-pad LEFT for 'not in' variant
+- Hold LB + A to convert list to set (for faster checks)
+- RT to highlight all 'in' checks in current function
+"""
+
+[challenges]
+starter = "in_basic_membership"
+intermediate = "in_inventory_checker"
+mastery = "in_validator_system"
+
+[fun_factor]
+type = "search"
+description = "Like a bouncer checking if you're on the list"
+examples = ["inventory check", "command validator", "allowed values filter"]
+
+[adaptive]
+weakness_signals = ["dict_value_confusion", "case_sensitivity_error", "inefficient_list_search"]
+strength_indicators = ["set_usage_for_membership", "not_in_clarity", "appropriate_container"]
+
+[performance]
+list_complexity = "O(n) - has to check each item"
+set_complexity = "O(1) - instant lookup"
+tip = "If you're checking membership a lot, convert list to set first!"

@@ -1,0 +1,54 @@
+# Level 4: Lambda Functions  
+# Anonymous functions for simple operations
+
+[concept]
+id = "lambda"
+name = "Lambda: Anonymous Functions"
+level = 4
+prerequisites = ["def_return", "parameters"]
+
+[description]
+brief = "Create simple functions without 'def' - in one line!"
+detailed = """
+Lambda functions are tiny, unnamed functions for simple operations.
+
+**Regular function:**
+```python
+def double(x):
+    return x * 2
+```
+
+**Lambda function:**
+```python
+double = lambda x: x * 2
+```
+
+Same thing! But lambda is one line, no 'def' keyword, no 'return' keyword.
+"""
+
+[examples]
+basic = """
+# One parameter
+square = lambda x: x * x
+
+# Multiple parameters  
+add = lambda a, b: a + b
+
+# Sort by key
+pairs = [(1, 'one'), (3, 'three'), (2, 'two')]
+sorted_pairs = sorted(pairs, key=lambda x: x[1])
+"""
+
+[fun_factor]
+type = "elegance"
+description = "Write tiny inline functions that feel magical"
+examples = [
+    "sorted(enemies, key=lambda e: e.hp)",
+    "button.on_click(lambda: game.start())",
+    "filter(lambda x: x.is_visible, objects)"
+]
+
+[challenges]
+starter = "lambda_simple"
+intermediate = "lambda_sorting"
+mastery = "lambda_callbacks"
