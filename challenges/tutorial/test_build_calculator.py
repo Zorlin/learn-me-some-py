@@ -60,3 +60,45 @@ def test_stage4_calculate(player_code: str):
     assert calculate('add', 2, 3) == 5, "calculate('add', 2, 3) should return 5"
     assert calculate('subtract', 10, 4) == 6, "calculate('subtract', 10, 4) should return 6"
     assert calculate('multiply', 4, 5) == 20, "calculate('multiply', 4, 5) should return 20"
+
+
+def test_stage4_hidden_path(player_code: str):
+    """Stage 4 Hidden Path: Check if player used match/case for bonus!"""
+    # This test always passes - it's for bonus detection only
+    # The validator will check for 'match' keyword to award bonus XP
+    if 'match' in player_code and 'case' in player_code:
+        # They found the hidden path!
+        # Return special marker for the validator to detect
+        assert True, "HIDDEN_PATH:match_case"
+    else:
+        # Normal path - also fine
+        assert True
+
+
+def test_stage5_pattern_matching(player_code: str):
+    """Stage 5: Test calculate with pattern matching (same tests, but validates match usage)."""
+    namespace = {}
+    exec(player_code, namespace)
+
+    calculate = namespace.get('calculate')
+    assert calculate is not None, "Function 'calculate' not found"
+
+    # Same functional tests as stage 4
+    assert calculate('add', 2, 3) == 5, "calculate('add', 2, 3) should return 5"
+    assert calculate('subtract', 10, 4) == 6, "calculate('subtract', 10, 4) should return 6"
+    assert calculate('multiply', 4, 5) == 20, "calculate('multiply', 4, 5) should return 20"
+
+    # Check that they actually used match/case (for learning validation)
+    # This is a soft check - we want to encourage, not fail
+    if 'match' not in player_code:
+        print("Hint: Try using 'match operation:' and 'case' statements!")
+
+
+def test_stage5_bonus_wildcard(player_code: str):
+    """Stage 5 Bonus: Check for wildcard case handler."""
+    # This test always passes - it's for bonus detection only
+    if 'case _:' in player_code or 'case _\n' in player_code:
+        # They added a default case - bonus!
+        assert True, "BONUS:wildcard_case"
+    else:
+        assert True

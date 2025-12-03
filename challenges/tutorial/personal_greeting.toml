@@ -42,9 +42,9 @@ type = "pytest"
 test_file = "test_personal_greeting.py"
 
 [hints]
-level_1 = "First create a variable: name = \"YourName\""
-level_2 = "Then print it: print(\"Hello \" + name)"
-level_3 = "You can also use an f-string: print(f\"Hello {name}\")"
+level_1 = "First create a variable: `name = \"YourName\"`"
+level_2 = "Then print it: `print(\"Hello \" + name)`"
+level_3 = "You can also use an f-string: `print(f\"Hello {name}\")`"
 level_4 = """
 Two ways to solve this:
 

@@ -1,138 +1,246 @@
-# Challenge: Word Frequency Counter
-# Learn dictionaries through text analysis
+# Challenge: Word Frequency Counter (Multi-Stage)
+# Learn dictionaries through text analysis, step by step
 
 [challenge]
 id = "word_counter"
 name = "Word Frequency Counter"
 level = 2
-prerequisites = ["dicts_basics", "for_loops", "string_methods"]
+prerequisites = ["dicts_basics", "for_loops"]
+concepts_required = ["dict_basics", "dict_key_check", "for_loop_basics"]
+concepts_teaches = ["dict_get_method"]  # Extra credit concept
 
 [description]
-brief = "Count how many times each word appears in text"
+brief = "Count word frequencies and query them"
 detailed = """
-You're building a text analyzer to find the most common words.
+Let's build a word frequency analyzer - step by step!
 
-Given a list of words, count how many times each word appears.
-Return results as commands:
-- COUNT <word>: Return the count for that word as a string
-- MOST: Return the most frequent word
-- TOTAL: Return total number of unique words
+This is how real text analysis works: count words, then answer questions.
+We'll start simple and add features as we go.
 
-Example:
-Input: ["hello", "world", "hello"]
-Commands: ["COUNT hello", "COUNT world", "MOST", "TOTAL"]
-Output: ["2", "1", "hello", "2"]
+Stage 1: Count words into a dictionary
+Stage 2: Look up individual word counts
+Stage 3: Find the total unique words
+Stage 4: Find the most common word
 """
 
 [skeleton]
 code = '''
-def solution(words, commands):
-    # Count how many times each word appears
-    # Process commands to query the counts
-    # Return list of string results
-    pass
+# STAGE 1: Count Words
+#
+# Example:
+#   count_words(["cat", "dog", "cat"])
+#   Returns: {"cat": 2, "dog": 1}
+
+def count_words(words):
+    counts = {}  # Empty dictionary to store word counts
+
+    # TODO: Loop through each word in words
+    # For each word, add 1 to its count in the dictionary
+
+    return counts
 '''
 
-[tests]
-[[tests.case]]
-name = "basic_counting"
-input.words = ["hello", "world", "hello", "python"]
-input.commands = ["COUNT hello", "COUNT world", "COUNT python"]
-expected = ["2", "1", "1"]
-
-[[tests.case]]
-name = "most_frequent"
-input.words = ["cat", "dog", "cat", "cat", "dog"]
-input.commands = ["MOST"]
-expected = ["cat"]
-
-[[tests.case]]
-name = "total_unique"
-input.words = ["apple", "banana", "apple", "cherry"]
-input.commands = ["TOTAL"]
-expected = ["3"]
-
-[[tests.case]]
-name = "word_not_found"
-input.words = ["hello", "world"]
-input.commands = ["COUNT missing"]
-expected = ["0"]
-
-[[tests.case]]
-name = "combined"
-input.words = ["the", "cat", "sat", "on", "the", "mat"]
-input.commands = ["COUNT the", "MOST", "TOTAL"]
-expected = ["2", "the", "5"]
+[validation]
+type = "pytest"
+test_file = "test_word_counter.py"
 
 [hints]
-level_1 = "Use a dictionary to store word counts: word_counts = {}"
-level_2 = "Loop through words: for word in words: word_counts[word] = ..."
-level_3 = "Check if word exists in dict before incrementing: if word in word_counts"
-level_4 = """
-Pattern for counting:
-```python
-counts = {}
-for word in words:
-    if word in counts:
-        counts[word] += 1
-    else:
-        counts[word] = 1
-```
-
-Or use .get():
-```python
-counts[word] = counts.get(word, 0) + 1
-```
-"""
-
-[gamepad_hints]
-easy_mode = """
-🎮 WORD COUNTER GUIDE:
-1. Create counts = {} dictionary
-2. Loop through each word
-3. If word exists, add 1. If not, set to 1
-4. For MOST, find word with highest count
-5. For TOTAL, use len(counts)
-"""
-
-[solution]
-# Hidden from player
-code = '''
-def solution(words, commands):
-    # Count word frequencies
-    counts = {}
-    for word in words:
-        counts[word] = counts.get(word, 0) + 1
-
-    # Process commands
-    results = []
-    for command in commands:
-        parts = command.split()
-        action = parts[0]
-
-        if action == "COUNT":
-            word = parts[1]
-            count = counts.get(word, 0)
-            results.append(str(count))
-        elif action == "MOST":
-            if counts:
-                most_common = max(counts, key=counts.get)
-                results.append(most_common)
-            else:
-                results.append("")
-        elif action == "TOTAL":
-            results.append(str(len(counts)))
-
-    return results
-'''
+level_1 = "Use a dictionary to store counts: counts = {}"
+level_2 = "Loop through words with: for word in words"
+level_3 = "Use counts.get(word, 0) + 1 to safely increment"
 
 [meta]
 time_limit_seconds = 600
-speed_run_target = 150
-points = 35
-xp_reward = 35
+speed_run_target = 180
+points = 150
+xp_reward = 150
 category = "data_processing"
-next_challenge = "fizz_buzz"
+
+# ============================================================================
+# Stage 1: Basic Counting
+# ============================================================================
+
+[stages.stage_1]
+name = "Count Words"
+description = """
+Create a function that counts word frequencies.
+
+```python
+def count_words(words):
+    # Return a dictionary with word counts
+```
+
+**Examples:**
+- `count_words(["cat", "dog", "cat"])` → `{"cat": 2, "dog": 1}`
+- `count_words(["hello"])` → `{"hello": 1}`
+- `count_words([])` → `{}`
+"""
+skeleton_code = '''
+# STAGE 1: Count Words
+#
+# Example:
+#   count_words(["cat", "dog", "cat"])
+#   Returns: {"cat": 2, "dog": 1}
+
+def count_words(words):
+    counts = {}  # Empty dictionary to store word counts
+
+    # TODO: Loop through each word in words
+    # For each word, add 1 to its count in the dictionary
+
+    return counts
+'''
+
+[stages.stage_1.hints]
+level_1 = "Start with `for word in words:` to loop through each word"
+level_2 = "Problem: `counts[word] += 1` crashes if word isn't in the dict yet (KeyError!)"
+level_3 = "Use `if word in counts:` to check if the word exists first"
+level_4 = """
+The pattern: check if word exists, then act accordingly:
+
+```python
+for word in words:
+    if word in counts:
+        counts[word] += 1  # Already seen, add 1
+    else:
+        counts[word] = 1   # First time, start at 1
+```
+"""
+
+[stages.stage_1.extra_credit]
+title = "Pro Shortcut: .get()"
+content = """
+Once you understand the if/else pattern, there's a one-liner:
+
+```python
+counts[word] = counts.get(word, 0) + 1
+```
+
+`.get(word, 0)` returns the count if it exists, or 0 if it's new.
+Then we add 1 and store it back. Same result, less code!
+"""
+
+# ============================================================================
+# Stage 2: COUNT Command
+# ============================================================================
+
+[stages.stage_2]
+name = "Look Up Counts"
+description = """
+Now add a function to look up the count for a specific word.
+
+**Keep your `count_words` function!** We'll use it.
+
+```python
+def get_count(counts, word):
+    # Return the count for a word (0 if not found)
+```
+
+**Examples:**
+- `get_count({"cat": 2, "dog": 1}, "cat")` → `2`
+- `get_count({"cat": 2, "dog": 1}, "bird")` → `0`
+
+Tip: Use `.get()` with a default value!
+"""
+
+[stages.stage_2.hints]
+level_1 = "Use dict.get(key, default) to safely get a value"
+level_2 = "`return counts.get(word, 0)`"
+
+# ============================================================================
+# Stage 3: TOTAL Command
+# ============================================================================
+
+[stages.stage_3]
+name = "Count Unique Words"
+description = """
+Add a function to count how many unique words there are.
+
+```python
+def get_unique_count(counts):
+    # Return the number of different words
+```
+
+**Examples:**
+- `get_unique_count({"cat": 2, "dog": 1})` → `2`
+- `get_unique_count({})` → `0`
+
+Hint: The dictionary already has one entry per unique word...
+"""
+
+[stages.stage_3.hints]
+level_1 = "Each key in the dictionary is a unique word"
+level_2 = "Use len() on the dictionary"
+level_3 = "`return len(counts)`"
+
+# ============================================================================
+# Stage 4: MOST Command
+# ============================================================================
+
+[stages.stage_4]
+name = "Find Most Common"
+description = """
+The grand finale! Find the most frequently occurring word.
+
+```python
+def get_most_common(counts):
+    # Return the word with the highest count
+    # Return "" if counts is empty
+```
+
+**Examples:**
+- `get_most_common({"cat": 5, "dog": 2, "bird": 3})` → `"cat"`
+- `get_most_common({})` → `""`
+
+This is trickier! You need to find which key has the maximum value.
+
+Hint: Python's `max()` function can take a `key` parameter...
+"""
+
+[stages.stage_4.hints]
+level_1 = "You could loop through and track the max, or use max() with key="
+level_2 = "max(counts, key=counts.get) returns the key with highest value"
+level_3 = """
+```python
+def get_most_common(counts):
+    if not counts:
+        return ""
+    return max(counts, key=counts.get)
+```
+
+The `key=counts.get` tells max() to compare by the dict values, not the keys!
+"""
+
+# Hidden path: if they use Counter from collections
+[stages.stage_4.hidden_path]
+detect_pattern = "Counter"
+bonus_xp = 50
+achievement = "collections_explorer"
+message = "You found Counter from collections! That's the pro way to do this."
+
+# ============================================================================
+# Solution
+# ============================================================================
+
+[solution]
+code = '''
+def count_words(words):
+    counts = {}
+    for word in words:
+        counts[word] = counts.get(word, 0) + 1
+    return counts
+
+def get_count(counts, word):
+    return counts.get(word, 0)
+
+def get_unique_count(counts):
+    return len(counts)
+
+def get_most_common(counts):
+    if not counts:
+        return ""
+    return max(counts, key=counts.get)
+'''
 
 [adaptive]
 fun_factor = "analytical"
@@ -140,11 +248,35 @@ weakness_signals = ["dict_key_error", "forgot_get_default", "max_on_empty_dict"]
 project_themes = ["text_analysis", "search_engine", "chat_analyzer", "log_processor"]
 
 [emotional_checkpoints]
-after_first_test_pass = """
-🎮 Your counting works! Dictionaries are powerful.
-   [RT] if this clicked for you
+after_stage_1 = """
+Dictionary counting works! This is the core of text analysis.
+[RT] if dictionaries are clicking
 """
-after_completion = """
-🎮 Word counter complete! This is real data science.
-   [RT] Love data  |  [LT] Meh  |  [Y] What's next?
+after_stage_2 = """
+You can look up any word's count now. .get() with defaults is powerful!
 """
+after_stage_4 = """
+You built a complete word frequency analyzer!
+
+Functions you created:
+- count_words(words) - counts frequencies
+- get_count(counts, word) - looks up a word
+- get_unique_count(counts) - counts unique words
+- get_most_common(counts) - finds the winner
+
+This is real text processing. Search engines, spam filters,
+and AI language models all start with counting words!
+
+[RT] Love data analysis | [LT] Want harder challenges | [Y] What's next?
+"""
+
+# Self-teaching note:
+#
+# This file demonstrates:
+# - Dictionaries for counting (Level 2)
+# - The .get() method with defaults (Level 2)
+# - Using len() on dictionaries (Level 1)
+# - max() with key parameter (Level 3)
+#
+# Breaking into stages prevents overwhelming the learner.
+# Each stage teaches ONE concept.

@@ -49,9 +49,9 @@ test_file = "test_guess_my_number.py"
 # Tests are defined in test_guess_my_number.py
 
 [hints]
-level_1 = "Use input() to get the guess: guess = input('Enter a number: ')"
-level_2 = "Convert to int: guess = int(input('Enter a number: '))"
-level_3 = "Compare with if: if guess == secret:"
+level_1 = "Use `input()` to get the guess: `guess = input('Enter a number: ')`"
+level_2 = "Convert to int: `guess = int(input('Enter a number: '))`"
+level_3 = "Compare with if: `if guess == secret:`"
 level_4 = """
 Complete solution:
 ```python

@@ -56,9 +56,9 @@ setup = 'name = "Wings"'
 expected = ["Your name has 5 letters"]
 
 [hints]
-level_1 = "Use len(name) to get the length"
-level_2 = "Store it: length = len(name)"
-level_3 = "Print with f-string: print(f\"Your name has {length} letters\")"
+level_1 = "Use `len(name)` to get the length"
+level_2 = "Store it: `length = len(name)`"
+level_3 = "Print with f-string: `print(f\"Your name has {length} letters\")`"
 level_4 = """
 Complete solution:
 ```python

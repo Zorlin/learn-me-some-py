@@ -18,7 +18,8 @@ so by the end you'll have a fully working calculator.
 Stage 1: Addition
 Stage 2: Subtraction
 Stage 3: Multiplication
-Stage 4: All together with a main function
+Stage 4: Put it all together (with a hidden path!)
+Stage 5: Refactor with pattern matching
 """
 
 [skeleton]
@@ -36,8 +37,8 @@ type = "pytest"
 test_file = "test_build_calculator.py"
 
 [hints]
-level_1 = "Functions use 'return' to give back a value"
-level_2 = "def add(a, b): return a + b"
+level_1 = "Functions use `return` to give back a value"
+level_2 = "`def add(a, b): return a + b`"
 
 [meta]
 time_limit_seconds = 600
@@ -79,8 +80,8 @@ input = [-1, 5]
 expected = 4
 
 [stages.stage_1.hints]
-level_1 = "Use the + operator"
-level_2 = "return a + b"
+level_1 = "Use the `+` operator"
+level_2 = "`return a + b`"
 
 [stages.stage_2]
 name = "Subtraction"
@@ -112,8 +113,8 @@ input = [5, 8]
 expected = -3
 
 [stages.stage_2.hints]
-level_1 = "Use the - operator"
-level_2 = "def subtract(a, b): return a - b"
+level_1 = "Use the `-` operator"
+level_2 = "`def subtract(a, b): return a - b`"
 
 [stages.stage_3]
 name = "Multiplication"
@@ -144,13 +145,13 @@ input = [0, 100]
 expected = 0
 
 [stages.stage_3.hints]
-level_1 = "Use the * operator"
-level_2 = "def multiply(a, b): return a * b"
+level_1 = "Use the `*` operator"
+level_2 = "`def multiply(a, b): return a * b`"
 
 [stages.stage_4]
-name = "Calculator Complete"
+name = "Dispatcher Function"
 description = """
-**Final stage!** Create the dispatcher function:
+Create the dispatcher function that routes to the right operation:
 
 ```python
 def calculate(operation, a, b):
@@ -165,6 +166,12 @@ The `operation` parameter is a string: `'add'`, `'subtract'`, or `'multiply'`.
 - `calculate('multiply', 4, 5)` → returns `20`
 
 Use `if/elif` to check which operation to call!
+
+---
+
+🔮 **Hidden Path:** There's another way to solve this - a Python 3.10+ feature
+that's cleaner for exactly this kind of problem. If you know it and use it here,
+you'll unlock bonus XP and skip ahead! *Hint: it rhymes with "batch"...*
 """
 
 [stages.stage_4.tests]
@@ -184,8 +191,9 @@ input = ["multiply", 4, 5]
 expected = 20
 
 [stages.stage_4.hints]
-level_1 = "Use if/elif to check the operation string"
+level_1 = "Use `if/elif` to check the operation string"
 level_2 = """
+```python
 def calculate(op, a, b):
     if op == 'add':
         return add(a, b)
@@ -193,7 +201,83 @@ def calculate(op, a, b):
         return subtract(a, b)
     elif op == 'multiply':
         return multiply(a, b)
+```
 """
+
+# Hidden path: if they use match/case in Stage 4, mark as "hidden_path_match"
+[stages.stage_4.hidden_path]
+detect_pattern = "match"
+bonus_xp = 50
+skip_to_stage = 6  # Skip Stage 5 (which teaches what they already know!)
+achievement = "pattern_pioneer"
+message = "🔮 You found the hidden path! Pattern matching unlocked early!"
+
+[stages.stage_5]
+name = "Pattern Matching Refactor"
+description = """
+**Level up your code!** Python 3.10 introduced `match`/`case` - perfect for this!
+
+Refactor your `calculate` function to use pattern matching:
+
+```python
+def calculate(operation, a, b):
+    match operation:
+        case 'add':
+            return add(a, b)
+        case 'subtract':
+            return subtract(a, b)
+        case 'multiply':
+            return multiply(a, b)
+```
+
+This is called **structural pattern matching** - it's cleaner than `if/elif`
+when you're matching against specific values!
+
+**Why is this better?**
+- Clearer intent: "match this value against these cases"
+- No repeated `operation ==` comparisons
+- Python checks for exhaustiveness (did you cover all cases?)
+- Can match complex patterns (we'll learn more later!)
+
+Your tests will pass with either `if/elif` or `match` - both are valid Python!
+"""
+
+[stages.stage_5.tests]
+[[stages.stage_5.tests.case]]
+name = "match_add"
+input = ["add", 2, 3]
+expected = 5
+
+[[stages.stage_5.tests.case]]
+name = "match_subtract"
+input = ["subtract", 10, 4]
+expected = 6
+
+[[stages.stage_5.tests.case]]
+name = "match_multiply"
+input = ["multiply", 4, 5]
+expected = 20
+
+[stages.stage_5.hints]
+level_1 = "Replace `if/elif` with `match/case` - the structure is similar!"
+level_2 = """
+```python
+def calculate(op, a, b):
+    match op:
+        case 'add':
+            return add(a, b)
+        case 'subtract':
+            return subtract(a, b)
+        case 'multiply':
+            return multiply(a, b)
+```
+"""
+
+# Bonus: detect if they add a default case
+[stages.stage_5.bonus]
+detect_pattern = "case _:"
+bonus_xp = 25
+message = "✨ You added a wildcard case! Great defensive coding!"
 
 [solution]
 code = '''
@@ -207,28 +291,36 @@ def multiply(a, b):
     return a * b
 
 def calculate(op, a, b):
-    if op == 'add':
-        return add(a, b)
-    elif op == 'subtract':
-        return subtract(a, b)
-    elif op == 'multiply':
-        return multiply(a, b)
+    match op:
+        case 'add':
+            return add(a, b)
+        case 'subtract':
+            return subtract(a, b)
+        case 'multiply':
+            return multiply(a, b)
+        case _:
+            raise ValueError(f"Unknown operation: {op}")
 '''
 
 [adaptive]
 fun_factor = "building_something"
-weakness_signals = ["no_return", "wrong_operator", "function_syntax"]
+weakness_signals = ["no_return", "wrong_operator", "function_syntax", "string_vs_identifier"]
 project_themes = ["calculators", "math_tools", "utilities"]
 
 [emotional_checkpoints]
 after_completion = """
-You built a real calculator!
+You built a real calculator with pattern matching!
 
 Functions you created:
 - add(a, b)
 - subtract(a, b)
 - multiply(a, b)
-- calculate(op, a, b)
+- calculate(op, a, b) - with `match`/`case`!
+
+You've learned:
+- Function definitions
+- Return values
+- Pattern matching (Python 3.10+)
 
 This is how real programs are built - one piece at a time!
 

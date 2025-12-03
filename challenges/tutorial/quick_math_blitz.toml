@@ -58,9 +58,9 @@ type = "pytest"
 test_file = "test_quick_math_blitz.py"
 
 [hints]
-level_1 = "Just do the math! 15 + 27 = 42"
-level_2 = "100 - 37 = 63, 8 * 12 = 96, 144 / 12 = 12"
-level_3 = "result5 uses result1 and result2: (42 + 63) * 2 = 210"
+level_1 = "Just do the math! `15 + 27 = 42`"
+level_2 = "`100 - 37 = 63`, `8 * 12 = 96`, `144 / 12 = 12`"
+level_3 = "`result5` uses `result1` and `result2`: `(42 + 63) * 2 = 210`"
 
 [meta]
 time_limit_seconds = 60

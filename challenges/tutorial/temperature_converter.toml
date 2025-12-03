@@ -40,9 +40,9 @@ type = "pytest"
 test_file = "test_temperature_converter.py"
 
 [hints]
-level_1 = "The formula is: (fahrenheit - 32) * 5 / 9"
-level_2 = "Use parentheses to control order: (fahrenheit - 32) * 5 / 9"
-level_3 = "Round it: celsius = round((fahrenheit - 32) * 5 / 9, 1)"
+level_1 = "The formula is: `(fahrenheit - 32) * 5 / 9`"
+level_2 = "Use parentheses to control order: `(fahrenheit - 32) * 5 / 9`"
+level_3 = "Round it: `celsius = round((fahrenheit - 32) * 5 / 9, 1)`"
 level_4 = """
 Complete solution:
 ```python

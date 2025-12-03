@@ -50,8 +50,8 @@ test_file = "test_mad_libs.py"
 
 [hints]
 level_1 = "Create four string variables"
-level_2 = "Combine with +: \"The \" + adjective + \" \" + noun + ..."
-level_3 = "Or use f-string: f\"The {adjective} {noun} {verb} to the {place}\""
+level_2 = "Combine with `+`: `\"The \" + adjective + \" \" + noun + ...`"
+level_3 = "Or use f-string: `f\"The {adjective} {noun} {verb} to the {place}\"`"
 level_4 = """
 Two solutions:
 

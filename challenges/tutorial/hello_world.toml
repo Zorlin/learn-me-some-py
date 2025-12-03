@@ -34,8 +34,8 @@ input = []
 expected = ["Hello, World!"]
 
 [hints]
-level_1 = "Use the print() function"
-level_2 = "Put text inside quotes: print(\"Hello, World!\")"
+level_1 = "Use the `print()` function"
+level_2 = "Put text inside quotes: `print(\"Hello, World!\")`"
 level_3 = "Make sure your spelling and punctuation match exactly!"
 level_4 = """
 The solution is:
