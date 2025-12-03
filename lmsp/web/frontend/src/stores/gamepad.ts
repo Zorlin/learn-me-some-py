@@ -130,10 +130,38 @@ export const useGamepadStore = defineStore('gamepad', () => {
   }
 
   function updateState(gp: Gamepad) {
-    // Triggers are buttons 6/7 on standard controllers (Xbox, PS, etc.)
-    // They provide analog values from 0.0 (unpressed) to 1.0 (fully pressed)
-    const rawLeftTrigger = gp.buttons[6]?.value ?? 0
-    const rawRightTrigger = gp.buttons[7]?.value ?? 0
+    // Triggers handling - different controllers report differently:
+    // - Some controllers: buttons[6]/buttons[7] with analog .value (0-1)
+    // - Xbox controllers: axes[2] (LT) and axes[5] (RT) ranging 0-1 or -1 to 1
+    // We check both and use whichever has a value
+
+    let rawLeftTrigger = 0
+    let rawRightTrigger = 0
+
+    // Try button values first (PS, some others)
+    const buttonLT = gp.buttons[6]?.value ?? 0
+    const buttonRT = gp.buttons[7]?.value ?? 0
+
+    // Try axis values (Xbox) - axes 2 and 5 are common for triggers
+    // Some controllers use -1 to 1 range, others use 0 to 1
+    let axisLT = 0
+    let axisRT = 0
+
+    if (gp.axes.length > 2) {
+      // Axis 2 is often LT on Xbox
+      const raw2 = gp.axes[2] ?? 0
+      // Normalize: if range is -1 to 1, convert to 0 to 1
+      axisLT = raw2 < 0 ? 0 : raw2
+    }
+    if (gp.axes.length > 5) {
+      // Axis 5 is often RT on Xbox
+      const raw5 = gp.axes[5] ?? 0
+      axisRT = raw5 < 0 ? 0 : raw5
+    }
+
+    // Use whichever source has the higher value
+    rawLeftTrigger = Math.max(buttonLT, axisLT)
+    rawRightTrigger = Math.max(buttonRT, axisRT)
 
     // Apply deadzone to prevent drift and ensure clean 0 at rest
     const newLeftTrigger = applyDeadzone(rawLeftTrigger, TRIGGER_DEADZONE)
@@ -262,9 +290,36 @@ export const useGamepadStore = defineStore('gamepad', () => {
           console.log('🎮 Raw gamepad data:')
           console.log('   Buttons:', gp.buttons.map((b, i) => `${i}:${b.value.toFixed(2)}`).join(' '))
           console.log('   Axes:', gp.axes.map((a, i) => `${i}:${a.toFixed(2)}`).join(' '))
+          // Highlight non-zero axes (likely active triggers/sticks)
+          const activeAxes = gp.axes.map((a, i) => ({ i, v: a })).filter(x => Math.abs(x.v) > 0.1)
+          if (activeAxes.length > 0) {
+            console.log('   Active axes:', activeAxes.map(x => `axis[${x.i}]=${x.v.toFixed(2)}`).join(', '))
+          }
         } else {
           console.log('🎮 No gamepad connected')
         }
+      },
+      // Live axis monitor - call while pressing triggers to find which axis they use
+      axisMonitor: () => {
+        console.log('🎮 Axis monitor started - press triggers to see which axes move')
+        let lastAxes: number[] = []
+        const monitor = () => {
+          const gp = navigator.getGamepads()[0]
+          if (!gp) return
+          const changed = gp.axes.map((a, i) => {
+            const prev = lastAxes[i] ?? 0
+            const diff = Math.abs(a - prev)
+            return diff > 0.05 ? `axis[${i}]: ${a.toFixed(2)}` : null
+          }).filter(Boolean)
+          if (changed.length > 0) {
+            console.log('🎮 Axis change:', changed.join(', '))
+          }
+          lastAxes = [...gp.axes]
+          if (debugMode.value) requestAnimationFrame(monitor)
+        }
+        debugMode.value = true
+        requestAnimationFrame(monitor)
+        console.log('🎮 Call gamepadDebug.disable() to stop')
       },
     }
     console.log('🎮 Gamepad debug available: gamepadDebug.enable(), gamepadDebug.verbose(), gamepadDebug.status(), gamepadDebug.raw()')
