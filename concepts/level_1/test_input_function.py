@@ -65,9 +65,9 @@ class TestInputFunction:
         """Code should ask for both name and favorite color."""
         # Check for relevant keywords in prompts
         code_lower = player_code.lower()
-        assert any(word in code_lower for word in ["name", "what's your name"]),
+        assert any(word in code_lower for word in ["name", "what's your name"]), \
                "Code should ask for the user's name"
-        assert any(word in code_lower for word in ["color", "favourite", "favorite"]),
+        assert any(word in code_lower for word in ["color", "favourite", "favorite"]), \
                "Code should ask for the user's favorite color"
 
     def test_uses_user_input_in_output(self, player_code: str):
