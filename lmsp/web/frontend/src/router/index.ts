@@ -26,6 +26,21 @@ const router = createRouter({
       component: () => import('@/views/ChallengeView.vue'),
     },
     {
+      path: '/concepts',
+      name: 'concepts',
+      component: () => import('@/views/ConceptsView.vue'),
+    },
+    {
+      path: '/concept/:id',
+      name: 'concept',
+      component: () => import('@/views/ConceptLessonView.vue'),
+    },
+    {
+      // Alias: /concepts/foo -> /concept/foo (common typo)
+      path: '/concepts/:id',
+      redirect: to => `/concept/${to.params.id}`,
+    },
+    {
       path: '/progress',
       name: 'progress',
       component: () => import('@/views/ProgressView.vue'),
