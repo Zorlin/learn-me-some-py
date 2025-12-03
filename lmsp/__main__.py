@@ -1,0 +1,10 @@
+"""
+LMSP Package Entry Point
+
+Allows running LMSP with: python -m lmsp
+"""
+
+from lmsp.main import main
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <link rel="stylesheet" href="/static/css/oled-dark.css">
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="/static/js/gamepad.js"></script>
+</head>
+<body>
+    <div id="app">
+        <header>
+            <h1>🎮 LMSP - Learn Me Some Py</h1>
+            <div id="player-info">
+                <span class="player-id">Player: {{ player_id }}</span>
+                <span id="gamepad-status" class="status">⚙️ Detecting gamepad...</span>
+            </div>
+        </header>
+
+        <main>
+            <section id="welcome">
+                <div class="panel">
+                    <h2>Welcome to LMSP</h2>
+                    <p>The game that teaches you to build it</p>
+
+                    <div class="button-group">
+                        <button
+                            class="btn btn-primary"
+                            hx-get="/challenges"
+                            hx-target="#content"
+                            hx-swap="innerHTML">
+                            🚀 Start Learning
+                        </button>
+                        <button
+                            class="btn btn-secondary"
+                            hx-get="/progress"
+                            hx-target="#content"
+                            hx-swap="innerHTML">
+                            📊 View Progress
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <section id="content">
+                <!-- Dynamic content loaded via HTMX -->
+            </section>
+        </main>
+
+        <footer>
+            <p>Built with FastAPI + HTMX | Gamepad Ready 🎮</p>
+        </footer>
+    </div>
+
+    <script>
+        // Initialize gamepad detection
+        window.addEventListener('gamepadconnected', (e) => {
+            document.getElementById('gamepad-status').textContent = '🎮 Gamepad Connected';
+            document.getElementById('gamepad-status').classList.add('connected');
+        });
+
+        window.addEventListener('gamepaddisconnected', (e) => {
+            document.getElementById('gamepad-status').textContent = '⚙️ Gamepad Disconnected';
+            document.getElementById('gamepad-status').classList.remove('connected');
+        });
+    </script>
+</body>
+</html>

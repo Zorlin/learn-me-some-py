@@ -1,0 +1,274 @@
+/*
+ * LMSP OLED-Black Dark Theme
+ * ==========================
+ *
+ * Gorgeous, understated dark theme optimized for OLED displays.
+ * True black (#000000) background with vibrant accent colors.
+ *
+ * Design principles:
+ * - True black (#000) for OLED power savings
+ * - High contrast for readability
+ * - Smooth transitions for polish
+ * - Gaming-first aesthetic
+ */
+
+:root {
+    --bg-primary: #000000;
+    --bg-secondary: #0a0a0a;
+    --bg-panel: #111111;
+    --bg-hover: #1a1a1a;
+
+    --text-primary: #e0e0e0;
+    --text-secondary: #a0a0a0;
+    --text-muted: #666666;
+
+    --accent-primary: #00ff88;
+    --accent-secondary: #00ccff;
+    --accent-warning: #ffaa00;
+    --accent-error: #ff4444;
+
+    --border-color: #222222;
+    --border-hover: #333333;
+
+    --shadow: 0 4px 12px rgba(0, 255, 136, 0.1);
+    --glow: 0 0 20px rgba(0, 255, 136, 0.3);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    line-height: 1.6;
+    min-height: 100vh;
+}
+
+#app {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* Header */
+header {
+    background: var(--bg-secondary);
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+header h1 {
+    font-size: 1.5rem;
+    color: var(--accent-primary);
+    font-weight: 600;
+}
+
+#player-info {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+}
+
+.player-id {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.status {
+    padding: 0.4rem 0.8rem;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 0.85rem;
+    transition: all 0.3s ease;
+}
+
+.status.connected {
+    border-color: var(--accent-primary);
+    background: rgba(0, 255, 136, 0.1);
+    color: var(--accent-primary);
+    box-shadow: var(--glow);
+}
+
+/* Main Content */
+main {
+    flex: 1;
+    padding: 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+section {
+    margin-bottom: 2rem;
+}
+
+/* Panels */
+.panel {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: var(--shadow);
+    transition: all 0.3s ease;
+}
+
+.panel:hover {
+    border-color: var(--border-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 255, 136, 0.15);
+}
+
+.panel h2 {
+    font-size: 1.8rem;
+    margin-bottom: 0.5rem;
+    color: var(--accent-primary);
+}
+
+.panel p {
+    color: var(--text-secondary);
+    margin-bottom: 1.5rem;
+}
+
+/* Buttons */
+.button-group {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.btn {
+    padding: 0.8rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 500;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-primary {
+    background: var(--accent-primary);
+    color: var(--bg-primary);
+}
+
+.btn-primary:hover {
+    background: #00dd77;
+    transform: translateY(-2px);
+    box-shadow: var(--glow);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
+}
+
+.btn-secondary {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+.btn-secondary:hover {
+    background: var(--bg-hover);
+    border-color: var(--border-hover);
+}
+
+/* Content Area */
+#content {
+    min-height: 300px;
+    padding: 1rem 0;
+}
+
+/* Footer */
+footer {
+    background: var(--bg-secondary);
+    padding: 1.5rem 2rem;
+    border-top: 1px solid var(--border-color);
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+/* Loading State */
+.htmx-request {
+    opacity: 0.7;
+    transition: opacity 0.3s ease;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    header {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    main {
+        padding: 1rem;
+    }
+
+    .panel {
+        padding: 1.5rem;
+    }
+
+    .button-group {
+        flex-direction: column;
+    }
+
+    .btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* Accessibility */
+.btn:focus,
+.status:focus {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.panel {
+    animation: fadeIn 0.4s ease;
+}
+
+/* Self-teaching note:
+ *
+ * This CSS demonstrates:
+ * - CSS custom properties (CSS variables) for theming (Level 5+: Advanced CSS)
+ * - OLED-optimized color palette with true black (#000) (Professional: UX design)
+ * - Flexbox for responsive layouts (Level 4+: CSS layout)
+ * - CSS transitions and animations for polish (Level 5+: Animation)
+ * - Media queries for responsive design (Level 4+: Responsive design)
+ * - Focus states for accessibility (Level 5+: A11y)
+ * - BEM-style naming conventions (Professional: CSS architecture)
+ *
+ * Key principles:
+ * - True black (#000) saves power on OLED displays
+ * - High contrast ensures readability in dark environments
+ * - Smooth transitions make interactions feel polished
+ * - Gaming-first aesthetic with vibrant accents
+ *
+ * Used by major gaming interfaces: PlayStation 5, Xbox Series X
+ */

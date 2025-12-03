@@ -22,6 +22,106 @@ from rich import box
 from lmsp.input.emotional import EmotionalPrompt, EmotionalState, EmotionalDimension
 
 
+class ColorGradient:
+    """Smooth color transitions for emotional feedback visualization."""
+
+    def __init__(self, colors: List[str], name: str = "gradient"):
+        """
+        Initialize a color gradient.
+
+        Args:
+            colors: List of colors to interpolate between (hex or Rich color names)
+            name: Name for the gradient
+        """
+        self.colors = colors
+        self.name = name
+
+    @staticmethod
+    def enjoyment() -> "ColorGradient":
+        """Create a gradient for enjoyment (neutral → green)."""
+        return ColorGradient(
+            ["dim", "yellow", "green"],
+            "enjoyment"
+        )
+
+    @staticmethod
+    def frustration() -> "ColorGradient":
+        """Create a gradient for frustration (neutral → red)."""
+        return ColorGradient(
+            ["dim", "yellow", "red"],
+            "frustration"
+        )
+
+    def get_color(self, value: float) -> str:
+        """
+        Get color at a specific value (0.0 to 1.0).
+
+        Args:
+            value: Value between 0.0 and 1.0
+
+        Returns:
+            Color name or hex code
+        """
+        # Clamp value to 0.0-1.0
+        value = max(0.0, min(1.0, value))
+
+        # Map value to color index
+        if len(self.colors) == 1:
+            return self.colors[0]
+
+        # Interpolate between colors
+        idx = value * (len(self.colors) - 1)
+        lower_idx = int(idx)
+        upper_idx = min(lower_idx + 1, len(self.colors) - 1)
+
+        # For simplicity, just return the nearest color
+        # In a real implementation, could do RGB interpolation
+        if value < 0.5:
+            return self.colors[lower_idx]
+        else:
+            return self.colors[upper_idx]
+
+
+class ProgressBarStyle:
+    """Styled progress bar rendering for emotional feedback."""
+
+    def __init__(self, width: int = 30, color: str = "green"):
+        """
+        Initialize progress bar style.
+
+        Args:
+            width: Width of the bar in characters
+            color: Color for filled portion (Rich color name)
+        """
+        self.width = width
+        self.color = color
+
+    def render(self, value: float) -> str:
+        """
+        Render a progress bar at a specific value.
+
+        Args:
+            value: Value between 0.0 and 1.0
+
+        Returns:
+            Styled progress bar string with Rich markup
+        """
+        # Clamp value to 0.0-1.0
+        value = max(0.0, min(1.0, value))
+
+        # Calculate filled/empty portions
+        filled = int(value * self.width)
+        empty = self.width - filled
+
+        # Build bar with color markup
+        if filled > 0:
+            bar = f"[{self.color}]{'█' * filled}[/][dim]{'░' * empty}[/]"
+        else:
+            bar = f"[dim]{'░' * self.width}[/]"
+
+        return bar
+
+
 @dataclass
 class TriggerBar:
     """Visual representation of a single trigger bar."""
@@ -59,4 +159,338 @@ class TriggerBar:
 
 
 @dataclass
-class FeedbackPanel:\n    \"\"\"A panel that displays emotional feedback beautifully.\"\"\"\n\n    question: str\n    right_trigger_label: str = \"Happy\"\n    left_trigger_label: str = \"Frustrated\"\n    y_button_option: Optional[str] = None\n\n    def render(self) -> str:\n        \"\"\"Render the entire feedback panel.\"\"\"\n        lines = [\n            \"\",\n            f\"[bold cyan]{self.question}[/]\",\n            \"\",\n            \"[dim]─ Analog Emotional Input ─[/]\",\n            \"\",\n        ]\n\n        # Instructions\n        lines.append(\"  Pull the [bold green]right trigger[/] to express happiness\")\n        lines.append(\"  Pull the [bold red]left trigger[/] to express frustration\")\n\n        if self.y_button_option:\n            lines.append(f\"  Press [bold]Y[/] for {self.y_button_option}\")\n\n        lines.append(\"  Press [bold]A[/] to confirm\")\n        lines.append(\"\")\n\n        return \"\\n\".join(lines)\n\n\nclass EmotionalFeedbackRenderer:\n    \"\"\"\n    Renders emotional feedback prompts gorgeously with Rich.\n\n    Integrates with the game UI to show emotional input as part of\n    the natural gameplay experience, not as a separate dialog.\n    \"\"\"\n\n    # Emoji for feedback states\n    HAPPY_EMOJI = [\"😊\", \"😄\", \"🤩\", \"😍\"]\n    SAD_EMOJI = [\"😞\", \"😤\", \"😠\", \"😤\"]\n    NEUTRAL_EMOJI = [\"😐\", \"🤔\", \"😕\"]\n\n    def __init__(self, console: Optional[Console] = None):\n        self.console = console or Console()\n\n    def render_prompt(\n        self,\n        prompt: EmotionalPrompt,\n        title: str = \"How are you feeling?\",\n    ) -> str:\n        \"\"\"\n        Render an emotional prompt with trigger bars.\n\n        Returns a formatted string that can be printed directly or\n        integrated into a larger Rich display.\n        \"\"\"\n        lines = [\n            \"\",\n            f\"[bold cyan]{title}[/]\",\n            \"\",\n        ]\n\n        # Create trigger bars\n        rt_bar = TriggerBar(\n            label=\"RT\",\n            description=prompt.right_trigger,\n            value=prompt._rt_value,\n        )\n\n        lt_bar = TriggerBar(\n            label=\"LT\",\n            description=prompt.left_trigger,\n            value=prompt._lt_value,\n        )\n\n        lines.append(rt_bar.render())\n        lines.append(lt_bar.render())\n        lines.append(\"\")\n\n        # Show which dimension is active\n        if prompt._rt_value > 0 or prompt._lt_value > 0:\n            if prompt._rt_value > prompt._lt_value:\n                lines.append(\n                    f\"[green]→ Expressing {EmotionalDimension.ENJOYMENT.value}[/]\"\n                )\n            else:\n                lines.append(\n                    f\"[red]← Expressing {EmotionalDimension.FRUSTRATION.value}[/]\"\n                )\n        else:\n            lines.append(\"[dim]← Pull triggers to express emotion →[/]\")\n\n        lines.append(\"\")\n\n        # Instructions\n        if prompt.y_button and not prompt._complex_requested:\n            lines.append(f\"[dim]Press Y for {prompt.y_button}[/]\")\n\n        lines.append(\"[dim]Press A to confirm[/]\")\n        lines.append(\"\")\n\n        return \"\\n\".join(lines)\n\n    def render_prompt_panel(\n        self,\n        prompt: EmotionalPrompt,\n        title: str = \"Emotional Feedback\",\n    ) -> Panel:\n        \"\"\"\n        Render emotional prompt as a Rich Panel.\n\n        Perfect for integrating into a larger game UI display.\n        \"\"\"\n        content = self.render_prompt(prompt, title)\n\n        return Panel(\n            content,\n            title=title,\n            border_style=\"cyan\",\n            box=box.ROUNDED,\n            padding=(0, 2),\n        )\n\n    def render_with_animation(\n        self,\n        prompt: EmotionalPrompt,\n        emotional_state: EmotionalState,\n        title: str = \"How are you feeling?\",\n    ) -> str:\n        \"\"\"\n        Render emotional feedback with animation based on emotional state.\n\n        Adds visual feedback based on the player's emotional patterns\n        to encourage healthy engagement.\n        \"\"\"\n        lines = []\n\n        # Check emotional state\n        enjoyment = emotional_state.get_enjoyment()\n        frustration = emotional_state.get_frustration()\n        in_flow = emotional_state.is_in_flow()\n        needs_break = emotional_state.needs_break()\n\n        # Header with emoji that changes based on state\n        if in_flow:\n            emoji = \"🔥\"  # In the zone!\n            state_text = \"[bold green]You're in flow![/]\"\n        elif needs_break:\n            emoji = \"😤\"\n            state_text = \"[bold red]Consider taking a break[/]\"\n        elif enjoyment > 0.7:\n            emoji = \"😄\"\n            state_text = \"[bold green]You're having fun![/]\"\n        elif frustration > 0.6:\n            emoji = \"😞\"\n            state_text = \"[bold yellow]Feeling stuck? Ask for a hint![/]\"\n        else:\n            emoji = \"🤔\"\n            state_text = \"[dim]How's it going?[/]\"\n\n        lines.append(f\"\\n{emoji} {state_text}\\n\")\n        lines.append(\"[dim]─\" * 20 + \"[/]\")\n\n        # The prompt itself\n        lines.append(\"\")\n        lines.append(self.render_prompt(prompt, title))\n\n        return \"\\n\".join(lines)\n\n    def render_emotional_state_display(\n        self,\n        emotional_state: EmotionalState,\n        title: str = \"Your Emotional State\",\n    ) -> Panel:\n        \"\"\"\n        Display the player's current emotional state.\n\n        Shows rolling averages of enjoyment, frustration, and other dimensions.\n        \"\"\"\n        lines = []\n\n        enjoyment = emotional_state.get_enjoyment()\n        frustration = emotional_state.get_frustration()\n        in_flow = emotional_state.is_in_flow()\n        needs_break = emotional_state.needs_break()\n\n        # Enjoyment bar\n        lines.append(\"[bold]Enjoyment[/]\")\n        enjoyment_bar = self._create_horizontal_bar(enjoyment, \"green\", width=40)\n        lines.append(f\"{enjoyment_bar} {enjoyment:.1%}\")\n        lines.append(\"\")\n\n        # Frustration bar\n        lines.append(\"[bold]Frustration[/]\")\n        frustration_bar = self._create_horizontal_bar(frustration, \"red\", width=40)\n        lines.append(f\"{frustration_bar} {frustration:.1%}\")\n        lines.append(\"\")\n\n        # Status indicators\n        lines.append(\"[bold]Status[/]\")\n        if in_flow:\n            lines.append(\"  🔥 [green bold]In Flow State[/]\")\n        if needs_break:\n            lines.append(\"  🛑 [red bold]Break Recommended[/]\")\n        if not in_flow and not needs_break:\n            lines.append(\"  ✓ [dim]Comfortable[/]\")\n\n        content = \"\\n\".join(lines)\n        return Panel(\n            content,\n            title=title,\n            border_style=\"magenta\",\n            box=box.ROUNDED,\n            padding=(1, 2),\n        )\n\n    def _create_horizontal_bar(\n        self,\n        value: float,\n        color: str,\n        width: int = 30,\n    ) -> str:\n        \"\"\"Create a horizontal progress bar.\"\"\"\n        value = max(0.0, min(1.0, value))\n        filled = int(value * width)\n        empty = width - filled\n\n        if filled > 0:\n            return f\"[{color}]{'█' * filled}[/][dim]{'░' * empty}[/]\"\n        else:\n            return f\"[dim]{'░' * width}[/]\"\n\n    def render_combined_display(\n        self,\n        prompt: Optional[EmotionalPrompt] = None,\n        emotional_state: Optional[EmotionalState] = None,\n        challenge_title: Optional[str] = None,\n    ) -> Panel:\n        \"\"\"\n        Render a combined display with prompt, state, and context.\n\n        Used when you want to show emotional feedback as part of\n        the main game UI rather than in a popup.\n        \"\"\"\n        lines = []\n\n        if challenge_title:\n            lines.append(f\"[bold cyan]{challenge_title}[/]\")\n            lines.append(\"[dim]─\" * 20 + \"[/]\")\n            lines.append(\"\")\n\n        if emotional_state:\n            enjoyment = emotional_state.get_enjoyment()\n            frustration = emotional_state.get_frustration()\n            lines.append(\"[bold]How you're feeling:[/]\")\n            lines.append(self._create_horizontal_bar(enjoyment, \"green\", width=20))\n            lines.append(self._create_horizontal_bar(frustration, \"red\", width=20))\n            lines.append(\"\")\n\n        if prompt:\n            lines.append(self.render_prompt(prompt, \"Feedback\"))\n\n        content = \"\\n\".join(lines)\n        return Panel(\n            content,\n            title=\"Emotional Feedback\",\n            border_style=\"cyan\",\n            box=box.ROUNDED,\n            padding=(1, 2),\n        )\n\n\n# Self-teaching note:\n#\n# This file demonstrates:\n# - Rich library for gorgeous terminal UI (Level 5+)\n# - Panel, Text, and Table rendering (Level 5+)\n# - Data classes for structured data (Level 5)\n# - Dataclass post-init validation (Level 5: OOP patterns)\n# - Responsive text rendering with colors (Level 4+)\n# - Conditional logic for state-based display (Level 3+)\n#\n# Prerequisites:\n# - Level 2: String formatting and colors\n# - Level 3: Functions and conditional logic\n# - Level 4: Classes and data structures\n# - Level 5: Dataclasses and advanced OOP\n# - Level 6: UI frameworks and design patterns\n#\n# The emotional feedback system is integrated into the game experience.\n# When players see the progress bars and triggers, it should feel like\n# a natural part of the game, not a separate system.\n#\n# Good UX is about making the experience feel integrated and whole,\n# not bolted together from separate pieces.\n"
+class FeedbackPanel:
+    """A panel that displays emotional feedback beautifully."""
+
+    question: str
+    right_trigger_label: str = "Happy"
+    left_trigger_label: str = "Frustrated"
+    y_button_option: Optional[str] = None
+
+    def render(self) -> str:
+        """Render the entire feedback panel."""
+        lines = [
+            "",
+            f"[bold cyan]{self.question}[/]",
+            "",
+            "[dim]─ Analog Emotional Input ─[/]",
+            "",
+        ]
+
+        # Show trigger labels explicitly
+        lines.append(f"  [bold green]RT:[/] {self.right_trigger_label}")
+        lines.append(f"  [bold red]LT:[/] {self.left_trigger_label}")
+        lines.append("")
+
+        # Instructions
+        lines.append("  Pull the [bold green]right trigger[/] to express happiness")
+        lines.append("  Pull the [bold red]left trigger[/] to express frustration")
+
+        if self.y_button_option:
+            lines.append(f"  Press [bold]Y[/] for {self.y_button_option}")
+
+        lines.append("  Press [bold]A[/] to confirm")
+        lines.append("")
+
+        return "\n".join(lines)
+
+
+class EmotionalFeedbackRenderer:
+    """
+    Renders emotional feedback prompts gorgeously with Rich.
+
+    Integrates with the game UI to show emotional input as part of
+    the natural gameplay experience, not as a separate dialog.
+    """
+
+    # Emoji for feedback states
+    HAPPY_EMOJI = ["😊", "😄", "🤩", "😍"]
+    SAD_EMOJI = ["😞", "😤", "😠", "😤"]
+    NEUTRAL_EMOJI = ["😐", "🤔", "😕"]
+
+    def __init__(self, console: Optional[Console] = None):
+        self.console = console or Console()
+
+    def render_emotional_prompt(
+        self,
+        prompt: EmotionalPrompt,
+        title: str = "How are you feeling?",
+    ) -> str:
+        """
+        Alias for render_prompt to match test expectations.
+
+        Render an emotional prompt with trigger bars.
+
+        Returns a formatted string that can be printed directly or
+        integrated into a larger Rich display.
+        """
+        return self.render_prompt(prompt, title)
+
+    def render_emotional_state(self, emotional_state: EmotionalState) -> str:
+        """
+        Alias for render_emotional_state_display to match test expectations.
+
+        Returns a formatted string representation of the emotional state.
+        """
+        panel = self.render_emotional_state_display(emotional_state)
+        # Convert panel to string for test compatibility
+        from rich.console import Console as RichConsole
+        from io import StringIO
+        output = StringIO()
+        temp_console = RichConsole(file=output)
+        temp_console.print(panel)
+        return output.getvalue()
+
+    def render_prompt(
+        self,
+        prompt: EmotionalPrompt,
+        title: Optional[str] = None,
+    ) -> str:
+        """
+        Render an emotional prompt with trigger bars.
+
+        Returns a formatted string that can be printed directly or
+        integrated into a larger Rich display.
+        """
+        # Use prompt's question if no title provided
+        display_title = title if title is not None else prompt.question
+
+        lines = [
+            "",
+            f"[bold cyan]{display_title}[/]",
+            "",
+        ]
+
+        # Create trigger bars
+        rt_bar = TriggerBar(
+            label="RT",
+            description=prompt.right_trigger,
+            value=prompt._rt_value,
+        )
+
+        lt_bar = TriggerBar(
+            label="LT",
+            description=prompt.left_trigger,
+            value=prompt._lt_value,
+        )
+
+        lines.append(rt_bar.render())
+        lines.append(lt_bar.render())
+        lines.append("")
+
+        # Show which dimension is active
+        if prompt._rt_value > 0 or prompt._lt_value > 0:
+            if prompt._rt_value > prompt._lt_value:
+                lines.append(
+                    f"[green]→ Expressing {EmotionalDimension.ENJOYMENT.value}[/]"
+                )
+            else:
+                lines.append(
+                    f"[red]← Expressing {EmotionalDimension.FRUSTRATION.value}[/]"
+                )
+        else:
+            lines.append("[dim]← Pull triggers to express emotion →[/]")
+
+        lines.append("")
+
+        # Instructions
+        if prompt.y_button and not prompt._complex_requested:
+            lines.append(f"[dim]Press Y for {prompt.y_button}[/]")
+
+        lines.append("[dim]Press A to confirm[/]")
+        lines.append("")
+
+        return "\n".join(lines)
+
+    def render_prompt_panel(
+        self,
+        prompt: EmotionalPrompt,
+        title: str = "Emotional Feedback",
+    ) -> Panel:
+        """
+        Render emotional prompt as a Rich Panel.
+
+        Perfect for integrating into a larger game UI display.
+        """
+        content = self.render_prompt(prompt, title)
+
+        return Panel(
+            content,
+            title=title,
+            border_style="cyan",
+            box=box.ROUNDED,
+            padding=(0, 2),
+        )
+
+    def render_with_animation(
+        self,
+        prompt: EmotionalPrompt,
+        emotional_state: EmotionalState,
+        title: str = "How are you feeling?",
+    ) -> str:
+        """
+        Render emotional feedback with animation based on emotional state.
+
+        Adds visual feedback based on the player's emotional patterns
+        to encourage healthy engagement.
+        """
+        lines = []
+
+        # Check emotional state
+        enjoyment = emotional_state.get_enjoyment()
+        frustration = emotional_state.get_frustration()
+        in_flow = emotional_state.is_in_flow()
+        needs_break = emotional_state.needs_break()
+
+        # Header with emoji that changes based on state
+        if in_flow:
+            emoji = "🔥"  # In the zone!
+            state_text = "[bold green]You're in flow![/]"
+        elif needs_break:
+            emoji = "😤"
+            state_text = "[bold red]Consider taking a break[/]"
+        elif enjoyment > 0.7:
+            emoji = "😄"
+            state_text = "[bold green]You're having fun![/]"
+        elif frustration > 0.6:
+            emoji = "😞"
+            state_text = "[bold yellow]Feeling stuck? Ask for a hint![/]"
+        else:
+            emoji = "🤔"
+            state_text = "[dim]How's it going?[/]"
+
+        lines.append(f"\n{emoji} {state_text}\n")
+        lines.append("[dim]─" * 20 + "[/]")
+
+        # The prompt itself
+        lines.append("")
+        lines.append(self.render_prompt(prompt, title))
+
+        return "\n".join(lines)
+
+    def render_emotional_state_display(
+        self,
+        emotional_state: EmotionalState,
+        title: str = "Your Emotional State",
+    ) -> Panel:
+        """
+        Display the player's current emotional state.
+
+        Shows rolling averages of enjoyment, frustration, and other dimensions.
+        """
+        lines = []
+
+        enjoyment = emotional_state.get_enjoyment()
+        frustration = emotional_state.get_frustration()
+        in_flow = emotional_state.is_in_flow()
+        needs_break = emotional_state.needs_break()
+
+        # Enjoyment bar
+        lines.append("[bold]Enjoyment[/]")
+        enjoyment_bar = self._create_horizontal_bar(enjoyment, "green", width=40)
+        lines.append(f"{enjoyment_bar} {enjoyment:.1%}")
+        lines.append("")
+
+        # Frustration bar
+        lines.append("[bold]Frustration[/]")
+        frustration_bar = self._create_horizontal_bar(frustration, "red", width=40)
+        lines.append(f"{frustration_bar} {frustration:.1%}")
+        lines.append("")
+
+        # Status indicators
+        lines.append("[bold]Status[/]")
+        if in_flow:
+            lines.append("  🔥 [green bold]In Flow State[/]")
+        if needs_break:
+            lines.append("  🛑 [red bold]Break Recommended[/]")
+        if not in_flow and not needs_break:
+            lines.append("  ✓ [dim]Comfortable[/]")
+
+        content = "\n".join(lines)
+        return Panel(
+            content,
+            title=title,
+            border_style="magenta",
+            box=box.ROUNDED,
+            padding=(1, 2),
+        )
+
+    def _create_horizontal_bar(
+        self,
+        value: float,
+        color: str,
+        width: int = 30,
+    ) -> str:
+        """Create a horizontal progress bar."""
+        value = max(0.0, min(1.0, value))
+        filled = int(value * width)
+        empty = width - filled
+
+        if filled > 0:
+            return f"[{color}]{'█' * filled}[/][dim]{'░' * empty}[/]"
+        else:
+            return f"[dim]{'░' * width}[/]"
+
+    def render_combined_display(
+        self,
+        prompt: Optional[EmotionalPrompt] = None,
+        emotional_state: Optional[EmotionalState] = None,
+        challenge_title: Optional[str] = None,
+    ) -> Panel:
+        """
+        Render a combined display with prompt, state, and context.
+
+        Used when you want to show emotional feedback as part of
+        the main game UI rather than in a popup.
+        """
+        lines = []
+
+        if challenge_title:
+            lines.append(f"[bold cyan]{challenge_title}[/]")
+            lines.append("[dim]─" * 20 + "[/]")
+            lines.append("")
+
+        if emotional_state:
+            enjoyment = emotional_state.get_enjoyment()
+            frustration = emotional_state.get_frustration()
+            lines.append("[bold]How you're feeling:[/]")
+            lines.append(self._create_horizontal_bar(enjoyment, "green", width=20))
+            lines.append(self._create_horizontal_bar(frustration, "red", width=20))
+            lines.append("")
+
+        if prompt:
+            lines.append(self.render_prompt(prompt, "Feedback"))
+
+        content = "\n".join(lines)
+        return Panel(
+            content,
+            title="Emotional Feedback",
+            border_style="cyan",
+            box=box.ROUNDED,
+            padding=(1, 2),
+        )
+
+
+# Self-teaching note:
+#
+# This file demonstrates:
+# - Rich library for gorgeous terminal UI (Level 5+)
+# - Panel, Text, and Table rendering (Level 5+)
+# - Data classes for structured data (Level 5)
+# - Dataclass post-init validation (Level 5: OOP patterns)
+# - Responsive text rendering with colors (Level 4+)
+# - Conditional logic for state-based display (Level 3+)
+#
+# Prerequisites:
+# - Level 2: String formatting and colors
+# - Level 3: Functions and conditional logic
+# - Level 4: Classes and data structures
+# - Level 5: Dataclasses and advanced OOP
+# - Level 6: UI frameworks and design patterns
+#
+# The emotional feedback system is integrated into the game experience.
+# When players see the progress bars and triggers, it should feel like
+# a natural part of the game, not a separate system.
+#
+# Good UX is about making the experience feel integrated and whole,
+# not bolted together from separate pieces.

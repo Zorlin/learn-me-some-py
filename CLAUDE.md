@@ -48,6 +48,28 @@ learn-me-some-py/
 └── assets/                   # Non-code resources
 ```
 
+## Virtual Environment
+
+**Use `.venv` - this is the ONLY venv for this project.**
+
+```bash
+cd /mnt/castle/garage/learn-me-some-py
+source .venv/bin/activate
+
+# Install dependencies
+pip install -e ".[dev]"
+
+# Run the game
+python -m lmsp
+
+# Run tests
+pytest tests/ -v
+```
+
+All swarm agents should use `.venv`. Do NOT create `venv/` or other virtual environments.
+
+---
+
 ## Development with Palace
 
 ### Quick Iteration
@@ -120,13 +142,54 @@ Every file should end with:
 4. Refactor if needed
 5. Test file name must match: `foo.py` → `tests/test_foo.py`
 
-## Fun First
+## PRIORITY ZERO: THE EXPERIENCE MUST FEEL GOOD
+
+**A gamified experience that FUCKING FEELS GOOD is the ONLY priority zero.**
+
+Not "working code". Not "feature complete". Not "tests pass".
+
+If it doesn't feel like a GAME - if there's janky text menus, if there's `input()` prompts, if it crashes into a shitty manual fallback - **IT IS BROKEN**.
+
+The Rich panel welcome is the START of the experience, not the whole thing. The ENTIRE interaction must feel polished, responsive, and FUN.
+
+### Primary Control Surfaces
+
+We want a **Primary Control Surface** for every context:
+
+**WebUI Experience:**
+- Full gamepad support with smooth, responsive buttons
+- Rich, graphical interface designed for couch gaming
+- **OLED-inky-black dark theme** - gorgeous, understated, easy on the eyes
+- **Gorgeous understated light theme** - equally polished
+- Works on TV/console/laptop/tablet/browser
+- Progressive transformation across input devices
+
+**Touchscreen UI:**
+- Optimized for finger interaction when touchscreen detected
+- Drag and drop with your finger
+- Pinch zoom for code/content
+- Three finger scroll
+- Five finger home gesture (the "FU Salute" internally, but don't call it that publicly)
+
+**Terminal UI (Rich):**
+- Use the ENTIRE full power of Rich - it can do **quarter character pixel rendering** in full colour!
+- This is a GREAT place to prototype and start
+- Not a fallback - a first-class experience
+- Terminal is cozy, fast, and beautiful when done right
+
+**Input Device Transformation:**
+- UI magically transforms based on detected input (like Baldur's Gate 3)
+- Press a gamepad button → UI shifts to gamepad-optimized layout
+- Touch the screen → UI shifts to touch-optimized layout
+- Type on keyboard → UI shifts to keyboard-optimized layout
+- Seamless, automatic, delightful
 
 When in doubt:
 - **Fun over complete** - A fun partial feature > boring complete one
 - **Controller-first** - Design for gamepad, adapt for keyboard
 - **Analog over binary** - Gradients over checkboxes
 - **Play over study** - Gaming language over academic
+- **NO FALLBACKS TO JANKY TEXT UI** - If the nice UI breaks, FIX IT, don't fall back
 
 ---
 

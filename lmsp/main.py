@@ -185,34 +185,73 @@ def main() -> int:
     profile_path = create_profile_path(args.player_id)
     profile = load_or_create_profile(profile_path, player_id)
 
-    # Initialize adaptive engine
-    engine = AdaptiveEngine(profile)
-
     # Display welcome message
     display_welcome(console, profile, args.input)
+
+    # Import GameEngine here to avoid circular imports
+    from lmsp.game import GameEngine, GameConfig, KeyboardInputHandler
+    from lmsp.game.renderer import RichRenderer
+
+    # Create game configuration
+    config = GameConfig(
+        timeout_seconds=5,
+        auto_save=True,
+        debug_mode=False,
+    )
+
+    # Create input handler based on --input flag
+    if args.input == "gamepad":
+        try:
+            from lmsp.input.gamepad import GamepadInputHandler
+            input_handler = GamepadInputHandler()
+        except ImportError:
+            console.print("[yellow]Gamepad support not available, using keyboard[/yellow]")
+            input_handler = KeyboardInputHandler()
+    else:
+        input_handler = KeyboardInputHandler()
+
+    # Create game engine
+    game_engine = GameEngine(
+        profile=profile,
+        config=config,
+        renderer=RichRenderer(),
+        input_handler=input_handler,
+        console=console,
+    )
 
     # Check for specific challenge
     if args.challenge:
         console.print(f"\n[bold cyan]Starting challenge:[/bold cyan] {args.challenge}")
+        try:
+            game_engine.start_challenge(args.challenge)
+        except ValueError as e:
+            console.print(f"[bold red]Error:[/bold red] {e}")
+            return 1
 
     # Check for multiplayer
     if args.multiplayer:
         console.print(
             f"\n[bold magenta]Multiplayer mode:[/bold magenta] {args.mode.upper()}"
         )
+        # TODO: Initialize multiplayer session
+        console.print("[dim]Multiplayer support coming in Phase 4[/dim]")
+        return 0
 
-    # Game loop placeholder
-    console.print("\n[bold yellow]Game loop starting...[/bold yellow]")
-    console.print("[dim]Press Ctrl+C to exit[/dim]\n")
-
-    # For now, just show a recommendation and exit
-    recommendation = engine.recommend_next()
-    console.print(f"[bold green]Recommendation:[/bold green] {recommendation.action}")
-    if recommendation.reason:
-        console.print(f"[dim]{recommendation.reason}[/dim]")
-
-    # Save profile before exit
-    profile_path.write_text(profile.to_json())
+    # Run the game loop
+    try:
+        console.print("\n[bold yellow]Game loop starting...[/bold yellow]")
+        console.print("[dim]Press Ctrl+C to exit[/dim]\n")
+        game_engine.run()
+    except KeyboardInterrupt:
+        console.print("\n[yellow]Game paused. See you next time![/yellow]")
+    except Exception as e:
+        console.print(f"\n[bold red]Error:[/bold red] {e}")
+        if args.input == "gamepad":
+            console.print("[dim]Try using keyboard mode for debugging[/dim]")
+        return 1
+    finally:
+        # Save profile before exit
+        profile_path.write_text(profile.to_json())
 
     return 0
 
