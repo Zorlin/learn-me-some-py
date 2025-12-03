@@ -16,10 +16,13 @@ const gamepadStore = useGamepadStore()
 
 // Timer display - updates every second
 const displayedTime = ref(0)
+const displayedStageTime = ref(0)
+const showTimerTooltip = ref(false)
 let timerInterval: number | null = null
 
 function updateTimerDisplay() {
   displayedTime.value = gameStore.getElapsedSeconds()
+  displayedStageTime.value = gameStore.getCurrentStageElapsed()
 }
 
 function formatTime(seconds: number): string {
@@ -37,8 +40,15 @@ function formatTime(seconds: number): string {
 useGamepadNav({ onBack: () => router.push('/challenges') })
 
 const showHint = ref(false)
-const currentHint = ref<string | null>(null)
+const viewedHints = ref<string[]>([])
+const hintIndex = ref(0)
 const isViewingPreviousSolution = ref(false)
+
+// Current hint is based on index into viewed hints
+const currentHint = computed(() => {
+  if (viewedHints.value.length === 0) return null
+  return viewedHints.value[hintIndex.value] ?? null
+})
 
 onMounted(async () => {
   const challengeId = route.params.id as string
@@ -83,8 +93,24 @@ watch(() => gamepadStore.buttons, (buttons) => {
 }, { deep: true })
 
 function requestHint() {
-  currentHint.value = gameStore.useHint()
+  const newHint = gameStore.useHint()
+  if (newHint && !viewedHints.value.includes(newHint)) {
+    viewedHints.value.push(newHint)
+    hintIndex.value = viewedHints.value.length - 1
+  }
   showHint.value = true
+}
+
+function prevHint() {
+  if (hintIndex.value > 0) {
+    hintIndex.value--
+  }
+}
+
+function nextHint() {
+  if (hintIndex.value < viewedHints.value.length - 1) {
+    hintIndex.value++
+  }
 }
 
 function togglePreviousSolution() {
@@ -134,6 +160,31 @@ const testResultsForDisplay = computed(() => {
   }
 })
 
+// Suggested lessons from Director intervention or repeated failures
+const suggestedLessons = computed(() => {
+  if (!gameStore.validationResult) return []
+
+  // Check Director intervention first
+  if (gameStore.validationResult.director_intervention?.suggested_lessons) {
+    return gameStore.validationResult.director_intervention.suggested_lessons
+  }
+
+  // Check direct suggested_lessons (from repeated failures)
+  if (gameStore.validationResult.suggested_lessons) {
+    return gameStore.validationResult.suggested_lessons
+  }
+
+  return []
+})
+
+const directorIntervention = computed(() => {
+  return gameStore.validationResult?.director_intervention ?? null
+})
+
+function goToLesson(lessonId: string) {
+  router.push(`/concepts/${lessonId}`)
+}
+
 // Challenge context for "Copy All for Claude Code"
 const challengeContext = computed(() => {
   if (!gameStore.currentChallenge) return undefined
@@ -148,6 +199,12 @@ const challengeContext = computed(() => {
 const renderedDescription = computed(() => {
   if (!gameStore.currentChallenge?.description_detailed) return ''
   return marked(gameStore.currentChallenge.description_detailed)
+})
+
+// Rendered hint markdown
+const renderedHint = computed(() => {
+  if (!currentHint.value) return ''
+  return marked(currentHint.value)
 })
 
 // Multi-stage helpers
@@ -208,8 +265,62 @@ function advanceStage() {
                 <div v-if="gameStore.isReplayMode" class="px-2 py-0.5 text-xs font-medium bg-accent-primary/20 text-accent-primary border border-accent-primary/30 rounded">
                   🔄 Replay Mode
                 </div>
-                <div class="ml-auto timer-display" :class="{ 'timer-paused': gameStore.timerPaused }">
-                  ⏱️ {{ formatTime(displayedTime) }}
+                <!-- Timer with tooltip -->
+                <div
+                  class="ml-auto timer-display relative"
+                  :class="{ 'timer-paused': gameStore.timerPaused }"
+                  @mouseenter="showTimerTooltip = true"
+                  @mouseleave="showTimerTooltip = false"
+                >
+                  <span>⏱️ {{ formatTime(isMultiStage ? displayedStageTime : displayedTime) }}</span>
+                  <!-- Timer tooltip -->
+                  <div
+                    v-if="showTimerTooltip && isMultiStage"
+                    class="timer-tooltip"
+                  >
+                    <div class="text-xs font-semibold text-text-secondary mb-2 border-b border-oled-border pb-1">
+                      Stage Times
+                    </div>
+                    <!-- Previous stages -->
+                    <div
+                      v-for="stage in (gameStore.currentStage - 1)"
+                      :key="stage"
+                      class="flex justify-between gap-4 text-xs mb-1"
+                    >
+                      <span class="text-text-muted">Stage {{ stage }}:</span>
+                      <div class="flex gap-2">
+                        <span class="text-accent-success">{{ formatTime(gameStore.stageTimes[stage] || 0) }}</span>
+                        <span v-if="gameStore.bestStageTimes[stage]" class="text-text-muted">
+                          (best: {{ formatTime(gameStore.bestStageTimes[stage]) }})
+                        </span>
+                      </div>
+                    </div>
+                    <!-- Current stage -->
+                    <div class="flex justify-between gap-4 text-xs">
+                      <span class="text-accent-primary font-medium">Stage {{ gameStore.currentStage }}:</span>
+                      <div class="flex gap-2">
+                        <span class="text-text-primary font-medium">{{ formatTime(displayedStageTime) }}</span>
+                        <span v-if="gameStore.bestStageTimes[gameStore.currentStage]" class="text-text-muted">
+                          (best: {{ formatTime(gameStore.bestStageTimes[gameStore.currentStage]) }})
+                        </span>
+                      </div>
+                    </div>
+                    <!-- Total -->
+                    <div class="flex justify-between gap-4 text-xs mt-2 pt-1 border-t border-oled-border">
+                      <span class="text-text-secondary">Total:</span>
+                      <span class="text-text-primary">{{ formatTime(displayedTime) }}</span>
+                    </div>
+                  </div>
+                  <!-- Single-stage tooltip (just show best time if exists) -->
+                  <div
+                    v-else-if="showTimerTooltip && !isMultiStage && gameStore.bestStageTimes[1]"
+                    class="timer-tooltip"
+                  >
+                    <div class="flex justify-between gap-4 text-xs">
+                      <span class="text-text-muted">Best time:</span>
+                      <span class="text-accent-success">{{ formatTime(gameStore.bestStageTimes[1]) }}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
               <h1 class="text-2xl font-bold mb-2">{{ gameStore.currentChallenge.name }}</h1>
@@ -235,8 +346,26 @@ function advanceStage() {
 
               <!-- Hint -->
               <div v-if="showHint && currentHint" class="mt-4 p-3 bg-accent-warning/10 border border-accent-warning/30 rounded-lg">
-                <div class="text-sm text-accent-warning font-medium mb-1">💡 Hint</div>
-                <div class="text-sm">{{ currentHint }}</div>
+                <div class="flex items-center justify-between mb-1">
+                  <div class="text-sm text-accent-warning font-medium">💡 Hint</div>
+                  <!-- Hint navigation (only show if multiple hints viewed) -->
+                  <div v-if="viewedHints.length > 1" class="flex items-center gap-1">
+                    <button
+                      class="hint-nav-btn"
+                      :class="{ 'opacity-30 cursor-default': hintIndex === 0 }"
+                      :disabled="hintIndex === 0"
+                      @click="prevHint"
+                    >‹</button>
+                    <span class="text-xs text-text-muted px-1">{{ hintIndex + 1 }}/{{ viewedHints.length }}</span>
+                    <button
+                      class="hint-nav-btn"
+                      :class="{ 'opacity-30 cursor-default': hintIndex === viewedHints.length - 1 }"
+                      :disabled="hintIndex === viewedHints.length - 1"
+                      @click="nextHint"
+                    >›</button>
+                  </div>
+                </div>
+                <div class="prose prose-invert prose-sm hint-content" v-html="renderedHint"></div>
               </div>
 
               <!-- Action Buttons -->
@@ -336,6 +465,54 @@ function advanceStage() {
               :challenge="challengeContext"
               class="mt-6"
             />
+
+            <!-- Director Intervention & Suggested Lessons -->
+            <div
+              v-if="directorIntervention || suggestedLessons.length > 0"
+              class="mt-6 director-suggestion"
+            >
+              <!-- Director Message -->
+              <div v-if="directorIntervention" class="intervention-card mb-4">
+                <div class="flex items-center gap-2 mb-2">
+                  <span class="text-lg">🎯</span>
+                  <span class="font-medium text-accent-primary">Director's Guidance</span>
+                </div>
+                <p class="text-text-secondary text-sm">{{ directorIntervention.content }}</p>
+              </div>
+
+              <!-- Suggested Lessons -->
+              <div v-if="suggestedLessons.length > 0" class="suggested-lessons">
+                <div class="flex items-center gap-2 mb-3">
+                  <span class="text-lg">📚</span>
+                  <span class="font-medium text-text-primary">Review These Concepts</span>
+                  <span class="text-xs text-text-muted ml-auto">
+                    {{ suggestedLessons.length }} lesson{{ suggestedLessons.length > 1 ? 's' : '' }}
+                  </span>
+                </div>
+
+                <div class="lessons-grid">
+                  <button
+                    v-for="lesson in suggestedLessons"
+                    :key="lesson.id"
+                    class="lesson-card gamepad-focusable"
+                    @click="goToLesson(lesson.id)"
+                  >
+                    <div class="flex items-center gap-2 mb-1">
+                      <span class="level-badge-sm">L{{ lesson.level }}</span>
+                      <span class="font-medium text-text-primary text-sm">{{ lesson.name }}</span>
+                    </div>
+                    <div class="flex items-center gap-3 text-xs text-text-muted">
+                      <span>{{ lesson.category }}</span>
+                      <span>~{{ Math.ceil(lesson.time_to_read / 60) }} min</span>
+                      <span v-if="lesson.has_try_it" class="text-accent-success">✓ Interactive</span>
+                    </div>
+                    <div v-if="lesson.depth === 0" class="text-xs text-accent-primary mt-1">
+                      ← This concept
+                    </div>
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </template>
@@ -411,6 +588,98 @@ function advanceStage() {
 
 .stage-badge {
   @apply px-2 py-0.5 text-xs font-medium;
+  @apply bg-accent-secondary/20 text-accent-secondary;
+  @apply border border-accent-secondary/30 rounded;
+}
+
+.timer-tooltip {
+  @apply absolute right-0 top-full mt-2;
+  @apply border border-oled-border rounded-lg;
+  @apply p-3 min-w-48 z-50;
+  @apply shadow-xl;
+  background: #0a0a0a;  /* Solid dark background, not transparent */
+  animation: tooltipFadeIn 0.15s ease-out;
+}
+
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Hint content styling for markdown */
+.hint-content :deep(p) {
+  @apply m-0 text-sm;
+}
+
+.hint-content :deep(code) {
+  @apply px-1.5 py-0.5 rounded text-xs font-mono;
+  @apply bg-oled-panel text-accent-primary;
+}
+
+.hint-content :deep(pre) {
+  @apply p-2 rounded-lg my-2 overflow-x-auto;
+  @apply bg-oled-panel border border-oled-border;
+}
+
+.hint-content :deep(pre code) {
+  @apply p-0 bg-transparent text-text-primary;
+}
+
+/* Hint navigation buttons */
+.hint-nav-btn {
+  @apply w-5 h-5 flex items-center justify-center;
+  @apply text-text-muted hover:text-accent-warning;
+  @apply rounded transition-colors text-sm font-medium;
+}
+
+.hint-nav-btn:not(:disabled):hover {
+  @apply bg-accent-warning/10;
+}
+
+/* Director suggestion section */
+.director-suggestion {
+  @apply p-4 rounded-lg;
+  @apply bg-oled-panel border border-oled-border;
+}
+
+.intervention-card {
+  @apply p-3 rounded-lg;
+  @apply bg-accent-primary/5 border border-accent-primary/20;
+}
+
+.suggested-lessons {
+  @apply p-3 rounded-lg;
+  background: rgba(10, 10, 10, 0.8);
+}
+
+.lessons-grid {
+  @apply flex flex-col gap-2;
+}
+
+.lesson-card {
+  @apply w-full text-left p-3 rounded-lg;
+  @apply bg-oled-panel border border-oled-border;
+  @apply transition-all duration-150;
+}
+
+.lesson-card:hover {
+  @apply border-accent-primary/50;
+  background: rgba(10, 10, 10, 0.9);
+}
+
+.lesson-card:focus {
+  @apply outline-none ring-2 ring-accent-primary ring-offset-2;
+  --tw-ring-offset-color: #000000;
+}
+
+.level-badge-sm {
+  @apply px-1.5 py-0.5 text-xs font-medium;
   @apply bg-accent-secondary/20 text-accent-secondary;
   @apply border border-accent-secondary/30 rounded;
 }
