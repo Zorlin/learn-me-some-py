@@ -7,7 +7,7 @@
  * Click-to-drag panning. Floating details panel.
  */
 
-import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { api } from '@/api/client'
 import { useGamepadStore } from '@/stores/gamepad'
@@ -111,20 +111,24 @@ const typeColors: Record<string, string> = {
 }
 
 // Item rarity gradient based on mastery percent (0-100)
-// Progresses: Grey -> Red -> Yellow -> Blue -> Green -> Purple (mastered)
+// Smooth blend: Grey -> Red -> Orange -> Yellow -> Blue -> Green -> Purple (mastered)
 function getMasteryColor(percent: number, isMastered: boolean): string {
   if (isMastered) return '#a855f7'  // Legendary purple - Director won't show anymore
   if (percent <= 0) return '#333333'  // Not started - grey
 
-  // Item rarity color stops (smooth gradient with decimal precision)
+  // Evenly spaced color stops for smooth blending
   const stops = [
-    { pct: 0, color: [51, 51, 51] },      // Grey (not started)
-    { pct: 15, color: [185, 28, 28] },    // Dark red
-    { pct: 30, color: [239, 68, 68] },    // Red
-    { pct: 45, color: [234, 179, 8] },    // Yellow
-    { pct: 60, color: [59, 130, 246] },   // Blue (rare)
-    { pct: 80, color: [34, 197, 94] },    // Green (uncommon/good)
-    { pct: 100, color: [34, 197, 94] },   // Bright green at 100% (until mastered)
+    { pct: 0, color: [51, 51, 51] },       // Grey (not started)
+    { pct: 10, color: [127, 29, 29] },     // Dark red
+    { pct: 20, color: [185, 28, 28] },     // Red
+    { pct: 30, color: [220, 38, 38] },     // Bright red
+    { pct: 40, color: [234, 88, 12] },     // Orange
+    { pct: 50, color: [234, 179, 8] },     // Yellow
+    { pct: 60, color: [132, 204, 22] },    // Lime (yellow-green transition)
+    { pct: 70, color: [59, 130, 246] },    // Blue
+    { pct: 80, color: [34, 197, 94] },     // Green
+    { pct: 90, color: [22, 163, 74] },     // Darker green
+    { pct: 100, color: [34, 197, 94] },    // Bright green at 100%
   ]
 
   // Find the two stops we're between
@@ -138,7 +142,7 @@ function getMasteryColor(percent: number, isMastered: boolean): string {
     }
   }
 
-  // Interpolate between the two colors with decimal precision
+  // Smooth interpolation between colors
   const range = upper.pct - lower.pct
   const pctInRange = range > 0 ? (percent - lower.pct) / range : 0
   const r = Math.round(lower.color[0] + (upper.color[0] - lower.color[0]) * pctInRange)
@@ -516,6 +520,39 @@ function goBack() {
   } else {
     router.push('/progress')
   }
+}
+
+// Navigate to a node by its ID (used by clickable prereqs/unlocks)
+function selectNodeById(nodeId: string) {
+  if (!treeData.value) return
+
+  // Try to find in current filtered nodes
+  let index = filteredNodes.value.findIndex(n => n.id === nodeId)
+
+  if (index === -1) {
+    // Node not in current filter - switch to 'both'
+    filterMode.value = 'both'
+    // After filter change, need to wait for watcher to reset selectedNodeIndex
+    // then set our desired selection
+    nextTick(() => {
+      const newIndex = filteredNodes.value.findIndex(n => n.id === nodeId)
+      if (newIndex !== -1) {
+        selectedNodeIndex.value = newIndex
+        const node = filteredNodes.value[newIndex]
+        viewBox.value.x = node.position.x - viewBox.value.width / 2
+        viewBox.value.y = node.position.y - viewBox.value.height / 2
+        showDetails.value = true
+      }
+    })
+    return
+  }
+
+  // Found in current filter - navigate directly
+  selectedNodeIndex.value = index
+  const node = filteredNodes.value[index]
+  viewBox.value.x = node.position.x - viewBox.value.width / 2
+  viewBox.value.y = node.position.y - viewBox.value.height / 2
+  showDetails.value = true
 }
 
 function clickNode(index: number) {
@@ -941,9 +978,14 @@ onUnmounted(() => {
         <div v-if="selectedNode.prerequisites.length > 0" class="mt-4">
           <div class="text-sm text-text-muted mb-2">Prerequisites</div>
           <div class="flex flex-wrap gap-2">
-            <span v-for="prereq in selectedNode.prerequisites" :key="prereq" class="prereq-tag">
+            <button
+              v-for="prereq in selectedNode.prerequisites"
+              :key="prereq"
+              class="prereq-tag clickable"
+              @click="selectNodeById(prereq)"
+            >
               {{ prereq }}
-            </span>
+            </button>
           </div>
         </div>
 
@@ -951,9 +993,14 @@ onUnmounted(() => {
         <div v-if="selectedNode.unlocks.length > 0" class="mt-4">
           <div class="text-sm text-text-muted mb-2">Unlocks</div>
           <div class="flex flex-wrap gap-2">
-            <span v-for="unlock in selectedNode.unlocks" :key="unlock" class="unlock-tag">
+            <button
+              v-for="unlock in selectedNode.unlocks"
+              :key="unlock"
+              class="unlock-tag clickable"
+              @click="selectNodeById(unlock)"
+            >
               {{ unlock }}
-            </span>
+            </button>
           </div>
         </div>
 
@@ -1311,6 +1358,18 @@ onUnmounted(() => {
   background: var(--oled-muted);
   color: var(--text-secondary);
   font-size: 0.75rem;
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+}
+
+.prereq-tag.clickable {
+  cursor: pointer;
+}
+
+.prereq-tag.clickable:hover {
+  background: var(--oled-border);
+  border-color: var(--text-muted);
+  color: var(--text-primary);
 }
 
 .unlock-tag {
@@ -1319,6 +1378,17 @@ onUnmounted(() => {
   background: rgba(0, 255, 136, 0.2);
   color: var(--accent-primary);
   font-size: 0.75rem;
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+}
+
+.unlock-tag.clickable {
+  cursor: pointer;
+}
+
+.unlock-tag.clickable:hover {
+  background: rgba(0, 255, 136, 0.35);
+  border-color: var(--accent-primary);
 }
 
 .start-btn {
