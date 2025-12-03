@@ -675,23 +675,75 @@ async def get_challenge(challenge_id: str):
 
 @app.post("/api/code/submit")
 async def submit_code(request: Request):
-    """Submit code for validation with XP and mastery tracking."""
+    """Submit code for validation with XP and mastery tracking.
+
+    Accepts either challenge_id (for challenges) or lesson_id (for concept try_it).
+    Both use the same validation logic: pytest if configured, legacy otherwise.
+    """
     data = await request.json()
     challenge_id = data.get("challenge_id")
+    lesson_id = data.get("lesson_id")  # For concept try_it exercises
     code = data.get("code", "")
     player_id = data.get("player_id", "default")
     is_spaced_repetition = data.get("is_spaced_repetition", False)
     current_stage = data.get("stage", None)  # For multi-stage challenges
     solve_time = data.get("solve_time", None)  # Wall-clock coding time from frontend
 
-    if not challenge_id or not code:
+    if not code:
         return JSONResponse({
             "success": False,
-            "error": "challenge_id and code are required",
+            "error": "code is required",
             "tests_passing": 0,
             "tests_total": 0,
         }, status_code=400)
 
+    if not challenge_id and not lesson_id:
+        return JSONResponse({
+            "success": False,
+            "error": "challenge_id or lesson_id is required",
+            "tests_passing": 0,
+            "tests_total": 0,
+        }, status_code=400)
+
+    # Handle concept lesson validation (simpler path, no XP/mastery tracking yet)
+    if lesson_id:
+        loader = get_lesson_loader()
+        lesson = loader.get(lesson_id)
+        if not lesson:
+            return JSONResponse({
+                "success": False,
+                "error": f"Lesson '{lesson_id}' not found",
+                "tests_passing": 0,
+                "tests_total": 0,
+            }, status_code=404)
+
+        # Use pytest validation if configured, same as challenges
+        if lesson.validation_type == "pytest" and lesson.test_file:
+            pytest_validator = PytestValidator(CONCEPTS_DIR, timeout_seconds=30)
+            result = pytest_validator.validate(code, lesson_id, lesson.test_file)
+        else:
+            # Legacy: just run the code
+            result = code_validator.validate(code, [])
+
+        return JSONResponse({
+            "success": result.success,
+            "tests_passing": result.tests_passing,
+            "tests_total": result.tests_total,
+            "output": result.output,
+            "error": result.error,
+            "test_results": [
+                {
+                    "name": tr.test_name,
+                    "passed": tr.passed,
+                    "expected": tr.expected,
+                    "actual": tr.actual,
+                    "error": tr.error,
+                }
+                for tr in result.test_results
+            ],
+        })
+
+    # Handle challenge validation (full path with XP/mastery tracking)
     try:
         challenge = challenge_loader.load(challenge_id)
         is_multi_stage = len(challenge.stages) > 0
@@ -1587,7 +1639,9 @@ async def get_lesson(lesson_id: str, player_id: str = "default"):
         "name": lesson.name,
         "level": lesson.level,
         "category": lesson.category,
-        "lesson": lesson.lesson,
+        "description_brief": lesson.description_brief,
+        "description_detailed": lesson.description_detailed,
+        "lesson": lesson.lesson,  # Reference content (collapsible)
         "time_to_read": lesson.time_to_read,
         "difficulty": lesson.difficulty,
         "bonus": lesson.bonus,

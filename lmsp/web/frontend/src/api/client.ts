@@ -90,7 +90,9 @@ export interface ConceptLesson {
   name: string
   level: number
   category: string
-  lesson: string
+  description_brief: string
+  description_detailed: string
+  lesson: string  // Reference content (collapsible)
   try_it: TryIt | null
   connections: ConceptConnections
   time_to_read: number

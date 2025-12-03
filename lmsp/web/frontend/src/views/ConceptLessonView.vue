@@ -215,6 +215,15 @@ function formatConceptId(id: string): string {
   return id.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
 }
 
+const renderedDescription = computed(() => {
+  if (!lesson.value?.description_detailed) return ''
+  try {
+    return marked(lesson.value.description_detailed)
+  } catch {
+    return `<pre>${lesson.value.description_detailed}</pre>`
+  }
+})
+
 const renderedLesson = computed(() => {
   if (!lesson.value?.lesson) return ''
   try {
@@ -268,12 +277,9 @@ const conceptContext = computed(() => {
             </div>
             <h1 class="text-2xl font-bold mb-2">{{ lesson.name }}</h1>
 
-            <!-- Brief description / prompt -->
-            <p v-if="lesson.try_it" class="text-text-secondary mb-4">
-              {{ lesson.try_it.prompt }}
-            </p>
-            <p v-else class="text-text-secondary mb-4">
-              Read through the lesson content and examples.
+            <!-- Brief description -->
+            <p class="text-text-secondary mb-4">
+              {{ lesson.description_brief || 'Learn this concept and practice it.' }}
             </p>
 
             <!-- Gamepad Controls -->
@@ -342,7 +348,7 @@ const conceptContext = computed(() => {
                 class="oled-button text-accent-warning gamepad-focusable"
                 @click="resetCode"
               >
-                🔄 Reset Code
+                🔄 Reset to Start
               </button>
 
               <button
@@ -401,8 +407,17 @@ const conceptContext = computed(() => {
           </div>
         </div>
 
-        <!-- Right Panel: Editor + Results + Lesson -->
+        <!-- Right Panel: Description + Editor + Results + Reference -->
         <div class="lg:col-span-2 space-y-6">
+          <!-- Detailed Description (the mission/task) -->
+          <div v-if="lesson.description_detailed" class="oled-panel">
+            <div class="flex items-center gap-2 mb-3">
+              <span class="text-lg">🎯</span>
+              <span class="font-medium text-accent-primary">Your Mission</span>
+            </div>
+            <div class="lesson-content prose prose-invert" v-html="renderedDescription"></div>
+          </div>
+
           <!-- Code Editor (if has try_it) -->
           <div v-if="lesson.try_it">
             <CodeEditor
@@ -421,7 +436,7 @@ const conceptContext = computed(() => {
           </div>
 
           <!-- No code exercise -->
-          <div v-else class="oled-panel text-center py-8">
+          <div v-else-if="!lesson.description_detailed" class="oled-panel text-center py-8">
             <div class="text-4xl mb-4">📖</div>
             <div class="text-text-secondary">This is a reading lesson</div>
             <div class="text-text-muted text-sm mt-2">
@@ -429,15 +444,15 @@ const conceptContext = computed(() => {
             </div>
           </div>
 
-          <!-- Lesson Explainer (collapsible) -->
-          <div class="oled-panel">
+          <!-- Reference Material (collapsible) -->
+          <div v-if="lesson.lesson" class="oled-panel">
             <button
               class="w-full flex items-center justify-between text-left"
               @click="showExplainer = !showExplainer"
             >
               <div class="flex items-center gap-2">
                 <span class="text-lg">📚</span>
-                <span class="font-medium">Lesson Content</span>
+                <span class="font-medium">Reference</span>
                 <span class="text-xs text-text-muted">({{ lesson.time_to_read }}s read)</span>
               </div>
               <span class="text-text-muted">{{ showExplainer ? '▼' : '▶' }}</span>
