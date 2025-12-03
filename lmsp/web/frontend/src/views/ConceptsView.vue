@@ -100,15 +100,24 @@ const displayedCategories = computed(() => {
   return categories.value.filter(cat => categoriesAtSelectedLevel.value.has(cat))
 })
 
-// Stats per level
+// Stats per level (with retention tracking like Challenges)
 const levelStats = computed(() => {
-  const stats: Record<number, { total: number; seen: number }> = {}
+  const stats: Record<number, { total: number; completed: number; avgRetention: number }> = {}
   for (let i = 0; i <= 6; i++) {
-    stats[i] = { total: 0, seen: 0 }
+    stats[i] = { total: 0, completed: 0, avgRetention: 0 }
   }
   for (const concept of allConcepts.value) {
     stats[concept.level].total++
-    // TODO: track seen status
+    if (concept.progress) {
+      stats[concept.level].completed++
+      stats[concept.level].avgRetention += concept.progress.retention
+    }
+  }
+  // Calculate averages
+  for (let i = 0; i <= 6; i++) {
+    if (stats[i].completed > 0) {
+      stats[i].avgRetention = Math.round(stats[i].avgRetention / stats[i].completed)
+    }
   }
   return stats
 })
@@ -251,13 +260,13 @@ function getLevelName(level: number): string {
           <span class="level-label">Level {{ level - 1 }}</span>
           <div class="level-progress-container" v-if="levelStats[level - 1]?.total > 0">
             <RadialProgress
-              :percent="0"
+              :percent="levelStats[level - 1]?.avgRetention || 0"
               :size="40"
               :stroke-width="4"
               :show-label="true"
             />
             <span class="level-stats-text">
-              {{ levelStats[level - 1].seen }}/{{ levelStats[level - 1].total }}
+              {{ levelStats[level - 1].completed }}/{{ levelStats[level - 1].total }}
             </span>
           </div>
           <div v-else class="level-empty-progress">
@@ -356,8 +365,29 @@ function getLevelName(level: number): string {
                       <span class="time-text">{{ concept.time_to_read }}s read</span>
                     </div>
                   </div>
-                  <div class="status-indicator">
-                    <span class="status-circle">○</span>
+
+                  <!-- Radial Progress Dial (same as Challenges) -->
+                  <div class="progress-container">
+                    <RadialProgress
+                      v-if="concept.progress"
+                      :percent="concept.progress.retention"
+                      :size="48"
+                      :stroke-width="4"
+                      :show-label="true"
+                    />
+                    <div v-else class="empty-progress">
+                      <span class="empty-icon">○</span>
+                    </div>
+                    <div
+                      v-if="concept.progress"
+                      class="progress-label"
+                      :class="{
+                        'needs-review': concept.progress.needs_review,
+                        'mastered': concept.progress.mastered
+                      }"
+                    >
+                      {{ concept.progress.mastered ? 'Mastered!' : concept.progress.needs_review ? 'Review!' : concept.progress.days_since < 1 ? 'Fresh!' : `${Math.round(concept.progress.days_since)}d ago` }}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -631,25 +661,52 @@ function getLevelName(level: number): string {
   font-family: monospace;
 }
 
-/* Status indicator */
-.status-indicator {
+/* Progress container (same as Challenges) */
+.progress-container {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  min-width: 40px;
+  min-width: 56px;
 }
 
-.status-circle {
-  width: 40px;
-  height: 40px;
+.progress-label {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.progress-label.needs-review {
+  color: var(--accent-warning);
+  font-weight: 600;
+  animation: pulse-review 2s ease-in-out infinite;
+}
+
+.progress-label.mastered {
+  color: var(--accent-tertiary);
+  font-weight: 600;
+}
+
+@keyframes pulse-review {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+/* Empty progress state */
+.empty-progress {
+  width: 48px;
+  height: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5rem;
-  color: var(--text-muted);
   border: 2px dashed var(--oled-border);
   border-radius: 50%;
-  opacity: 0.5;
+  opacity: 0.3;
+}
+
+.empty-icon {
+  font-size: 1.5rem;
+  color: var(--text-muted);
 }
 </style>

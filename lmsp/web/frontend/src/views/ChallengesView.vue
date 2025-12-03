@@ -200,7 +200,7 @@ onUnmounted(() => {
           <span class="level-label">Level {{ level - 1 }}</span>
           <div class="level-progress-container" v-if="levelStats[level - 1]?.total > 0">
             <RadialProgress
-              :percent="levelStats[level - 1]?.avgRetention || 0"
+              :percent="Math.round(levelStats[level - 1].avgRetention * (levelStats[level - 1].completed / levelStats[level - 1].total))"
               :size="40"
               :stroke-width="4"
               :show-label="true"

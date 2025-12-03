@@ -480,33 +480,45 @@ function advanceStage() {
                 <p class="text-text-secondary text-sm">{{ directorIntervention.content }}</p>
               </div>
 
-              <!-- Suggested Lessons -->
+              <!-- Suggestions (struggles + concepts) -->
               <div v-if="suggestedLessons.length > 0" class="suggested-lessons">
                 <div class="flex items-center gap-2 mb-3">
-                  <span class="text-lg">📚</span>
-                  <span class="font-medium text-text-primary">Review These Concepts</span>
+                  <span class="font-medium text-text-primary">Suggestions</span>
                   <span class="text-xs text-text-muted ml-auto">
-                    {{ suggestedLessons.length }} lesson{{ suggestedLessons.length > 1 ? 's' : '' }}
+                    {{ suggestedLessons.length }} item{{ suggestedLessons.length > 1 ? 's' : '' }}
                   </span>
                 </div>
 
                 <div class="lessons-grid">
+                  <!-- Struggle items (detected issues) - shown first -->
+                  <div
+                    v-for="item in suggestedLessons.filter(i => i.item_type === 'struggle')"
+                    :key="item.id"
+                    class="struggle-card"
+                  >
+                    <div class="flex items-center gap-2">
+                      <span class="text-lg">😤</span>
+                      <span class="font-medium text-accent-warning text-sm">{{ item.name }}</span>
+                    </div>
+                  </div>
+
+                  <!-- Concept items (lessons to review) -->
                   <button
-                    v-for="lesson in suggestedLessons"
-                    :key="lesson.id"
+                    v-for="item in suggestedLessons.filter(i => i.item_type !== 'struggle')"
+                    :key="item.id"
                     class="lesson-card gamepad-focusable"
-                    @click="goToLesson(lesson.id)"
+                    @click="goToLesson(item.id)"
                   >
                     <div class="flex items-center gap-2 mb-1">
-                      <span class="level-badge-sm">L{{ lesson.level }}</span>
-                      <span class="font-medium text-text-primary text-sm">{{ lesson.name }}</span>
+                      <span class="level-badge-sm">L{{ item.level }}</span>
+                      <span class="font-medium text-text-primary text-sm">{{ item.name }}</span>
                     </div>
                     <div class="flex items-center gap-3 text-xs text-text-muted">
-                      <span>{{ lesson.category }}</span>
-                      <span>~{{ Math.ceil(lesson.time_to_read / 60) }} min</span>
-                      <span v-if="lesson.has_try_it" class="text-accent-success">✓ Interactive</span>
+                      <span>{{ item.category }}</span>
+                      <span>~{{ Math.ceil(item.time_to_read / 60) }} min</span>
+                      <span v-if="item.has_try_it" class="text-accent-success">✓ Interactive</span>
                     </div>
-                    <div v-if="lesson.depth === 0" class="text-xs text-accent-primary mt-1">
+                    <div v-if="item.depth === 0" class="text-xs text-accent-primary mt-1">
                       ← This concept
                     </div>
                   </button>
@@ -682,5 +694,14 @@ function advanceStage() {
   @apply px-1.5 py-0.5 text-xs font-medium;
   @apply bg-accent-secondary/20 text-accent-secondary;
   @apply border border-accent-secondary/30 rounded;
+}
+
+.struggle-card {
+  @apply w-full p-3 rounded-lg;
+  @apply bg-accent-warning/5 border border-accent-warning/30;
+}
+
+.struggle-badge {
+  @apply text-sm;
 }
 </style>

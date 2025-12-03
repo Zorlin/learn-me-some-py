@@ -8,7 +8,7 @@
  * - Right panel: Code editor + test results + lesson explainer
  */
 
-import { onMounted, ref, computed, watch } from 'vue'
+import { onMounted, onUnmounted, ref, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { marked } from 'marked'
 import { conceptsApi, type ConceptLesson } from '@/api/client'
@@ -16,6 +16,10 @@ import { useGamepadStore } from '@/stores/gamepad'
 import { useGamepadNav } from '@/composables/useGamepadNav'
 import CodeEditor from '@/components/game/CodeEditor.vue'
 import TestResults from '@/components/game/TestResults.vue'
+import EmotionalFeedback from '@/components/input/EmotionalFeedback.vue'
+
+// Phase: same as ChallengeView for consistency
+type LessonPhase = 'coding' | 'feedback' | 'complete'
 
 const route = useRoute()
 const router = useRouter()
@@ -31,14 +35,45 @@ const maxHintLevel = 3
 const viewedHints = ref<string[]>([])
 const hintIndex = ref(0)
 
+// LocalStorage helpers for code persistence (same pattern as challenges)
+const STORAGE_PREFIX = 'lmsp_concept_'
+
+function getSavedCode(lessonId: string): string | null {
+  try {
+    return localStorage.getItem(`${STORAGE_PREFIX}${lessonId}`)
+  } catch {
+    return null
+  }
+}
+
+function saveCode(lessonId: string, codeToSave: string) {
+  try {
+    localStorage.setItem(`${STORAGE_PREFIX}${lessonId}`, codeToSave)
+  } catch {
+    // Ignore storage errors (quota, etc.)
+  }
+}
+
+function clearSavedCode(lessonId: string) {
+  try {
+    localStorage.removeItem(`${STORAGE_PREFIX}${lessonId}`)
+  } catch {
+    // Ignore
+  }
+}
+
 // Test state
 const isRunning = ref(false)
+const phase = ref<LessonPhase>('coding')
 const testResult = ref<{
   success: boolean
   passing: number
   total: number
   output: string
   error?: string
+  xp_earned?: number
+  xp_reason?: string
+  total_xp?: number
   test_results?: Array<{
     name: string
     passed: boolean
@@ -51,6 +86,28 @@ const testResult = ref<{
 // Lesson explainer collapsed state
 const showExplainer = ref(true)
 
+// Timer display - updates every second
+const displayedTime = ref(0)
+let timerInterval: number | null = null
+let startTime: number | null = null
+
+function updateTimerDisplay() {
+  if (startTime !== null) {
+    displayedTime.value = Math.floor((Date.now() - startTime) / 1000)
+  }
+}
+
+function formatTime(seconds: number): string {
+  const hrs = Math.floor(seconds / 3600)
+  const mins = Math.floor((seconds % 3600) / 60)
+  const secs = Math.floor(seconds % 60)
+
+  if (hrs > 0) {
+    return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+  }
+  return `${mins}:${secs.toString().padStart(2, '0')}`
+}
+
 useGamepadNav({ onBack: () => router.push('/concepts') })
 
 const conceptId = computed(() => route.params.id as string)
@@ -59,6 +116,34 @@ const conceptId = computed(() => route.params.id as string)
 const codeHasChanged = computed(() => {
   if (!lesson.value?.try_it) return false
   return tryItCode.value !== lesson.value.try_it.starter
+})
+
+// Check if real hints exist (from TOML [hints] section, not auto-generated)
+// TODO: Load hints from API when we add hints field to ConceptLesson
+const hasRealHints = computed(() => {
+  // For now, no concepts have real hints - they're all auto-generated from solution
+  return false
+})
+
+// No hints available message
+const showNoHintsPanel = ref(false)
+const isDev = import.meta.env.DEV
+
+function showNoHintsMessage() {
+  showNoHintsPanel.value = true
+}
+
+function createHintsPlaceholder() {
+  // TODO: Palace integration - automatically generate hints for this lesson
+  console.log(`[Palace] Create hints for lesson: ${lesson.value?.id}`)
+  alert(`Palace hint generation coming soon!\n\nLesson: ${lesson.value?.id}`)
+}
+
+// Auto-save code to localStorage when it changes
+watch(tryItCode, (newCode) => {
+  if (lesson.value?.id) {
+    saveCode(lesson.value.id, newCode)
+  }
 })
 
 // Watch for gamepad button presses
@@ -70,14 +155,27 @@ watch(() => gamepadStore.buttons, (buttons) => {
     runTests()
   }
 
-  // Y button = show hint
-  if (buttons.Y && lesson.value.try_it) {
+  // Y button = show hint (only if there's a solution to hint from)
+  if (buttons.Y && lesson.value.try_it?.solution) {
     requestHint()
   }
 }, { deep: true })
 
 onMounted(async () => {
   await loadLesson()
+
+  // Start timer display update interval
+  startTime = Date.now()
+  updateTimerDisplay()
+  timerInterval = window.setInterval(updateTimerDisplay, 1000)
+})
+
+onUnmounted(() => {
+  // Clean up timer interval
+  if (timerInterval !== null) {
+    clearInterval(timerInterval)
+    timerInterval = null
+  }
 })
 
 async function loadLesson() {
@@ -87,7 +185,9 @@ async function loadLesson() {
     if (response.ok) {
       lesson.value = response.data
       if (lesson.value?.try_it) {
-        tryItCode.value = lesson.value.try_it.starter
+        // Load saved code or fall back to starter
+        const saved = getSavedCode(conceptId.value)
+        tryItCode.value = saved ?? lesson.value.try_it.starter
       }
       await conceptsApi.markSeen(conceptId.value)
     }
@@ -178,6 +278,9 @@ async function runTests() {
       total: data.tests_total,
       output: data.output || '',
       error: data.error,
+      xp_earned: data.xp_earned,
+      xp_reason: data.xp_reason,
+      total_xp: data.total_xp,
       test_results: data.test_results,
     }
   } catch (error) {
@@ -195,13 +298,32 @@ async function runTests() {
 
 function resetCode() {
   if (lesson.value?.try_it) {
+    // Clear saved code and restore starter
+    clearSavedCode(lesson.value.id)
     tryItCode.value = lesson.value.try_it.starter
     testResult.value = null
+    phase.value = 'coding'
   }
 }
 
-function markComplete() {
-  conceptsApi.markUnderstood(conceptId.value)
+// Phase transitions (same pattern as ChallengeView)
+function proceedToFeedback() {
+  if (testResult.value?.success) {
+    phase.value = 'feedback'
+  }
+}
+
+function handleEmotionalConfirm() {
+  phase.value = 'complete'
+}
+
+function nextConcept() {
+  // Navigate to next concept in the list
+  // For now, just go back to concepts list
+  router.push('/concepts')
+}
+
+function returnToMenu() {
   router.push('/concepts')
 }
 
@@ -271,6 +393,8 @@ const conceptContext = computed(() => {
 
     <!-- Lesson Content -->
     <template v-else>
+      <!-- Coding Phase -->
+      <template v-if="phase === 'coding'">
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Left Panel: Info (like ChallengeView) -->
         <div class="lg:col-span-1">
@@ -280,6 +404,10 @@ const conceptContext = computed(() => {
               <div class="level-badge">Level {{ lesson.level }}</div>
               <span class="category-tag">{{ formatCategory(lesson.category) }}</span>
               <span v-if="lesson.bonus" class="bonus-badge">⭐ Bonus</span>
+              <!-- Timer -->
+              <div class="ml-auto timer-display">
+                <span>⏱️ {{ formatTime(displayedTime) }}</span>
+              </div>
             </div>
             <h1 class="text-2xl font-bold mb-2">{{ lesson.name }}</h1>
 
@@ -321,15 +449,21 @@ const conceptContext = computed(() => {
               <div class="prose prose-invert prose-sm hint-content" v-html="renderedHint"></div>
             </div>
 
+            <!-- XP Earned Banner -->
+            <div v-if="testResult?.success && testResult?.xp_earned" class="mt-4 p-3 bg-accent-success/10 border border-accent-success/30 rounded-lg">
+              <div class="text-sm text-accent-success font-medium">🎉 All tests passing!</div>
+              <div class="text-accent-primary mt-1">+{{ testResult.xp_earned }} XP</div>
+            </div>
+
             <!-- Action Buttons -->
             <div class="flex flex-col gap-2 mt-4">
-              <!-- Success: Mark Complete -->
+              <!-- Success: Submit Solution (same as ChallengeView) -->
               <button
                 v-if="testResult?.success"
                 class="oled-button-success gamepad-focusable animate-pulse"
-                @click="markComplete"
+                @click="proceedToFeedback"
               >
-                ✅ Complete Lesson
+                ✅ Submit Solution
               </button>
 
               <button
@@ -341,13 +475,40 @@ const conceptContext = computed(() => {
                 {{ isRunning ? '⏳ Running...' : '▶ Run Tests' }}
               </button>
 
+              <!-- Hint button: dimmed if no real hints -->
               <button
-                v-if="lesson.try_it && hintLevel < maxHintLevel"
+                v-if="lesson.try_it"
                 class="oled-button gamepad-focusable"
-                @click="requestHint"
+                :class="{ 'opacity-50': !hasRealHints }"
+                @click="hasRealHints ? requestHint() : showNoHintsMessage()"
               >
-                💡 {{ hintLevel === 0 ? 'Need a hint?' : hintLevel === 2 ? 'Show solution' : 'Another hint' }}
+                <span :class="{ 'grayscale': !hasRealHints }">💡</span>
+                {{ !hasRealHints ? 'No hints available' : hintLevel === 0 ? 'Need a hint?' : hintLevel === 2 ? 'Show solution' : 'Another hint' }}
               </button>
+
+              <!-- No Hints Available Panel -->
+              <div v-if="showNoHintsPanel" class="mt-2 p-3 bg-oled-muted border border-oled-border rounded-lg">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-sm text-text-muted">💡 No hints yet</span>
+                  <button
+                    class="text-text-muted hover:text-text-secondary text-sm"
+                    @click="showNoHintsPanel = false"
+                  >✕</button>
+                </div>
+                <p class="text-sm text-text-secondary mb-2">
+                  This concept doesn't have handcrafted hints yet.
+                  The lesson content and examples should help guide you!
+                </p>
+                <div v-if="isDev" class="pt-2 border-t border-oled-border">
+                  <p class="text-xs text-text-muted mb-2">🔧 Dev Mode</p>
+                  <button
+                    class="text-xs text-accent-secondary hover:text-accent-primary"
+                    @click="createHintsPlaceholder"
+                  >
+                    + Create hints for this lesson
+                  </button>
+                </div>
+              </div>
 
               <button
                 v-if="codeHasChanged"
@@ -411,9 +572,9 @@ const conceptContext = computed(() => {
               </div>
             </div>
 
-            <!-- Detailed Description (the mission/task) -->
+            <!-- Detailed Description (what this concept is) -->
             <div v-if="lesson.description_detailed" class="mt-4 pt-4 border-t border-oled-border">
-              <div class="text-xs text-text-muted mb-2">🎯 Your Mission</div>
+              <div class="text-xs text-text-muted mb-2">📖 About This Concept</div>
               <div class="lesson-content prose prose-invert text-sm" v-html="renderedDescription"></div>
             </div>
           </div>
@@ -438,32 +599,9 @@ const conceptContext = computed(() => {
             />
           </div>
 
-          <!-- No code exercise -->
-          <div v-else class="oled-panel text-center py-8">
-            <div class="text-4xl mb-4">📖</div>
-            <div class="text-text-secondary">This is a reading lesson</div>
-            <div class="text-text-muted text-sm mt-2">
-              Study the content below, then continue to the next concept.
-            </div>
-          </div>
-
-          <!-- Reference Material (collapsible) -->
+          <!-- Lesson Content -->
           <div v-if="lesson.lesson" class="oled-panel">
-            <button
-              class="w-full flex items-center justify-between text-left"
-              @click="showExplainer = !showExplainer"
-            >
-              <div class="flex items-center gap-2">
-                <span class="text-lg">📚</span>
-                <span class="font-medium">Reference</span>
-                <span class="text-xs text-text-muted">({{ lesson.time_to_read }}s read)</span>
-              </div>
-              <span class="text-text-muted">{{ showExplainer ? '▼' : '▶' }}</span>
-            </button>
-
-            <div v-if="showExplainer" class="mt-4 pt-4 border-t border-oled-border">
-              <div class="lesson-content prose prose-invert" v-html="renderedLesson"></div>
-            </div>
+            <div class="lesson-content prose prose-invert" v-html="renderedLesson"></div>
           </div>
 
           <!-- See Also -->
@@ -482,6 +620,48 @@ const conceptContext = computed(() => {
           </div>
         </div>
       </div>
+      </template>
+
+      <!-- Emotional Feedback Phase (same as ChallengeView) -->
+      <template v-else-if="phase === 'feedback'">
+        <div class="max-w-lg mx-auto py-12">
+          <div class="text-center mb-8">
+            <div class="text-6xl mb-4">🎉</div>
+            <h1 class="text-3xl font-bold text-accent-primary">Concept Mastered!</h1>
+            <p class="text-text-secondary mt-2">{{ lesson.name }}</p>
+            <div v-if="testResult?.xp_earned" class="text-accent-primary mt-2">
+              +{{ testResult.xp_earned }} XP
+            </div>
+          </div>
+
+          <EmotionalFeedback
+            :question="`How did '${lesson.name}' feel?`"
+            :context="`concept:${lesson.id}`"
+            :challenge-id="`concept:${lesson.id}`"
+            @confirm="handleEmotionalConfirm"
+          />
+        </div>
+      </template>
+
+      <!-- Complete Phase (same as ChallengeView) -->
+      <template v-else-if="phase === 'complete'">
+        <div class="max-w-lg mx-auto py-12 text-center">
+          <div class="text-6xl mb-4">✨</div>
+          <h1 class="text-3xl font-bold mb-4">Great Job!</h1>
+          <p class="text-text-secondary mb-8">
+            You've mastered this concept. What's next?
+          </p>
+
+          <div class="flex flex-col gap-4">
+            <button class="oled-button-primary py-4 text-lg gamepad-focusable" @click="nextConcept">
+              🚀 Next Concept
+            </button>
+            <button class="oled-button py-3 gamepad-focusable" @click="returnToMenu">
+              🏠 Return to Concepts
+            </button>
+          </div>
+        </div>
+      </template>
     </template>
   </div>
 </template>
@@ -606,11 +786,11 @@ const conceptContext = computed(() => {
 }
 
 .lesson-content :deep(h2) {
-  @apply text-xl font-bold text-accent-primary mt-6 mb-3;
+  @apply text-xl font-bold text-text-primary mt-6 mb-3;
 }
 
 .lesson-content :deep(h3) {
-  @apply text-lg font-bold text-accent-secondary mt-4 mb-2;
+  @apply text-lg font-bold text-text-primary mt-4 mb-2;
 }
 
 .lesson-content :deep(ul), .lesson-content :deep(ol) {
@@ -623,5 +803,12 @@ const conceptContext = computed(() => {
 
 .lesson-content :deep(p) {
   @apply mb-3;
+}
+
+.timer-display {
+  @apply px-3 py-1 text-sm font-mono;
+  @apply bg-oled-panel border border-oled-border rounded-lg;
+  @apply text-text-secondary;
+  transition: all 0.2s ease;
 }
 </style>

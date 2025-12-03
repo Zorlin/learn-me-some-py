@@ -35,6 +35,8 @@ class StruggleType(Enum):
     TOOLING_CONFUSION = "tooling"          # IDE/environment issues
     FRUSTRATION_SPIRAL = "frustration"     # Emotional state degrading
     STRING_VS_IDENTIFIER = "string_vs_identifier"  # Comparing 'foo' to foo (common gotcha!)
+    OPERATOR_ORDER_TYPO = "operator_order_typo"    # =- instead of -= (very common typo!)
+    OUTPUT_FORMAT_MISMATCH = "output_format"       # Printed raw value instead of formatted string
 
 
 @dataclass
@@ -477,6 +479,57 @@ class Director:
                 code_context=obs.code[-500:] if obs.code else None,
             ))
 
+        # OUTPUT_FORMAT_MISMATCH: Printed raw value instead of formatted string
+        # Very common: user prints just the number/value instead of the required format
+        # e.g., prints "5" when expected "Your name has 5 letters"
+        if obs.output and obs.code:
+            output_stripped = obs.output.strip()
+            # Check if output looks like a raw value (short, simple)
+            is_raw_value = (
+                len(output_stripped) <= 10 and
+                (output_stripped.isdigit() or
+                 output_stripped.replace('.', '').isdigit() or
+                 output_stripped in ('True', 'False', 'None'))
+            )
+
+            # Check if test expected something longer/formatted
+            if is_raw_value and 'assert' in error_text:
+                # Look for expected string patterns in error
+                expected_match = re.search(r"expected[:\s]+['\"](.{15,})['\"]", error_text, re.IGNORECASE)
+                if expected_match or 'got:' in error_text.lower():
+                    struggles.append(Struggle(
+                        type=StruggleType.OUTPUT_FORMAT_MISMATCH,
+                        description=f"Printed '{output_stripped}' but challenge wanted formatted output",
+                        error_message="Check the exact output format requested in the instructions",
+                        code_context=obs.code[-500:] if obs.code else None,
+                    ))
+
+        # OPERATOR_ORDER_TYPO: =- instead of -= (and similar)
+        # Very common typo that silently does the wrong thing!
+        # health =- damage assigns -damage, not health - damage
+        if obs.code:
+            # Look for =- =+ =* =/ patterns (wrong order)
+            operator_typo_pattern = re.compile(r'(\w+)\s*=([+\-*/])\s*(\w+)')
+            for match in operator_typo_pattern.finditer(obs.code):
+                var, op, val = match.groups()
+                # Check if the correct compound operator exists elsewhere
+                # or if output suggests wrong value (e.g., negative when should be positive)
+                correct_op = f'{op}='
+                if correct_op not in obs.code:
+                    # They used =- but never -=, likely a typo
+                    # Check output for signs of wrong value
+                    if obs.output and (
+                        (op == '-' and '-' in obs.output) or  # Got negative when subtracting
+                        (op == '+' and obs.tests_passing < obs.tests_total)
+                    ):
+                        struggles.append(Struggle(
+                            type=StruggleType.OPERATOR_ORDER_TYPO,
+                            description=f"Wrote '{var} ={op} {val}' instead of '{var} {op}= {val}'",
+                            error_message=f"={op} assigns {op}{val}, but {op}= modifies {var}",
+                            code_context=obs.code[-500:] if obs.code else None,
+                        ))
+                        break
+
         # STRING_VS_IDENTIFIER: Comparing string params to function names
         # Detect pattern: if x == identifier (without quotes) when comparing string args
         # Common in dispatcher functions: if operation == add instead of if operation == 'add'
@@ -744,6 +797,18 @@ Respond with JSON:
                 content="Python gotcha alert! 🎯 When comparing, 'add' (with quotes) is a STRING, but add (no quotes) refers to the FUNCTION itself. They're completely different things! Use quotes when you're matching against text like 'add', 'subtract', etc.",
                 reason="Comparing string parameter to function object instead of string literal",
                 confidence=0.95,
+            ),
+            StruggleType.OPERATOR_ORDER_TYPO: DirectorIntervention(
+                type="micro_lesson",
+                content="Operator order matters! 🔄 `health -= damage` SUBTRACTS damage from health. But `health =- damage` ASSIGNS negative damage to health (completely different!). The operator comes BEFORE the equals sign: -= += *= /=",
+                reason="Wrote =- instead of -= (assigns negative value instead of subtracting)",
+                confidence=0.95,
+            ),
+            StruggleType.OUTPUT_FORMAT_MISMATCH: DirectorIntervention(
+                type="hint",
+                content="📋 Check the output format! The challenge wants a specific message, not just the raw value. Look for text like 'Print: \"Your name has X letters\"' in the instructions - you need to match that exact format using an f-string or string concatenation.",
+                reason="Printed raw value but challenge expected formatted string output",
+                confidence=0.9,
             ),
         }
 

@@ -22,6 +22,7 @@ interface FlowState {
 
 interface Alternative {
   id: string
+  type: 'challenge' | 'concept'
   concept: string
   score: number
 }
@@ -30,6 +31,9 @@ interface Recommendation {
   concept: string
   reason: string
   challenge_id: string
+  item_id: string
+  type: 'challenge' | 'concept'
+  action: 'challenge' | 'concept'
   confidence: number
   flow?: FlowState
   alternatives?: Alternative[]
@@ -78,11 +82,17 @@ onMounted(async () => {
 
 function startRecommended() {
   console.log('startRecommended called, recommendation:', recommendation.value)
-  if (recommendation.value?.challenge_id) {
-    console.log('Navigating to challenge:', recommendation.value.challenge_id)
-    router.push(`/challenge/${recommendation.value.challenge_id}`)
+  if (recommendation.value?.item_id) {
+    const itemType = recommendation.value.type || recommendation.value.action || 'challenge'
+    const itemId = recommendation.value.item_id
+    console.log(`Navigating to ${itemType}:`, itemId)
+    if (itemType === 'concept') {
+      router.push(`/concept/${itemId}`)
+    } else {
+      router.push(`/challenge/${itemId}`)
+    }
   } else {
-    console.log('No challenge_id, going to challenges list')
+    console.log('No item_id, going to challenges list')
     router.push('/challenges')
   }
 }
@@ -174,7 +184,7 @@ function viewProgress() {
             v-for="alt in recommendation.alternatives"
             :key="alt.id"
             class="alt-chip"
-            @click="router.push(`/challenge/${alt.id}`)"
+            @click="router.push(`/${alt.type || 'challenge'}/${alt.id}`)"
           >
             {{ alt.concept }}
           </button>
