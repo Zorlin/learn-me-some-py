@@ -12,78 +12,45 @@ brief = "Use Python's operators to do math, compare values, and combine strings"
 detailed = """
 Operators are the verbs of programming - they DO things with your data.
 
-Your mission:
+You already know variables hold data. But data just sitting there is useless. Operators let you:
+
+- **Do math**: `+`, `-`, `*`, `/` work like a calculator
+- **Compare things**: `>`, `<`, `==` ask questions and get `True` or `False`
+- **Update values**: `-=` subtracts AND saves in one step
+
+In games, operators power everything: damage calculations, health checks, score updates. Without operators, your variables would just sit there doing nothing.
+"""
+
+[content]
+lesson = """
+## Your Mission
+
 1. Create a variable `health` set to 100
 2. Create a variable `damage` set to 25
 3. Subtract damage from health using `-=`
 4. Create a variable `is_alive` that checks if health > 0
 5. Print both the final health AND whether you're alive
 
-Expected output:
+**Expected output:**
 ```
 75
 True
 ```
 
-This teaches you:
-- Arithmetic operators (`+`, `-`, `*`, `/`)
-- Assignment shortcuts (`+=`, `-=`)
-- Comparison operators (`>`, `<`, `==`)
-- Storing comparison results in variables
-"""
+## The `-=` Shortcut
 
-[content]
-lesson = """
-## Arithmetic Operators
+Instead of `health = health - damage`, use:
 
 ```python
-a = 10
-b = 3
-
-print(a + b)    # 13  (addition)
-print(a - b)    # 7   (subtraction)
-print(a * b)    # 30  (multiplication)
-print(a / b)    # 3.33... (division)
-print(a // b)   # 3   (integer division)
-print(a % b)    # 1   (remainder/modulo)
-print(a ** b)   # 1000 (power: 10^3)
+health -= damage
 ```
 
-## Comparison Operators
+## Storing a Comparison
 
-These return `True` or `False`:
-
-```python
-x = 5
-y = 10
-
-print(x == y)   # False (equal?)
-print(x != y)   # True  (not equal?)
-print(x < y)    # True  (less than?)
-print(x > y)    # False (greater than?)
-print(x <= y)   # True  (less or equal?)
-print(x >= y)   # False (greater or equal?)
-```
-
-## Assignment Shortcuts
+Comparisons return `True` or `False`. You can save the result:
 
 ```python
-score = 100
-score += 10    # Same as: score = score + 10
-score -= 5     # Same as: score = score - 5
-score *= 2     # Same as: score = score * 2
-
-print(score)   # 210
-```
-
-## String Operators
-
-```python
-# + joins strings
-greeting = "Hello" + " " + "World"
-
-# * repeats strings
-stars = "*" * 5   # "*****"
+is_alive = health > 0   # is_alive becomes True or False
 ```
 """
 
@@ -95,7 +62,7 @@ damage = 25
 
 # Subtract damage from health using -=
 
-# Check if health > 0 and store in is_alive
+# Set is_alive: True if health > 0, False otherwise
 
 # Print the health value
 
