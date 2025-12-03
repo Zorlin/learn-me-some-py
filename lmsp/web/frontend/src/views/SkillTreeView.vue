@@ -16,6 +16,7 @@ interface SkillNode {
   id: string
   name: string
   level: number
+  type: 'concept' | 'challenge'  // Node type for filtering
   mastery: number
   mastery_percent: number
   mastery_hint?: string
@@ -29,6 +30,9 @@ interface SkillNode {
   }
   position: { x: number; y: number }
   state: 'mastered' | 'learning' | 'available' | 'locked'
+  // Challenge-specific fields
+  has_try_it?: boolean
+  time_to_read?: number
 }
 
 interface SkillEdge {
@@ -41,6 +45,8 @@ interface SkillTreeData {
   edges: SkillEdge[]
   summary: {
     total: number
+    concepts: number
+    challenges: number
     mastered: number
     learning: number
     available: number
@@ -48,6 +54,8 @@ interface SkillTreeData {
   }
   levels: Record<number, number>
 }
+
+type FilterMode = 'both' | 'concepts' | 'challenges'
 
 const router = useRouter()
 const gamepadStore = useGamepadStore()
@@ -57,6 +65,7 @@ const selectedNodeIndex = ref(0)
 const isLoading = ref(true)
 const viewBox = ref({ x: 0, y: 0, width: 1600, height: 1200 })
 const showDetails = ref(false)
+const filterMode = ref<FilterMode>('both')
 
 // Drag state
 const isDragging = ref(false)
@@ -93,16 +102,52 @@ const stateColors: Record<string, string> = {
   locked: '#333333',
 }
 
+// Type colors for node border accent
+const typeColors: Record<string, string> = {
+  concept: '#a855f7',  // Purple for concepts (learning/theory)
+  challenge: '#22c55e',  // Green for challenges (practice/action)
+}
+
+// Get node stroke color (combines state and type)
+function getNodeStrokeColor(node: SkillNode): string {
+  // Primary stroke is based on state
+  return stateColors[node.state]
+}
+
+// Get node inner accent (based on type)
+function getNodeTypeAccent(node: SkillNode): string {
+  return typeColors[node.type] || '#666'
+}
+
+// Get node icon based on type
+function getNodeIcon(node: SkillNode): string {
+  return node.type === 'concept' ? '📚' : '🎮'
+}
+
+// Computed filtered nodes (based on filter mode) - MUST come before selectedNode and nodesByLevel
+const filteredNodes = computed(() => {
+  if (!treeData.value) return []
+  if (filterMode.value === 'both') return treeData.value.nodes
+  return treeData.value.nodes.filter(n => n.type === filterMode.value.slice(0, -1) as 'concept' | 'challenge')
+})
+
+// Computed filtered edges (only edges between visible nodes)
+const filteredEdges = computed(() => {
+  if (!treeData.value) return []
+  const visibleIds = new Set(filteredNodes.value.map(n => n.id))
+  return treeData.value.edges.filter(e => visibleIds.has(e.from) && visibleIds.has(e.to))
+})
+
 const selectedNode = computed(() => {
-  if (!treeData.value || treeData.value.nodes.length === 0) return null
-  return treeData.value.nodes[selectedNodeIndex.value]
+  if (filteredNodes.value.length === 0) return null
+  return filteredNodes.value[selectedNodeIndex.value]
 })
 
 // Get nodes grouped by level for navigation
 const nodesByLevel = computed(() => {
-  if (!treeData.value) return new Map<number, number[]>()
+  if (filteredNodes.value.length === 0) return new Map<number, number[]>()
   const levels = new Map<number, number[]>()
-  treeData.value.nodes.forEach((node, index) => {
+  filteredNodes.value.forEach((node, index) => {
     if (!levels.has(node.level)) {
       levels.set(node.level, [])
     }
@@ -111,8 +156,8 @@ const nodesByLevel = computed(() => {
   // Sort each level by x position
   levels.forEach((indices) => {
     indices.sort((a, b) => {
-      const nodeA = treeData.value!.nodes[a]
-      const nodeB = treeData.value!.nodes[b]
+      const nodeA = filteredNodes.value[a]
+      const nodeB = filteredNodes.value[b]
       return nodeA.position.x - nodeB.position.x
     })
   })
@@ -122,7 +167,7 @@ const nodesByLevel = computed(() => {
 async function loadSkillTree() {
   isLoading.value = true
   try {
-    const response = await api.get('/api/skill-tree')
+    const response = await api.get(`/api/skill-tree?include=${filterMode.value}`)
     treeData.value = response.data
     if (treeData.value) {
       layoutNodes(treeData.value.nodes)
@@ -134,6 +179,11 @@ async function loadSkillTree() {
     isLoading.value = false
   }
 }
+
+// Watch filter changes and reload
+watch(filterMode, () => {
+  loadSkillTree()
+})
 
 function layoutNodes(nodes: SkillNode[]) {
   const levels: Map<number, SkillNode[]> = new Map()
@@ -563,8 +613,36 @@ onUnmounted(() => {
         Back
       </button>
 
-      <div class="tree-title">
+      <div class="tree-title-and-filter">
         <span class="text-2xl font-bold text-accent-primary">Skill Tree</span>
+        <!-- Filter Slider -->
+        <div class="filter-slider">
+          <button
+            class="filter-btn"
+            :class="{ active: filterMode === 'concepts' }"
+            @click="filterMode = 'concepts'"
+          >
+            <span class="filter-icon">📚</span>
+            <span>Concepts</span>
+            <span v-if="treeData" class="filter-count">{{ treeData.summary.concepts }}</span>
+          </button>
+          <button
+            class="filter-btn both"
+            :class="{ active: filterMode === 'both' }"
+            @click="filterMode = 'both'"
+          >
+            <span>Both</span>
+          </button>
+          <button
+            class="filter-btn"
+            :class="{ active: filterMode === 'challenges' }"
+            @click="filterMode = 'challenges'"
+          >
+            <span class="filter-icon">🎮</span>
+            <span>Challenges</span>
+            <span v-if="treeData" class="filter-count">{{ treeData.summary.challenges }}</span>
+          </button>
+        </div>
       </div>
 
       <div v-if="treeData" class="tree-stats">
@@ -634,7 +712,7 @@ onUnmounted(() => {
       <!-- Edges -->
       <g class="edges">
         <path
-          v-for="(edge, i) in treeData.edges"
+          v-for="(edge, i) in filteredEdges"
           :key="`edge-${i}`"
           :d="getEdgePath(edge)"
           :stroke="getEdgeColor(edge)"
@@ -647,12 +725,13 @@ onUnmounted(() => {
       <!-- Nodes -->
       <g class="nodes">
         <g
-          v-for="(node, index) in treeData.nodes"
+          v-for="(node, index) in filteredNodes"
           :key="node.id"
           :transform="`translate(${node.position.x}, ${node.position.y})`"
           class="skill-node"
           :class="{
             [node.state]: true,
+            [node.type]: true,
             selected: index === selectedNodeIndex
           }"
           @click.stop="clickNode(index)"
@@ -676,6 +755,15 @@ onUnmounted(() => {
             />
           </circle>
 
+          <!-- Type indicator ring (inner) -->
+          <circle
+            :r="getNodeRadius(node) + 3"
+            fill="none"
+            :stroke="typeColors[node.type]"
+            stroke-width="2"
+            stroke-opacity="0.5"
+          />
+
           <!-- Node circle -->
           <circle
             :r="getNodeRadius(node)"
@@ -697,26 +785,24 @@ onUnmounted(() => {
             stroke-linecap="round"
           />
 
-          <!-- Level -->
+          <!-- Type icon -->
           <text
             y="-10"
             text-anchor="middle"
+            font-size="14"
+          >
+            {{ getNodeIcon(node) }}
+          </text>
+
+          <!-- Level badge -->
+          <text
+            y="8"
+            text-anchor="middle"
             :fill="levelColors[node.level]"
-            font-size="12"
+            font-size="10"
             font-weight="bold"
           >
             L{{ node.level }}
-          </text>
-
-          <!-- Mastery -->
-          <text
-            y="10"
-            text-anchor="middle"
-            :fill="stateColors[node.state]"
-            font-size="16"
-            font-weight="bold"
-          >
-            {{ node.mastery }}/4
           </text>
 
           <!-- Name -->
@@ -873,7 +959,7 @@ onUnmounted(() => {
   top: 0;
   left: 0;
   right: 0;
-  z-index: 20;
+  z-index: 50;  /* Above app header (z-40) */
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -896,6 +982,59 @@ onUnmounted(() => {
 .back-btn:hover {
   border-color: var(--accent-primary);
   color: white;
+}
+
+.tree-title-and-filter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.filter-slider {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  background: var(--oled-panel);
+  border: 1px solid var(--oled-border);
+  border-radius: 0.5rem;
+}
+
+.filter-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  transition: all 0.15s;
+}
+
+.filter-btn:hover {
+  background: var(--oled-muted);
+  color: var(--text-secondary);
+}
+
+.filter-btn.active {
+  background: var(--accent-primary);
+  color: black;
+  font-weight: 600;
+}
+
+.filter-btn.both.active {
+  background: var(--accent-secondary);
+}
+
+.filter-icon {
+  font-size: 1rem;
+}
+
+.filter-count {
+  padding: 0.125rem 0.375rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 0.25rem;
+  font-size: 0.625rem;
 }
 
 .tree-stats {
