@@ -23,22 +23,30 @@ interface ChallengeItem {
 }
 
 const router = useRouter()
-const challenges = ref<ChallengeItem[]>([])
+const allChallenges = ref<ChallengeItem[]>([])  // Full list for stats
 const isLoading = ref(true)
 const selectedLevel = ref<number | null>(null)
 
 onMounted(async () => {
-  await loadChallenges()
+  await loadAllChallenges()
 })
 
-async function loadChallenges() {
+async function loadAllChallenges() {
   isLoading.value = true
-  const response = await challengesApi.list(selectedLevel.value ?? undefined)
+  const response = await challengesApi.list()  // Always load all
   if (response.ok) {
-    challenges.value = response.data
+    allChallenges.value = response.data
   }
   isLoading.value = false
 }
+
+// Filter challenges for display based on selected level
+const challenges = computed(() => {
+  if (selectedLevel.value === null) {
+    return allChallenges.value
+  }
+  return allChallenges.value.filter(c => c.level === selectedLevel.value)
+})
 
 const groupedByLevel = computed(() => {
   const groups: Record<number, ChallengeItem[]> = {}
@@ -55,13 +63,64 @@ const levels = computed(() =>
   Object.keys(groupedByLevel.value).map(Number).sort()
 )
 
+// Level stats for the filter buttons (always computed from ALL challenges)
+interface LevelStats {
+  total: number
+  completed: number
+  mastered: number
+  needsReview: number
+  avgRetention: number
+}
+
+const levelStats = computed(() => {
+  const stats: Record<number, LevelStats> = {}
+
+  // Initialize all levels 0-6
+  for (let i = 0; i <= 6; i++) {
+    stats[i] = { total: 0, completed: 0, mastered: 0, needsReview: 0, avgRetention: 0 }
+  }
+
+  // Accumulate stats
+  for (const c of allChallenges.value) {
+    const s = stats[c.level]
+    s.total++
+    if (c.progress) {
+      s.completed++
+      s.avgRetention += c.progress.retention
+      if (c.progress.mastered) s.mastered++
+      if (c.progress.needs_review) s.needsReview++
+    }
+  }
+
+  // Calculate averages
+  for (const level in stats) {
+    const s = stats[level]
+    if (s.completed > 0) {
+      s.avgRetention = s.avgRetention / s.completed
+    }
+  }
+
+  return stats
+})
+
+// Get color for level based on mastery state
+function getLevelColor(level: number): string {
+  const s = levelStats.value[level]
+  if (!s || s.total === 0) return 'var(--oled-border)'
+  if (s.mastered === s.total) return 'var(--accent-tertiary)'  // All mastered - purple
+  if (s.needsReview > 0) return 'var(--accent-warning)'        // Some need review - warning
+  if (s.completed === s.total) return 'var(--accent-success)'  // All completed - green
+  if (s.completed > 0) return 'var(--accent-primary)'          // Some progress - neon green
+  return 'var(--oled-border)'                                   // No progress
+}
+
 function selectChallenge(id: string) {
   router.push(`/challenge/${id}`)
 }
 
 function filterByLevel(level: number | null) {
   selectedLevel.value = level
-  loadChallenges()
+  // No need to reload - filtering is done locally via computed
 }
 </script>
 
@@ -71,23 +130,38 @@ function filterByLevel(level: number | null) {
       <span class="text-accent-primary">📚</span> Challenges
     </h1>
 
-    <!-- Level Filter -->
-    <div class="flex flex-wrap gap-responsive mb-6 3xl:mb-8">
+    <!-- Level Filter with Radial Progress -->
+    <div class="level-filter-row">
       <button
-        class="oled-button"
-        :class="{ 'border-accent-primary text-accent-primary': selectedLevel === null }"
+        class="level-filter-btn"
+        :class="{ 'active': selectedLevel === null }"
         @click="filterByLevel(null)"
       >
-        All Levels
+        <span class="level-filter-label">All</span>
       </button>
       <button
         v-for="level in 7"
         :key="level - 1"
-        class="oled-button"
-        :class="{ 'border-accent-primary text-accent-primary': selectedLevel === level - 1 }"
+        class="level-filter-btn"
+        :class="{
+          'active': selectedLevel === level - 1,
+          'has-progress': levelStats[level - 1]?.completed > 0
+        }"
         @click="filterByLevel(level - 1)"
       >
-        Level {{ level - 1 }}
+        <RadialProgress
+          v-if="levelStats[level - 1]?.total > 0"
+          :percent="levelStats[level - 1]?.avgRetention || 0"
+          :size="36"
+          :stroke-width="3"
+          :animate="false"
+        >
+          <span class="level-number">{{ level - 1 }}</span>
+        </RadialProgress>
+        <span v-else class="level-number-empty">{{ level - 1 }}</span>
+        <span class="level-stats-hint" v-if="levelStats[level - 1]?.total > 0">
+          {{ levelStats[level - 1].completed }}/{{ levelStats[level - 1].total }}
+        </span>
       </button>
     </div>
 
@@ -175,6 +249,82 @@ function filterByLevel(level: number | null) {
 </template>
 
 <style scoped>
+/* Level filter row */
+.level-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (min-width: 1920px) {
+  .level-filter-row {
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+}
+
+.level-filter-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.5rem 0.75rem;
+  min-width: 3.5rem;
+  border-radius: 0.5rem;
+  background: var(--oled-panel);
+  border: 2px solid var(--oled-border);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.level-filter-btn:hover {
+  border-color: var(--text-muted);
+  background: var(--oled-muted);
+}
+
+.level-filter-btn.active {
+  border-color: var(--accent-primary);
+  background: rgba(0, 255, 136, 0.1);
+}
+
+.level-filter-btn.active .level-number,
+.level-filter-btn.active .level-filter-label {
+  color: var(--accent-primary);
+}
+
+.level-filter-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.level-number {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.level-number-empty {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  border: 2px dashed var(--oled-border);
+  border-radius: 50%;
+}
+
+.level-stats-hint {
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
 /* Challenge card states */
 .challenge-card.needs-review {
   border-color: var(--accent-warning);
