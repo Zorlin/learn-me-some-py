@@ -1,5 +1,21 @@
 # LMSP - Claude Code Integration
 
+## Ecosystem Paths
+
+**This project is part of the LMSP ecosystem:**
+
+```
+/mnt/castle/garage/learn-me-some-py/   # This repo - The game
+/mnt/castle/garage/player-zero/         # AI player simulation framework
+/mnt/castle/garage/palace-public/       # Palace - RHSI engine (reference)
+```
+
+When working on LMSP, you should be aware of player-zero's capabilities and architecture. Read `/mnt/castle/garage/player-zero/README.md` for the multiplayer/TAS integration patterns.
+
+The full technical specification is in `/mnt/castle/garage/learn-me-some-py/ULTRASPEC.md`.
+
+---
+
 ## The Meta-Game
 
 **This project is its own test case.**
