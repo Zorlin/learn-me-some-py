@@ -44,9 +44,9 @@ text = """
 """
 
 [challenges]
-starter = "lists_create_and_append"
-intermediate = "lists_remove_item"
-mastery = "lists_build_inventory"
+starter = "shopping_list"
+intermediate = "favorite_things"
+mastery = ""
 
 [fun_factor]
 type = "collection"

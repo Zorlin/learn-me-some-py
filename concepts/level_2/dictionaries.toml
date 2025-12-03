@@ -57,9 +57,9 @@ text = """
 """
 
 [challenges]
-starter = "dict_create_player"
-intermediate = "dict_inventory_lookup"
-mastery = "dict_nested_config"
+starter = "contact_book"
+intermediate = "inventory_system"
+mastery = ""
 
 [fun_factor]
 type = "mapping"

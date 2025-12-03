@@ -58,9 +58,9 @@ text = """
 """
 
 [challenges]
-starter = "tuple_create_position"
-intermediate = "tuple_multiple_return"
-mastery = "tuple_unpacking_swap"
+starter = ""
+intermediate = ""
+mastery = ""
 
 [fun_factor]
 type = "immutable_sequence"

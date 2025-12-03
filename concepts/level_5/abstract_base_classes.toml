@@ -393,10 +393,9 @@ text = """
 """
 
 [challenges]
-starter = "abc_simple_shape"
-intermediate = "abc_plugin_system"
-mastery = "abc_template_method"
-expert = "abc_lmsp_challenge_interface"
+starter = "plugin_system"
+intermediate = ""
+mastery = ""
 
 [fun_factor]
 type = "design_patterns"

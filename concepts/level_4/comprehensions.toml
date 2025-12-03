@@ -290,9 +290,9 @@ Template flow:
 """
 
 [challenges]
-starter = "comprehension_simple_transform"
-intermediate = "comprehension_with_filter"
-mastery = "comprehension_dict_nested"
+starter = ""
+intermediate = ""
+mastery = ""
 
 [fun_facts]
 pythonic = "Comprehensions are considered 'Pythonic' - the Python way of doing things!"

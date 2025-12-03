@@ -88,9 +88,9 @@ text = """
 """
 
 [challenges]
-starter = "strings_create_greeting"
-intermediate = "strings_join_words"
-mastery = "strings_build_banner"
+starter = "personal_greeting"
+intermediate = "name_length"
+mastery = "mad_libs"
 
 [fun_factor]
 type = "text"

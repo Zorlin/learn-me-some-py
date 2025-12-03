@@ -93,9 +93,9 @@ text = """
 """
 
 [challenges]
-starter = "numbers_basic_arithmetic"
-intermediate = "numbers_calculate_average"
-mastery = "numbers_game_score_system"
+starter = "simple_math"
+intermediate = "temperature_converter"
+mastery = ""
 
 [fun_factor]
 type = "math"

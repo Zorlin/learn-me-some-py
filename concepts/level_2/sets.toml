@@ -72,9 +72,9 @@ text = """
 """
 
 [challenges]
-starter = "set_remove_duplicates"
-intermediate = "set_unique_visitors"
-mastery = "set_venn_diagram"
+starter = ""
+intermediate = ""
+mastery = ""
 
 [fun_factor]
 type = "unique_collection"

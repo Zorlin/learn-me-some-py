@@ -169,9 +169,9 @@ Example flow:
 """
 
 [challenges]
-starter = "def_return_simple"
-intermediate = "def_return_calculation"
-mastery = "def_return_game_logic"
+starter = "custom_calculator"
+intermediate = ""
+mastery = ""
 
 [fun_facts]
 naming = "Function names should be verbs: get_health(), calculate_damage(), is_alive()"

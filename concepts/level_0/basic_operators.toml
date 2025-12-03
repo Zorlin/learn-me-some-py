@@ -138,9 +138,9 @@ text = """
 """
 
 [challenges]
-starter = "operators_calculate_total"
-intermediate = "operators_health_calculation"
-mastery = "operators_game_stats_formula"
+starter = "simple_math"
+intermediate = "temperature_converter"
+mastery = ""
 
 [fun_factor]
 type = "math"

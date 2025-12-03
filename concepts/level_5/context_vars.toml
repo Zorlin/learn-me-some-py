@@ -325,10 +325,9 @@ text = """
 """
 
 [challenges]
-starter = "context_vars_simple_counter"
-intermediate = "context_vars_request_id"
-mastery = "context_vars_structured_logging"
-expert = "context_vars_lmsp_player_context"
+starter = ""
+intermediate = ""
+mastery = ""
 
 [fun_factor]
 type = "concurrency"

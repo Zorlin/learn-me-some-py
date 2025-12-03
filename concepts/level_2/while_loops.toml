@@ -95,9 +95,9 @@ text = """
 """
 
 [challenges]
-starter = "while_countdown"
-intermediate = "while_game_loop"
-mastery = "while_binary_search"
+starter = "guess_my_number"
+intermediate = ""
+mastery = ""
 
 [fun_factor]
 type = "control_flow"

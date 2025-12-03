@@ -301,9 +301,9 @@ Example flow:
 """
 
 [challenges]
-starter = "min_max_simple_list"
-intermediate = "min_max_dict_key"
-mastery = "min_max_game_logic"
+starter = ""
+intermediate = ""
+mastery = ""
 
 [fun_facts]
 any_iterable = "Works with any iterable: lists, tuples, generators, sets!"

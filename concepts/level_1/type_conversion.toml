@@ -142,9 +142,9 @@ else:
 '''
 
 [challenges]
-starter = "conversion_string_to_int"
-intermediate = "conversion_calculator"
-mastery = "conversion_safe_input"
+starter = "temperature_converter"
+intermediate = ""
+mastery = ""
 
 [fun_factor]
 type = "transformation"

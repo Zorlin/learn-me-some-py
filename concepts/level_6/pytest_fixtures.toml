@@ -343,10 +343,9 @@ text = """
 """
 
 [challenges]
-starter = "fixture_simple_data"
-intermediate = "fixture_with_cleanup"
-mastery = "fixture_dependency_chain"
-expert = "fixture_lmsp_game_state"
+starter = "test_suite"
+intermediate = ""
+mastery = ""
 
 [fun_factor]
 type = "testing"

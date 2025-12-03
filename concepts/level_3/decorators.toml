@@ -252,9 +252,9 @@ text = """
 """
 
 [challenges]
-starter = "decorators_simple_logger"
-intermediate = "decorators_timer"
-mastery = "decorators_event_system"
+starter = "decorator_factory"
+intermediate = ""
+mastery = ""
 
 [fun_facts]
 syntactic_sugar = "@decorator is syntactic sugar for: func = decorator(func)"

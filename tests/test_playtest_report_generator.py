@@ -471,7 +471,8 @@ class TestIntegration:
         """Test the complete report generation pipeline."""
         from lmsp.playtest.report_generator import (
             PlaytestReportGenerator,
-            ReportConfig
+            ReportConfig,
+            CodeMetrics,
         )
 
         config = ReportConfig(
@@ -498,9 +499,11 @@ class TestIntegration:
                     mock_pw.return_value.capture_screenshot = AsyncMock(
                         return_value=b"PNG"
                     )
-                    mock_metrics.return_value.collect.return_value = Mock(
+                    mock_metrics.return_value.collect.return_value = CodeMetrics(
                         total_tests=200,
+                        test_coverage=85.0,
                         lint_warnings=0,
+                        type_errors=0,
                     )
 
                     # Run pipeline

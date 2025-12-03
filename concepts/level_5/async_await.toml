@@ -227,10 +227,9 @@ text = """
 """
 
 [challenges]
-starter = "async_basics_sleep"
-intermediate = "async_fetch_multiple_urls"
-mastery = "async_rate_limited_api_client"
-expert = "async_build_lmsp_adaptive_engine"
+starter = "async_downloader"
+intermediate = ""
+mastery = ""
 
 [fun_factor]
 type = "concurrency"

@@ -120,9 +120,9 @@ GOOD: player_health = 100
 """
 
 [challenges]
-starter = "comments_add_descriptions"
-intermediate = "comments_explain_logic"
-mastery = "comments_document_function"
+starter = ""
+intermediate = ""
+mastery = ""
 
 [fun_factor]
 type = "documentation"

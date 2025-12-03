@@ -342,10 +342,9 @@ text = """
 """
 
 [challenges]
-starter = "descriptor_simple_validator"
-intermediate = "descriptor_typed_field"
-mastery = "descriptor_lazy_property"
-expert = "descriptor_django_style_orm"
+starter = ""
+intermediate = ""
+mastery = ""
 
 [fun_factor]
 type = "meta_programming"

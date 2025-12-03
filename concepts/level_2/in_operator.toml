@@ -82,9 +82,9 @@ text = """
 """
 
 [challenges]
-starter = "in_basic_membership"
-intermediate = "in_inventory_checker"
-mastery = "in_validator_system"
+starter = "shopping_list"
+intermediate = ""
+mastery = ""
 
 [fun_factor]
 type = "search"

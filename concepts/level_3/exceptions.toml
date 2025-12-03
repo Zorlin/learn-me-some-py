@@ -239,9 +239,9 @@ text = """
 """
 
 [challenges]
-starter = "exceptions_catch_divide_zero"
-intermediate = "exceptions_file_handling"
-mastery = "exceptions_custom_game_errors"
+starter = "error_handler"
+intermediate = ""
+mastery = ""
 
 [fun_facts]
 eafp = "Python philosophy: 'Easier to Ask Forgiveness than Permission' (try/except over if-checks)"

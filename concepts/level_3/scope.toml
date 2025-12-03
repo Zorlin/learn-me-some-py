@@ -326,9 +326,9 @@ When you get UnboundLocalError:
 """
 
 [challenges]
-starter = "scope_read_global"
-intermediate = "scope_the_bug"  # Reproduce Wings' bug!
-mastery = "scope_proper_functions"
+starter = ""
+intermediate = ""
+mastery = ""
 
 [fun_facts]
 legb_rule = "Python looks for variables in this order: Local, Enclosing, Global, Built-in"

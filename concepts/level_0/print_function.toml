@@ -49,9 +49,9 @@ text = """
 """
 
 [challenges]
-starter = "print_hello_world"
-intermediate = "print_three_lines"
-mastery = "print_formatted_greeting"
+starter = "hello_world"
+intermediate = "personal_greeting"
+mastery = ""
 
 [fun_factor]
 type = "output"

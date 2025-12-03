@@ -372,10 +372,9 @@ text = """
 """
 
 [challenges]
-starter = "introspection_function_signature"
-intermediate = "introspection_class_discovery"
-mastery = "introspection_dependency_injection"
-expert = "introspection_lmsp_challenge_validator"
+starter = "code_analyzer"
+intermediate = ""
+mastery = ""
 
 [fun_factor]
 type = "meta_programming"

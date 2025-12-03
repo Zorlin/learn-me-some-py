@@ -4,6 +4,10 @@ Code Validator
 
 Safely executes player code and validates against test cases.
 
+Supports two validation modes:
+1. Legacy mode: Uses TOML-defined test cases with a solution() function
+2. Pytest mode: Uses per-challenge test_*.py files for tailored validation
+
 This is the judge that runs your solutions - it needs to be secure
 to prevent learners from accidentally (or intentionally) breaking things.
 """
@@ -14,6 +18,10 @@ import time
 import io
 import sys
 import contextlib
+import subprocess
+import tempfile
+import json
+from pathlib import Path
 
 from lmsp.python.challenges import TestCase
 
@@ -70,8 +78,13 @@ class CodeValidator:
         """
         Validate code against test cases.
 
+        Supports two modes:
+        1. Function mode: Code defines a 'solution' function, tests pass inputs
+        2. Script mode: Code is executed, stdout is compared to expected output
+           (For Level 0 challenges that just print results)
+
         Args:
-            code: Python code containing a 'solution' function
+            code: Python code (with solution function or simple script)
             test_cases: List of TestCase objects
 
         Returns:
@@ -106,11 +119,47 @@ class CodeValidator:
                 test_results=[]
             )
 
-        # Get the solution function
-        if "solution" not in namespace:
+        # Check if we have a solution function or should use script mode
+        has_solution_func = "solution" in namespace
+        output_text = captured_output.getvalue()
+
+        # Determine validation mode based on test cases and code
+        # Script mode: tests expect stdout output (expected is string/list, no/empty input)
+        def is_script_mode_test(tc):
+            # Input should be None or empty list
+            no_input = tc.input is None or tc.input == []
+            # Expected should be string or list of strings
+            expected_is_output = (
+                isinstance(tc.expected, str) or
+                (isinstance(tc.expected, list) and all(isinstance(e, str) for e in tc.expected))
+            )
+            return no_input and expected_is_output
+
+        use_script_mode = not has_solution_func and test_cases and all(
+            is_script_mode_test(tc) for tc in test_cases
+        )
+
+        if use_script_mode:
+            # Script mode: compare stdout to expected output
+            return self._validate_script_mode(
+                output_text, test_cases, start_time
+            )
+
+        # Function mode: require solution function
+        if not has_solution_func:
+            # Try to be helpful about what's wrong
+            if output_text.strip():
+                # Code produced output - might be script mode attempt
+                return ValidationResult(
+                    success=False,
+                    output=output_text,
+                    error="No 'solution' function defined. If this is a Level 0 challenge, make sure your output matches exactly.",
+                    time_seconds=time.time() - start_time,
+                    test_results=[]
+                )
             return ValidationResult(
                 success=False,
-                output=captured_output.getvalue(),
+                output=output_text,
                 error="No 'solution' function defined",
                 time_seconds=time.time() - start_time,
                 test_results=[]
@@ -128,7 +177,57 @@ class CodeValidator:
 
         return ValidationResult(
             success=all_passed,
-            output=captured_output.getvalue(),
+            output=output_text,
+            error=None,
+            time_seconds=time.time() - start_time,
+            test_results=test_results
+        )
+
+    def _validate_script_mode(
+        self,
+        output: str,
+        test_cases: list[TestCase],
+        start_time: float
+    ) -> ValidationResult:
+        """
+        Validate script output against expected strings.
+
+        For Level 0 challenges where learners just print output.
+        """
+        test_results = []
+        output_lines = output.strip().split('\n') if output.strip() else []
+
+        for i, test_case in enumerate(test_cases):
+            # Handle expected as string or list of strings
+            if isinstance(test_case.expected, list):
+                # For list expected, join with newlines for comparison
+                expected = '\n'.join(str(e).strip() for e in test_case.expected)
+            else:
+                expected = str(test_case.expected).strip()
+
+            # Get actual output (whole output or specific line)
+            if len(test_cases) == 1:
+                actual = output.strip()
+            elif i < len(output_lines):
+                actual = output_lines[i].strip()
+            else:
+                actual = ""
+
+            passed = actual == expected
+
+            test_results.append(TestResult(
+                test_name=test_case.name or f"Output {i+1}",
+                passed=passed,
+                expected=expected,
+                actual=actual,
+                error=None if passed else f"Expected '{expected}', got '{actual}'"
+            ))
+
+        all_passed = all(r.passed for r in test_results)
+
+        return ValidationResult(
+            success=all_passed,
+            output=output,
             error=None,
             time_seconds=time.time() - start_time,
             test_results=test_results
@@ -257,6 +356,198 @@ class CodeValidator:
         }
 
         return {"__builtins__": safe_builtins}
+
+
+class PytestValidator:
+    """
+    Validates player code using pytest test files.
+
+    Each challenge can have its own test_*.py file with tailored tests.
+    This allows validation methods appropriate to each challenge type.
+    """
+
+    def __init__(self, challenges_dir: Path, timeout_seconds: int = 30):
+        self.challenges_dir = Path(challenges_dir)
+        self.timeout_seconds = timeout_seconds
+
+    def validate(
+        self,
+        code: str,
+        challenge_id: str,
+        test_file: str
+    ) -> ValidationResult:
+        """
+        Validate player code using pytest.
+
+        Args:
+            code: Player's code
+            challenge_id: ID of the challenge
+            test_file: Name of the test file (e.g., "test_simple_math.py")
+
+        Returns:
+            ValidationResult with test outcomes
+        """
+        start_time = time.time()
+
+        # Find the test file
+        test_path = self._find_test_file(challenge_id, test_file)
+        if not test_path:
+            return ValidationResult(
+                success=False,
+                output="",
+                error=f"Test file not found: {test_file}",
+                time_seconds=time.time() - start_time,
+                test_results=[]
+            )
+
+        # Create temp directory with player code and test
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmpdir = Path(tmpdir)
+
+            # Write player code to file
+            player_file = tmpdir / "player_solution.py"
+            player_file.write_text(code)
+
+            # Write conftest.py to provide player_code fixture
+            conftest = tmpdir / "conftest.py"
+            conftest.write_text(f'''
+import pytest
+
+@pytest.fixture
+def player_code():
+    """Fixture providing the player's code as a string."""
+    return """{code.replace('"', '\\"')}"""
+
+@pytest.fixture
+def player_file():
+    """Fixture providing path to player's code file."""
+    return "{player_file}"
+''')
+
+            # Copy test file
+            test_dest = tmpdir / test_file
+            test_dest.write_text(test_path.read_text())
+
+            # Run pytest with JSON output
+            result = self._run_pytest(tmpdir, test_file)
+
+            return ValidationResult(
+                success=result["success"],
+                output=result["output"],
+                error=result.get("error"),
+                time_seconds=time.time() - start_time,
+                test_results=result["test_results"]
+            )
+
+    def _find_test_file(self, challenge_id: str, test_file: str) -> Optional[Path]:
+        """Find the test file for a challenge."""
+        # Search in challenge directories
+        for path in self.challenges_dir.rglob(test_file):
+            # Check if it's in the right challenge folder
+            if challenge_id in str(path.parent):
+                return path
+
+        # Try direct match
+        for path in self.challenges_dir.rglob(f"*/{test_file}"):
+            return path
+
+        return None
+
+    def _run_pytest(self, test_dir: Path, test_file: str) -> dict:
+        """Run pytest and parse results."""
+        try:
+            result = subprocess.run(
+                [
+                    sys.executable, "-m", "pytest",
+                    str(test_dir / test_file),
+                    "-v",
+                    "--tb=short",
+                    "-q"
+                ],
+                capture_output=True,
+                text=True,
+                timeout=self.timeout_seconds,
+                cwd=str(test_dir)
+            )
+
+            output = result.stdout + result.stderr
+            test_results = self._parse_pytest_output(output)
+            success = result.returncode == 0
+
+            return {
+                "success": success,
+                "output": output,
+                "error": None if success else "Some tests failed",
+                "test_results": test_results
+            }
+
+        except subprocess.TimeoutExpired:
+            return {
+                "success": False,
+                "output": "",
+                "error": f"Tests timed out after {self.timeout_seconds}s",
+                "test_results": []
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "output": "",
+                "error": f"Pytest error: {e}",
+                "test_results": []
+            }
+
+    def _parse_pytest_output(self, output: str) -> list[TestResult]:
+        """Parse pytest output to extract test results."""
+        import re
+        results = []
+        lines = output.split('\n')
+
+        # First, try to parse verbose format (::test_name PASSED/FAILED)
+        for line in lines:
+            if '::' in line and (' PASSED' in line or ' FAILED' in line):
+                parts = line.split('::')
+                if len(parts) >= 2:
+                    test_name = parts[-1].split()[0]
+                    passed = 'PASSED' in line
+                    results.append(TestResult(
+                        test_name=test_name,
+                        passed=passed,
+                        expected=None,
+                        actual=None,
+                        error=None if passed else "Test failed"
+                    ))
+
+        # If no verbose results found, parse summary line
+        if not results:
+            for line in lines:
+                # Match patterns like "6 passed", "3 passed, 2 failed"
+                passed_match = re.search(r'(\d+) passed', line)
+                failed_match = re.search(r'(\d+) failed', line)
+
+                if passed_match or failed_match:
+                    passed_count = int(passed_match.group(1)) if passed_match else 0
+                    failed_count = int(failed_match.group(1)) if failed_match else 0
+
+                    # Create synthetic test results
+                    for i in range(passed_count):
+                        results.append(TestResult(
+                            test_name=f"test_{i+1}",
+                            passed=True,
+                            expected=None,
+                            actual=None,
+                            error=None
+                        ))
+                    for i in range(failed_count):
+                        results.append(TestResult(
+                            test_name=f"failed_test_{i+1}",
+                            passed=False,
+                            expected=None,
+                            actual=None,
+                            error="Test failed"
+                        ))
+                    break
+
+        return results
 
 
 # Self-teaching note:

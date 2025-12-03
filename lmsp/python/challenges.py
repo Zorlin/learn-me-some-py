@@ -65,6 +65,10 @@ class Challenge:
     fun_factor: str = ""
     weakness_signals: list[str] = field(default_factory=list)
 
+    # Validation config
+    validation_type: str = "legacy"  # "legacy" or "pytest"
+    test_file: str | None = None  # e.g., "test_simple_math.py" for pytest validation
+
 
 class ChallengeLoader:
     """
@@ -147,6 +151,7 @@ class ChallengeLoader:
         description_data = data.get("description", {})
         skeleton_data = data.get("skeleton", {})
         tests_data = data.get("tests", {})
+        validation_data = data.get("validation", {})
         solution_data = data.get("solution", {})
         meta_data = data.get("meta", {})
         adaptive_data = data.get("adaptive", {})
@@ -191,7 +196,9 @@ class ChallengeLoader:
             speed_run_target=meta_data.get("speed_run_target", 60),
             points=meta_data.get("points", 100),
             fun_factor=adaptive_data.get("fun_factor", ""),
-            weakness_signals=adaptive_data.get("weakness_signals", [])
+            weakness_signals=adaptive_data.get("weakness_signals", []),
+            validation_type=validation_data.get("type", "legacy"),
+            test_file=validation_data.get("test_file")
         )
 
         # Cache and return

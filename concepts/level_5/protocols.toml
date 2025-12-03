@@ -333,10 +333,9 @@ text = """
 """
 
 [challenges]
-starter = "protocol_simple_drawable"
-intermediate = "protocol_comparable"
-mastery = "protocol_context_manager"
-expert = "protocol_lmsp_controller_input"
+starter = ""
+intermediate = ""
+mastery = ""
 
 [fun_factor]
 type = "type_system"

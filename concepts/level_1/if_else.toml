@@ -75,9 +75,9 @@ text = """
 """
 
 [challenges]
-starter = "if_else_basic_check"
-intermediate = "if_else_nested"
-mastery = "if_else_game_logic"
+starter = "guess_my_number"
+intermediate = "grade_calculator"
+mastery = ""
 
 [fun_factor]
 type = "branching"

@@ -96,9 +96,9 @@ text = """
 """
 
 [challenges]
-starter = "bool_simple_and_or"
-intermediate = "bool_complex_conditions"
-mastery = "bool_guard_clauses"
+starter = "password_validator"
+intermediate = ""
+mastery = ""
 
 [fun_factor]
 type = "logic"

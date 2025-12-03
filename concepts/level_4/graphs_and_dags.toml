@@ -295,9 +295,9 @@ text = """
 """
 
 [challenges]
-starter = "graphs_simple_tree"
-intermediate = "graphs_skill_prerequisites"
-mastery = "graphs_full_progression_system"
+starter = ""
+intermediate = ""
+mastery = ""
 
 [fun_facts]
 dag_everywhere = "DAGs are used in: build systems (Make), version control (Git), ML pipelines"

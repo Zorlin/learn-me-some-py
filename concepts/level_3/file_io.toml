@@ -202,9 +202,9 @@ text = """
 """
 
 [challenges]
-starter = "file_io_write_read"
-intermediate = "file_io_save_game"
-mastery = "file_io_multi_slot_saves"
+starter = "file_analyzer"
+intermediate = ""
+mastery = ""
 
 [fun_facts]
 context_manager = "The 'with' statement uses context managers - you can make your own!"

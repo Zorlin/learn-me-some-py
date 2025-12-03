@@ -49,6 +49,6 @@ examples = [
 ]
 
 [challenges]
-starter = "lambda_simple"
-intermediate = "lambda_sorting"
-mastery = "lambda_callbacks"
+starter = ""
+intermediate = ""
+mastery = ""

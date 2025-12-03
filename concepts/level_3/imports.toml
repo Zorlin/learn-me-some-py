@@ -170,9 +170,9 @@ text = """
 """
 
 [challenges]
-starter = "imports_use_random"
-intermediate = "imports_organize_code"
-mastery = "imports_create_module"
+starter = ""
+intermediate = ""
+mastery = ""
 
 [fun_facts]
 standard_library = "Python's standard library is HUGE - batteries included!"

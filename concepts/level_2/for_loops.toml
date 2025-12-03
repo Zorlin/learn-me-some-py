@@ -94,9 +94,9 @@ text = """
 """
 
 [challenges]
-starter = "for_print_list"
-intermediate = "for_sum_numbers"
-mastery = "for_nested_grid"
+starter = "fizz_buzz"
+intermediate = ""
+mastery = ""
 
 [fun_factor]
 type = "control_flow"

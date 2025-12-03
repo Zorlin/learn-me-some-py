@@ -71,9 +71,9 @@ text = """
 """
 
 [challenges]
-starter = "while_loop_countdown"
-intermediate = "while_loop_guess_number"
-mastery = "while_loop_game_menu"
+starter = "guess_my_number"
+intermediate = ""
+mastery = ""
 
 [fun_factor]
 type = "loop"

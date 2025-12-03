@@ -185,73 +185,32 @@ def main() -> int:
     profile_path = create_profile_path(args.player_id)
     profile = load_or_create_profile(profile_path, player_id)
 
-    # Display welcome message
-    display_welcome(console, profile, args.input)
-
-    # Import GameEngine here to avoid circular imports
-    from lmsp.game import GameEngine, GameConfig, KeyboardInputHandler
-    from lmsp.game.renderer import RichRenderer
-
-    # Create game configuration
-    config = GameConfig(
-        timeout_seconds=5,
-        auto_save=True,
-        debug_mode=False,
-    )
-
-    # Create input handler based on --input flag
-    if args.input == "gamepad":
-        try:
-            from lmsp.input.gamepad import GamepadInputHandler
-            input_handler = GamepadInputHandler()
-        except ImportError:
-            console.print("[yellow]Gamepad support not available, using keyboard[/yellow]")
-            input_handler = KeyboardInputHandler()
-    else:
-        input_handler = KeyboardInputHandler()
-
-    # Create game engine
-    game_engine = GameEngine(
-        profile=profile,
-        config=config,
-        renderer=RichRenderer(),
-        input_handler=input_handler,
-        console=console,
-    )
-
-    # Check for specific challenge
-    if args.challenge:
-        console.print(f"\n[bold cyan]Starting challenge:[/bold cyan] {args.challenge}")
-        try:
-            game_engine.start_challenge(args.challenge)
-        except ValueError as e:
-            console.print(f"[bold red]Error:[/bold red] {e}")
-            return 1
-
-    # Check for multiplayer
+    # Check for multiplayer (not yet supported)
     if args.multiplayer:
         console.print(
             f"\n[bold magenta]Multiplayer mode:[/bold magenta] {args.mode.upper()}"
         )
-        # TODO: Initialize multiplayer session
         console.print("[dim]Multiplayer support coming in Phase 4[/dim]")
         return 0
 
-    # Run the game loop
+    # Use the beautiful event-driven Live game loop!
+    # NO janky input() prompts - everything is event-driven and gorgeous.
+    from lmsp.game.live_loop import LiveGameLoop
+
+    loop = LiveGameLoop(console)
+
+    # If specific challenge requested, start it directly
+    if args.challenge:
+        loop._start_challenge(args.challenge)
+
+    # Run the gorgeous event-driven game loop
     try:
-        console.print("\n[bold yellow]Game loop starting...[/bold yellow]")
-        console.print("[dim]Press Ctrl+C to exit[/dim]\n")
-        game_engine.run()
+        loop.run()
     except KeyboardInterrupt:
-        console.print("\n[yellow]Game paused. See you next time![/yellow]")
-    except Exception as e:
-        console.print(f"\n[bold red]Error:[/bold red] {e}")
-        if args.input == "gamepad":
-            console.print("[dim]Try using keyboard mode for debugging[/dim]")
-        return 1
-    finally:
-        # Save profile before exit
-        profile_path.write_text(profile.to_json())
+        console.print("\n[yellow]See you next time![/yellow]")
+
+    # Save profile before exit
+    profile_path.write_text(profile.to_json())
 
     return 0
 

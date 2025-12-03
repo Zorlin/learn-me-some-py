@@ -298,10 +298,9 @@ text = """
 """
 
 [challenges]
-starter = "metaclass_simple_singleton"
-intermediate = "metaclass_auto_register_plugins"
-mastery = "metaclass_orm_field_validation"
-expert = "metaclass_build_lmsp_concept_system"
+starter = "orm_lite"
+intermediate = ""
+mastery = ""
 
 [fun_factor]
 type = "meta_programming"

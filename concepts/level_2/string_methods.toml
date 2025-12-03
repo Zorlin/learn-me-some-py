@@ -94,9 +94,9 @@ text = """
 """
 
 [challenges]
-starter = "string_parse_command"
-intermediate = "string_format_display"
-mastery = "string_text_adventure_parser"
+starter = "word_counter"
+intermediate = ""
+mastery = ""
 
 [fun_factor]
 type = "text_processing"

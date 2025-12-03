@@ -308,9 +308,9 @@ text = """
 """
 
 [challenges]
-starter = "algorithms_linear_search"
-intermediate = "algorithms_binary_search"
-mastery = "algorithms_a_star_pathfinding"
+starter = ""
+intermediate = ""
+mastery = ""
 
 [fun_facts]
 timsort = "Python's sort uses Timsort, invented by Tim Peters in 2002"

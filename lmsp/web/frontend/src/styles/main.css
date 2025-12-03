@@ -1,0 +1,316 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* OLED Dark Theme - Pure Black Foundation */
+:root {
+  /* Background colors */
+  --bg-primary: #000000;
+  --bg-secondary: #0a0a0a;
+  --bg-panel: #111111;
+  --bg-border: #1a1a1a;
+
+  /* OLED palette as CSS variables (matches Tailwind config) */
+  --oled-black: #000000;
+  --oled-near: #0a0a0a;
+  --oled-panel: #111111;
+  --oled-border: #1a1a1a;
+  --oled-muted: #222222;
+  --oled-surface: #0d0d0d;
+
+  /* Accent colors */
+  --accent-primary: #00ff88;
+  --accent-secondary: #0088ff;
+  --accent-tertiary: #ff00ff;
+  --accent-warning: #ffaa00;
+  --accent-error: #ff4444;
+  --accent-success: #22c55e;
+
+  /* Text colors */
+  --text-primary: #ffffff;
+  --text-secondary: #888888;
+  --text-muted: #555555;
+
+  /* Achievement tiers */
+  --tier-bronze: #cd7f32;
+  --tier-silver: #c0c0c0;
+  --tier-gold: #ffd700;
+  --tier-platinum: #e5e4e2;
+  --tier-diamond: #b9f2ff;
+}
+
+/* Base Styles */
+html, body {
+  @apply bg-oled-black text-white antialiased;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+/* OLED Panel Component */
+@layer components {
+  .oled-panel {
+    @apply bg-oled-panel border border-oled-border rounded-lg p-4;
+  }
+
+  .oled-panel-glow {
+    @apply oled-panel shadow-lg;
+    box-shadow: 0 0 20px rgba(0, 255, 136, 0.1);
+  }
+
+  .oled-button {
+    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200;
+    @apply bg-oled-muted hover:bg-oled-border text-white;
+    @apply border border-oled-border hover:border-accent-primary;
+  }
+
+  .oled-button-primary {
+    @apply oled-button;
+    @apply bg-accent-primary/20 hover:bg-accent-primary/30;
+    @apply border-accent-primary text-accent-primary;
+  }
+
+  .oled-button-secondary {
+    @apply oled-button;
+    @apply bg-accent-secondary/20 hover:bg-accent-secondary/30;
+    @apply border-accent-secondary text-accent-secondary;
+  }
+
+  .oled-button-success {
+    @apply oled-button;
+    @apply bg-green-500/20 hover:bg-green-500/30;
+    @apply border-green-500 text-green-500;
+    @apply font-bold;
+  }
+
+  /* Code Editor Styling */
+  .code-editor {
+    @apply bg-oled-black border border-oled-border rounded-lg;
+    @apply font-mono text-sm;
+  }
+
+  .code-line {
+    @apply px-4 py-1 hover:bg-oled-near;
+  }
+
+  .code-line-number {
+    @apply text-text-muted select-none w-8 inline-block text-right mr-4;
+  }
+
+  /* Emotional Feedback Bars */
+  .trigger-bar {
+    @apply h-4 rounded-full bg-oled-panel overflow-hidden;
+  }
+
+  .trigger-fill-positive {
+    @apply h-full bg-gradient-to-r from-accent-primary/50 to-accent-primary transition-all duration-100;
+  }
+
+  .trigger-fill-negative {
+    @apply h-full bg-gradient-to-r from-accent-error/50 to-accent-error transition-all duration-100;
+  }
+
+  /* Achievement Popup */
+  .achievement-popup {
+    @apply fixed top-4 right-4 z-50;
+    @apply oled-panel-glow animate-achievement-pop;
+    @apply border-2 border-tier-gold;
+  }
+
+  /* Gamepad Button Indicators */
+  .gamepad-button {
+    @apply w-8 h-8 rounded-full flex items-center justify-center;
+    @apply bg-oled-panel border border-oled-border;
+    @apply text-xs font-bold;
+  }
+
+  .gamepad-button.pressed {
+    @apply bg-accent-primary text-oled-black;
+  }
+
+  /* Challenge Card */
+  .challenge-card {
+    @apply oled-panel cursor-pointer transition-all duration-200;
+    @apply hover:border-accent-primary hover:scale-[1.02];
+  }
+
+  .challenge-card:hover {
+    box-shadow: 0 0 30px rgba(0, 255, 136, 0.15);
+  }
+
+  /* Level Badge */
+  .level-badge {
+    @apply inline-block px-2 py-0.5 rounded text-xs font-bold;
+    @apply bg-accent-secondary/20 text-accent-secondary;
+  }
+
+  /* Progress Bar */
+  .progress-bar {
+    @apply h-2 rounded-full bg-oled-panel overflow-hidden;
+  }
+
+  .progress-fill {
+    @apply h-full bg-gradient-to-r from-accent-primary to-accent-secondary transition-all duration-500;
+  }
+
+  /* Test Result Indicators */
+  .test-pass {
+    @apply text-accent-primary;
+  }
+
+  .test-fail {
+    @apply text-accent-error;
+  }
+
+  /* Confetti Particle */
+  .confetti-particle {
+    @apply fixed w-2 h-2 rounded-full animate-confetti;
+    pointer-events: none;
+  }
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-oled-black;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-oled-border rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-oled-muted;
+}
+
+/* ============================================================================
+   GAMEPAD NAVIGATION SYSTEM - PRIORITY ZERO
+   ============================================================================
+   The ENTIRE WebUI must be navigable with a gamepad.
+   This is what makes it feel like a GAME.
+*/
+
+/* Focus States - Keyboard */
+.keyboard-mode *:focus {
+  @apply outline-none ring-2 ring-accent-primary ring-offset-2 ring-offset-oled-black;
+}
+
+/* Focus States - Gamepad (more prominent) */
+.gamepad-mode .gamepad-focusable.focused,
+.gamepad-mode .gamepad-focused {
+  @apply outline-none ring-4 ring-accent-primary ring-offset-4 ring-offset-oled-black;
+  box-shadow: 0 0 40px rgba(0, 255, 136, 0.4), inset 0 0 20px rgba(0, 255, 136, 0.1);
+  transform: scale(1.02);
+  transition: all 0.15s ease-out;
+}
+
+/* Hide focus ring in mouse mode */
+.mouse-mode *:focus {
+  @apply outline-none ring-0;
+}
+
+/* Gamepad focusable elements base style */
+.gamepad-focusable {
+  @apply transition-all duration-150;
+  position: relative;
+}
+
+/* Subtle pulse animation for focused element in gamepad mode */
+@keyframes gamepad-pulse {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(0, 255, 136, 0.5);
+  }
+}
+
+.gamepad-mode .gamepad-focusable.focused {
+  animation: gamepad-pulse 1.5s ease-in-out infinite;
+}
+
+/* Input mode indicator */
+.input-mode-indicator {
+  @apply fixed bottom-4 left-4 z-50;
+  @apply px-3 py-2 rounded-full text-xs font-medium;
+  @apply bg-oled-panel/80 backdrop-blur-sm border border-oled-border;
+  @apply transition-all duration-300;
+}
+
+.input-mode-indicator.gamepad {
+  @apply border-accent-primary text-accent-primary;
+}
+
+.input-mode-indicator.keyboard {
+  @apply border-accent-secondary text-accent-secondary;
+}
+
+.input-mode-indicator.mouse {
+  @apply border-gray-600 text-gray-500 opacity-50;
+}
+
+/* Gamepad button hints */
+.gamepad-hints {
+  @apply flex items-center gap-4 text-sm text-text-muted;
+}
+
+.gamepad-hint {
+  @apply flex items-center gap-1;
+}
+
+.gamepad-hint-button {
+  @apply w-6 h-6 rounded-md flex items-center justify-center text-xs font-bold;
+  @apply bg-oled-panel border border-oled-border;
+}
+
+.gamepad-hint-button.a { @apply text-green-400 border-green-400/50; }
+.gamepad-hint-button.b { @apply text-red-400 border-red-400/50; }
+.gamepad-hint-button.x { @apply text-blue-400 border-blue-400/50; }
+.gamepad-hint-button.y { @apply text-yellow-400 border-yellow-400/50; }
+
+/* Navigation overlay (shows current focused element path) */
+.nav-breadcrumb {
+  @apply fixed top-4 left-4 z-50;
+  @apply flex items-center gap-2 text-xs;
+  @apply opacity-0 transition-opacity duration-300;
+}
+
+.gamepad-mode .nav-breadcrumb {
+  @apply opacity-100;
+}
+
+.nav-breadcrumb-item {
+  @apply px-2 py-1 rounded bg-oled-panel/80 text-text-secondary;
+}
+
+.nav-breadcrumb-item.current {
+  @apply bg-accent-primary/20 text-accent-primary;
+}
+
+/* Transition Utilities */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+.slide-enter-active,
+.slide-leave-active {
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.slide-enter-from {
+  transform: translateY(-20px);
+  opacity: 0;
+}
+
+.slide-leave-to {
+  transform: translateY(20px);
+  opacity: 0;
+}

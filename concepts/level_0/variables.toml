@@ -79,9 +79,9 @@ text = """
 """
 
 [challenges]
-starter = "variables_store_name"
-intermediate = "variables_swap_values"
-mastery = "variables_game_stats"
+starter = "personal_greeting"
+intermediate = "simple_math"
+mastery = ""
 
 [fun_factor]
 type = "storage"

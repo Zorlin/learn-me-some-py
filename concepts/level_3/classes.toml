@@ -197,9 +197,9 @@ text = """
 """
 
 [challenges]
-starter = "classes_create_player"
-intermediate = "classes_game_entity"
-mastery = "classes_inventory_system"
+starter = "inventory_system"
+intermediate = ""
+mastery = ""
 
 [fun_facts]
 everything_is_object = "In Python, EVERYTHING is an object - even functions and classes!"

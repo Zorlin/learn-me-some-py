@@ -82,9 +82,9 @@ text = """
 """
 
 [challenges]
-starter = "sorted_basic_numbers"
-intermediate = "sorted_high_scores"
-mastery = "sorted_leaderboard_multi_key"
+starter = ""
+intermediate = ""
+mastery = ""
 
 [fun_factor]
 type = "organization"

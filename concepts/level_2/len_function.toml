@@ -79,9 +79,9 @@ text = """
 """
 
 [challenges]
-starter = "len_basic_usage"
-intermediate = "len_empty_validator"
-mastery = "len_capacity_system"
+starter = "name_length"
+intermediate = "word_counter"
+mastery = ""
 
 [fun_factor]
 type = "measurement"

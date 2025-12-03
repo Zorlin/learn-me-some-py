@@ -240,9 +240,9 @@ text = """
 """
 
 [challenges]
-starter = "type_hints_simple_functions"
-intermediate = "type_hints_collections"
-mastery = "type_hints_complex_types"
+starter = ""
+intermediate = ""
+mastery = ""
 
 [fun_facts]
 optional = "Type hints were added in Python 3.5 (PEP 484)"

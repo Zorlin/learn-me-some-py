@@ -110,9 +110,9 @@ print(f"{name} the {hero_class} wields a {weapon}!")
 '''
 
 [challenges]
-starter = "input_ask_name"
-intermediate = "input_mad_libs"
-mastery = "input_character_creator"
+starter = "mad_libs"
+intermediate = "guess_my_number"
+mastery = ""
 
 [fun_factor]
 type = "interaction"

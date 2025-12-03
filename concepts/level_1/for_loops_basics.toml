@@ -74,9 +74,9 @@ text = """
 """
 
 [challenges]
-starter = "for_loop_print_numbers"
-intermediate = "for_loop_sum"
-mastery = "for_loop_pattern_maker"
+starter = "fizz_buzz"
+intermediate = ""
+mastery = ""
 
 [fun_factor]
 type = "repetition"

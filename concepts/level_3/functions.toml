@@ -143,9 +143,9 @@ text = """
 """
 
 [challenges]
-starter = "functions_create_simple"
-intermediate = "functions_with_params"
-mastery = "functions_game_logic"
+starter = "custom_calculator"
+intermediate = ""
+mastery = ""
 
 [fun_facts]
 first_class = "Functions are objects - you can pass them to other functions!"

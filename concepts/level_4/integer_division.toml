@@ -304,9 +304,9 @@ Pattern recognition:
 """
 
 [challenges]
-starter = "integer_division_basic"
-intermediate = "integer_division_grid"
-mastery = "integer_division_game_logic"
+starter = ""
+intermediate = ""
+mastery = ""
 
 [fun_facts]
 python2_vs_3 = "Python 2 used / for integer division with ints! Python 3 changed this."

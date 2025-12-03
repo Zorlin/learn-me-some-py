@@ -104,9 +104,9 @@ text = """
 """
 
 [challenges]
-starter = "if_check_positive"
-intermediate = "if_grade_calculator"
-mastery = "if_rpg_damage_system"
+starter = "grade_calculator"
+intermediate = ""
+mastery = ""
 
 [fun_factor]
 type = "control_flow"

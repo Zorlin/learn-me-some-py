@@ -29,11 +29,10 @@ result =
 print()
 '''
 
-[tests]
-[[tests.case]]
-name = "addition"
-input = []
-expected = ["100"]
+[validation]
+# This challenge uses pytest - see test_simple_math.py
+type = "pytest"
+test_file = "test_simple_math.py"
 
 [hints]
 level_1 = "Use the + operator to add numbers"

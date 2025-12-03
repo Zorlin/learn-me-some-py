@@ -87,9 +87,9 @@ text = """
 """
 
 [challenges]
-starter = "match_simple_menu"
-intermediate = "match_command_parser"
-mastery = "match_game_state_handler"
+starter = ""
+intermediate = ""
+mastery = ""
 
 [fun_factor]
 type = "branching"

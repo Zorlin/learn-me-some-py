@@ -205,9 +205,9 @@ text = """
 """
 
 [challenges]
-starter = "generators_simple_countdown"
-intermediate = "generators_fibonacci"
-mastery = "generators_wave_spawner"
+starter = ""
+intermediate = ""
+mastery = ""
 
 [fun_facts]
 lazy_evaluation = "Generators are 'lazy' - they only compute when asked"

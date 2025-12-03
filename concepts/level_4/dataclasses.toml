@@ -245,9 +245,9 @@ text = """
 """
 
 [challenges]
-starter = "dataclasses_simple_entity"
-intermediate = "dataclasses_game_character"
-mastery = "dataclasses_nested_structures"
+starter = ""
+intermediate = ""
+mastery = ""
 
 [fun_facts]
 python37 = "Dataclasses were added in Python 3.7"

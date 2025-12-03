@@ -325,10 +325,9 @@ text = """
 """
 
 [challenges]
-starter = "pytest_simple_assertions"
-intermediate = "pytest_parametrize"
-mastery = "pytest_exception_testing"
-expert = "pytest_lmsp_concept_validation"
+starter = "test_suite"
+intermediate = ""
+mastery = ""
 
 [fun_factor]
 type = "testing"

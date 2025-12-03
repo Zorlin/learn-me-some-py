@@ -250,9 +250,9 @@ Example:
 """
 
 [challenges]
-starter = "parameters_single"
-intermediate = "parameters_multiple"
-mastery = "parameters_with_defaults"
+starter = "custom_calculator"
+intermediate = ""
+mastery = ""
 
 [fun_facts]
 unlimited = "Python supports *args and **kwargs for unlimited parameters!"

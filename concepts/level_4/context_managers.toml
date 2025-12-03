@@ -246,9 +246,9 @@ text = """
 """
 
 [challenges]
-starter = "context_managers_file_handling"
-intermediate = "context_managers_timer"
-mastery = "context_managers_transaction"
+starter = "context_manager"
+intermediate = ""
+mastery = ""
 
 [fun_facts]
 pythonic = "'with' is the Pythonic way to manage resources"

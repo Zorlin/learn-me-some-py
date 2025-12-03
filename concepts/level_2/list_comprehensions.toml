@@ -95,9 +95,9 @@ text = """
 """
 
 [challenges]
-starter = "comprehension_double_numbers"
-intermediate = "comprehension_filter_enemies"
-mastery = "comprehension_nested_grid"
+starter = ""
+intermediate = ""
+mastery = ""
 
 [fun_factor]
 type = "pythonic"

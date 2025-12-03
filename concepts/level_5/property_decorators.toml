@@ -381,10 +381,9 @@ text = """
 """
 
 [challenges]
-starter = "property_simple_getter"
-intermediate = "property_validation"
-mastery = "property_dependent_computed"
-expert = "property_lmsp_adaptive_metrics"
+starter = "property_validator"
+intermediate = ""
+mastery = ""
 
 [fun_factor]
 type = "classes"
