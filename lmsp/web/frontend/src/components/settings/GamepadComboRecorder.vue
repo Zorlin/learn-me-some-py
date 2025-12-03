@@ -23,16 +23,16 @@ const holdingSticks = ref(false)
 const holdStartTime = ref<number | null>(null)
 const holdProgress = ref(0)
 
-// Valid buttons for combo
+// Valid buttons for combo - keys MUST match gamepad store button names (no hyphens!)
 const BUTTON_MAP: Record<string, string> = {
   'A': 'A',
   'B': 'B',
   'X': 'X',
   'Y': 'Y',
-  'DPad-Up': 'UP',
-  'DPad-Down': 'DOWN',
-  'DPad-Left': 'LEFT',
-  'DPad-Right': 'RIGHT',
+  'DPadUp': 'UP',
+  'DPadDown': 'DOWN',
+  'DPadLeft': 'LEFT',
+  'DPadRight': 'RIGHT',
   'LB': 'L1',
   'RB': 'R1',
 }

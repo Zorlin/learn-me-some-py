@@ -19,11 +19,13 @@ export interface GamepadState {
 }
 
 // Standard Gamepad button indices
+// Note: W3C spec says 2=X, 3=Y but many controllers (Nintendo, some 3rd party)
+// report these swapped. Xbox-style layout used here for consistency.
 const BUTTON_NAMES: Record<number, string> = {
   0: 'A',
   1: 'B',
-  2: 'X',
-  3: 'Y',
+  2: 'Y',  // Physical left button in diamond - swapped for Nintendo-style
+  3: 'X',  // Physical top button in diamond - swapped for Nintendo-style
   4: 'LB',
   5: 'RB',
   6: 'LT', // Also available as axis
