@@ -1,0 +1,58 @@
+# Level 2: Lists
+# Prerequisite for: comprehensions, container patterns
+
+[concept]
+id = "lists_basics"
+name = "Lists: Your First Container"
+level = 2
+prerequisites = ["variables", "types_int_str"]
+
+[description]
+brief = "Store multiple values in one place"
+detailed = """
+A list is like a backpack - you can put things in, take things out,
+and check what's inside.
+
+```python
+backpack = []           # Empty backpack
+backpack.append("key")  # Put a key in
+backpack.append("map")  # Put a map in
+print(backpack)         # ['key', 'map']
+```
+"""
+
+[methods]
+append = "Add something to the end: my_list.append(item)"
+remove = "Remove first occurrence: my_list.remove(item)"
+pop = "Remove and return last item: my_list.pop()"
+index = "Find position of item: my_list.index(item)"
+
+[gotchas]
+remove_vs_pop = """
+- remove(x) removes by VALUE: [1,2,3].remove(2) → [1,3]
+- pop() removes by POSITION (last): [1,2,3].pop() → [1,2], returns 3
+- pop(i) removes by INDEX: [1,2,3].pop(0) → [2,3], returns 1
+"""
+mutable = "Lists change in-place! append() modifies the original list."
+
+[gamepad_tutorial]
+text = """
+🎮 EASY MODE:
+- Press Y to start a for loop over your list
+- Press RB to suggest a list method based on context
+- D-pad DOWN to see what's in your list
+"""
+
+[challenges]
+starter = "lists_create_and_append"
+intermediate = "lists_remove_item"
+mastery = "lists_build_inventory"
+
+[fun_factor]
+type = "collection"
+description = "Like an inventory in a video game"
+examples = ["game inventory", "todo list", "high scores"]
+
+[adaptive]
+weakness_signals = ["index_out_of_bounds", "modify_while_iterating"]
+strength_indicators = ["clean_iteration", "correct_method_choice"]

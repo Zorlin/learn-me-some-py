@@ -1,0 +1,26 @@
+{
+  "project_name": "learn-me-some-py",
+  "project_type": "python",
+  "version": "0.1.0",
+  "test_framework": "pytest",
+  "test_command": "pytest tests/ -v",
+  "build_command": "pip install -e .",
+  "lint_command": "ruff check .",
+  "format_command": "ruff format .",
+  "description": "The game that teaches you to build it - Learn Python with controller support and adaptive AI",
+  "rhsi": {
+    "enabled": true,
+    "strict_mode": true,
+    "masks": ["game-designer", "python-teacher", "accessibility-expert"]
+  },
+  "development_priorities": [
+    "tests_first",
+    "adaptive_learning",
+    "controller_native",
+    "fun_over_completeness"
+  ],
+  "meta_learning": {
+    "enabled": true,
+    "note": "This project teaches Python BY being built in Python - every file is also a lesson"
+  }
+}

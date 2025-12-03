@@ -1,0 +1,110 @@
+# Challenge: Container Add and Exists
+# The first container pattern - foundation for everything
+
+[challenge]
+id = "container_add_exists"
+name = "Container: Add and Exists"
+level = 2
+prerequisites = ["lists_basics", "functions_basics", "in_operator"]
+
+[description]
+brief = "Build a container that can add values and check if they exist"
+detailed = """
+You're building the foundation of a data store.
+
+Implement two operations:
+- ADD <value>: Add the value to your container. Return ""
+- EXISTS <value>: Check if value is in container. Return "true" or "false"
+
+The container starts empty.
+"""
+
+[skeleton]
+code = '''
+def solution(queries):
+    # Your code here
+    # queries is a list of [command, value] pairs
+    # Return a list of results
+    pass
+'''
+
+[tests]
+[[tests.case]]
+name = "basic"
+input = [["ADD", "1"], ["ADD", "2"], ["EXISTS", "1"], ["EXISTS", "3"]]
+expected = ["", "", "true", "false"]
+
+[[tests.case]]
+name = "duplicates"
+input = [["ADD", "5"], ["ADD", "5"], ["EXISTS", "5"]]
+expected = ["", "", "true"]
+
+[[tests.case]]
+name = "empty_check"
+input = [["EXISTS", "1"]]
+expected = ["false"]
+
+[hints]
+level_1 = "You'll need a list to store your values"
+level_2 = "The 'in' operator checks if something is in a list"
+level_3 = "Don't forget: the function returns strings, not booleans"
+level_4 = """
+Pattern:
+```python
+container = []
+for command, value in queries:
+    if command == "ADD":
+        # add to container
+    elif command == "EXISTS":
+        # check container
+```
+"""
+
+[gamepad_hints]
+easy_mode = """
+🎮 EASY MODE GUIDE:
+1. Press A to create your solution function
+2. Create a container: type 'container' then press RB for '= []'
+3. Press Y to start looping through queries
+4. Press X to create if/elif for commands
+"""
+
+[solution]
+# Hidden from player, used for AI teaching mode
+code = '''
+def solution(queries):
+    container = []
+    results = []
+    for command, value in queries:
+        if command == "ADD":
+            container.append(value)
+            results.append("")
+        elif command == "EXISTS":
+            if value in container:
+                results.append("true")
+            else:
+                results.append("false")
+    return results
+'''
+
+[meta]
+time_limit_seconds = 300
+speed_run_target = 60
+points = 100
+next_challenge = "container_remove"
+
+[adaptive]
+fun_factor = "puzzle"
+weakness_signals = ["forgot_return", "wrong_boolean_type", "global_state_bug"]
+project_themes = ["database", "cache", "inventory", "session_storage"]
+
+[emotional_checkpoints]
+after_first_test_pass = """
+🎮 Nice! Your ADD is working.
+   [RT] to show how that felt
+"""
+after_completion = """
+🎮 Container complete! You just built a data store.
+   How was that?
+   [RT] Satisfying  |  [LT] Frustrating  |  [Y] Mixed feelings
+"""

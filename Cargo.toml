@@ -1,0 +1,53 @@
+[package]
+name = "learn-me-some-py"
+version = "0.1.0"
+edition = "2021"
+description = "Codecademy but not fucking boring - Learn Python as a game with controller support"
+authors = ["Wings <wings@riff.cc>"]
+license = "MIT"
+
+[dependencies]
+# Game engine
+gilrs = "0.10"                    # Gamepad input
+ratatui = "0.28"                  # Terminal UI
+crossterm = "0.28"                # Terminal backend
+
+# Async runtime
+tokio = { version = "1.40", features = ["full"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "0.8"
+
+# Image processing for introspection
+image = "0.25"
+webp = "0.3"
+
+# Python execution
+pyo3 = { version = "0.22", features = ["auto-initialize"] }
+
+# Utilities
+anyhow = "1.0"
+thiserror = "1.0"
+tracing = "0.1"
+tracing-subscriber = "0.3"
+chrono = "0.4"
+uuid = { version = "1.10", features = ["v4"] }
+petgraph = "0.6"                  # For concept DAG
+
+# Player-zero integration
+player-zero = { path = "../player-zero" }
+
+[dev-dependencies]
+pretty_assertions = "1.4"
+
+[[bin]]
+name = "lmsp"
+path = "src/main.rs"
+
+[features]
+default = []
+spectator = []                    # Enable spectator mode
+multiplayer = []                  # Enable multiplayer
+introspection = []                # Enable screenshot/video capture
