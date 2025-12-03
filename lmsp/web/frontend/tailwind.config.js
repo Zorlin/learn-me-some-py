@@ -24,6 +24,7 @@ export default {
         'oled': {
           'black': '#000000',
           'near': '#0a0a0a',
+          'surface': '#0d0d0d',
           'panel': '#111111',
           'border': '#1a1a1a',
           'muted': '#222222',
@@ -32,6 +33,7 @@ export default {
           'primary': '#00ff88',    // Neon green
           'secondary': '#0088ff',  // Electric blue
           'tertiary': '#ff00ff',   // Magenta
+          'success': '#22c55e',    // Green (success)
           'warning': '#ffaa00',    // Orange
           'error': '#ff4444',      // Red
         },
