@@ -49,7 +49,7 @@ function handleAchievement(event: CustomEvent) {
       <div class="responsive-container-wide py-3 flex items-center justify-between">
         <router-link
           to="/"
-          class="flex items-center gap-2 gamepad-focusable rounded-lg px-2 py-1 -ml-2"
+          class="lmsp-logo flex items-center gap-2 gamepad-focusable rounded-lg px-2 py-1 -ml-2"
           tabindex="0"
         >
           <span class="text-2xl font-bold text-accent-primary">LMSP</span>

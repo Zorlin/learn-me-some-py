@@ -81,6 +81,10 @@ const isDragging = ref(false)
 const dragStartX = ref(0)
 const dragStartOffset = ref(0)
 
+// Legend toggle state
+const showXp = ref(true)
+const showSolveTime = ref(true)
+
 // Chart data points - ALL events with real timestamps
 const chartPoints = computed(() => {
   return allEvents.value.map((d) => ({
@@ -468,7 +472,7 @@ onMounted(async () => {
 
             <!-- XP Area fill -->
             <path
-              v-if="chartPoints.length > 0"
+              v-if="chartPoints.length > 0 && showXp"
               :d="xpAreaPath"
               fill="url(#xpGradient)"
               opacity="0.3"
@@ -476,7 +480,7 @@ onMounted(async () => {
 
             <!-- XP Line -->
             <path
-              v-if="chartPoints.length > 0"
+              v-if="chartPoints.length > 0 && showXp"
               :d="xpLinePath"
               fill="none"
               stroke="#00ff88"
@@ -487,7 +491,7 @@ onMounted(async () => {
 
             <!-- Solve Time Line -->
             <path
-              v-if="chartPoints.length > 0"
+              v-if="chartPoints.length > 0 && showSolveTime"
               :d="solveTimeLinePath"
               fill="none"
               stroke="#60a5fa"
@@ -500,32 +504,36 @@ onMounted(async () => {
 
             <!-- Data points -->
             <g class="data-points">
-              <circle
-                v-for="(point, i) in dataPointsForRender"
-                :key="'xp-' + i"
-                :cx="point.cx"
-                :cy="point.cyXp"
-                r="4"
-                fill="#00ff88"
-                class="data-point"
-              >
-                <title>{{ point.label }}: {{ point.xp }} XP</title>
-              </circle>
-              <circle
-                v-for="(point, i) in dataPointsForRender"
-                :key="'time-' + i"
-                :cx="point.cx"
-                :cy="point.cySolveTime"
-                r="3"
-                fill="#60a5fa"
-                class="data-point"
-              >
-                <title>{{ point.label }}: {{ point.solveTime.toFixed(1) }}s</title>
-              </circle>
+              <template v-if="showXp">
+                <circle
+                  v-for="(point, i) in dataPointsForRender"
+                  :key="'xp-' + i"
+                  :cx="point.cx"
+                  :cy="point.cyXp"
+                  r="4"
+                  fill="#00ff88"
+                  class="data-point"
+                >
+                  <title>{{ point.label }}: {{ point.xp }} XP</title>
+                </circle>
+              </template>
+              <template v-if="showSolveTime">
+                <circle
+                  v-for="(point, i) in dataPointsForRender"
+                  :key="'time-' + i"
+                  :cx="point.cx"
+                  :cy="point.cySolveTime"
+                  r="3"
+                  fill="#60a5fa"
+                  class="data-point"
+                >
+                  <title>{{ point.label }}: {{ point.solveTime.toFixed(1) }}s</title>
+                </circle>
+              </template>
             </g>
 
             <!-- Y-axis labels (XP - left) -->
-            <g class="y-axis-xp">
+            <g v-if="showXp" class="y-axis-xp">
               <text
                 v-for="tick in yAxisTicksXp"
                 :key="'yxp-' + tick.value"
@@ -540,7 +548,7 @@ onMounted(async () => {
             </g>
 
             <!-- Y-axis labels (Solve Time - right) -->
-            <g class="y-axis-time">
+            <g v-if="showSolveTime" class="y-axis-time">
               <text
                 v-for="tick in yAxisTicksSolveTime"
                 :key="'ytime-' + tick.value"
@@ -581,6 +589,7 @@ onMounted(async () => {
 
             <!-- Axis labels -->
             <text
+              v-if="showXp"
               :x="12"
               :y="chartHeight / 2"
               fill="#00ff88"
@@ -591,6 +600,7 @@ onMounted(async () => {
               XP
             </text>
             <text
+              v-if="showSolveTime"
               :x="chartWidth - 12"
               :y="chartHeight / 2"
               fill="#60a5fa"
@@ -611,12 +621,24 @@ onMounted(async () => {
           </svg>
         </div>
 
-        <div class="text-xs text-text-muted mt-2 text-center">
-          <span class="text-accent-primary">●</span> XP
-          <span class="mx-2">|</span>
-          <span class="text-blue-400">●</span> Solve Time
-          <span class="mx-2">|</span>
-          <span class="opacity-60">Drag to pan • Scroll to zoom</span>
+        <div class="flex items-center justify-center gap-4 mt-2 text-xs">
+          <button
+            class="legend-toggle"
+            :class="{ active: showXp, inactive: !showXp }"
+            @click="showXp = !showXp"
+          >
+            <span class="legend-dot bg-accent-primary" />
+            <span>XP</span>
+          </button>
+          <button
+            class="legend-toggle"
+            :class="{ active: showSolveTime, inactive: !showSolveTime }"
+            @click="showSolveTime = !showSolveTime"
+          >
+            <span class="legend-dot bg-blue-400" />
+            <span>Solve Time</span>
+          </button>
+          <span class="text-text-muted opacity-60">Drag to pan • Scroll to zoom</span>
         </div>
       </div>
 
@@ -716,5 +738,31 @@ onMounted(async () => {
 
 svg text {
   font-family: ui-monospace, monospace;
+}
+
+.legend-toggle {
+  @apply flex items-center gap-1.5 px-2 py-1 rounded;
+  @apply transition-all duration-150 cursor-pointer;
+  @apply border border-transparent;
+}
+
+.legend-toggle:hover {
+  @apply bg-white/5;
+}
+
+.legend-toggle.active {
+  @apply text-white;
+}
+
+.legend-toggle.inactive {
+  @apply opacity-40;
+}
+
+.legend-toggle.inactive .legend-dot {
+  @apply opacity-30;
+}
+
+.legend-dot {
+  @apply w-2 h-2 rounded-full inline-block;
 }
 </style>

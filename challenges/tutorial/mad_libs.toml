@@ -26,52 +26,27 @@ Use any method: f-strings, + operator, whatever works!
 
 [skeleton]
 code = '''
-# Create your story variables
-adjective =
-noun =
-verb =
-place =
+# Create your story variables (put any words you want!)
+adjective = ...
+noun = ...
+verb = ...
+place = ...
 
-# Build your story
-story =
+# Build your story using this exact template:
+# "The ADJECTIVE NOUN VERB to the PLACE"
+# Example: "The silly cat danced to the moon"
+story = ...
 
-# Print it
-print()
+# Print your story
+print(...)
 '''
+
+[validation]
+type = "pytest"
+test_file = "test_mad_libs.py"
 
 [tests]
-[[tests.case]]
-name = "silly_story"
-input = []
-setup = '''
-adjective = "silly"
-noun = "cat"
-verb = "danced"
-place = "moon"
-'''
-expected = ["The silly cat danced to the moon"]
-
-[[tests.case]]
-name = "weird_story"
-input = []
-setup = '''
-adjective = "purple"
-noun = "elephant"
-verb = "flew"
-place = "supermarket"
-'''
-expected = ["The purple elephant flew to the supermarket"]
-
-[[tests.case]]
-name = "cool_story"
-input = []
-setup = '''
-adjective = "awesome"
-noun = "robot"
-verb = "jumped"
-place = "castle"
-'''
-expected = ["The awesome robot jumped to the castle"]
+# Tests are defined in test_mad_libs.py
 
 [hints]
 level_1 = "Create four string variables"

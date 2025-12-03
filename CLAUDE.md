@@ -217,6 +217,29 @@ When in doubt:
 - **Play over study** - Gaming language over academic
 - **NO FALLBACKS TO JANKY TEXT UI** - If the nice UI breaks, FIX IT, don't fall back
 
+### INSTANT. RESPONSIVE. ZERO COOLDOWN.
+
+**Input must feel INSTANT. No cooldowns. No artificial delays. No "debouncing" that makes the UI feel frozen.**
+
+When the user presses a button or moves a stick:
+- The response happens on the NEXT FRAME
+- Not "after 133ms cooldown"
+- Not "when the debounce timer expires"
+- IMMEDIATELY
+
+If something needs rate limiting (like network requests), do it at the ACTION level, not the INPUT level. The user should always feel their input was received and processed instantly.
+
+**Edge detection is fine** - only triggering on button press (not hold) is correct behavior. But once the press is detected, the action is INSTANT.
+
+This applies to:
+- D-pad navigation
+- Thumbstick navigation
+- Button presses
+- Cursor movement
+- Everything
+
+**If it feels sluggish, it's BROKEN.**
+
 ---
 
 *Built in The Forge. Powered by Palace. For the joy of learning.*

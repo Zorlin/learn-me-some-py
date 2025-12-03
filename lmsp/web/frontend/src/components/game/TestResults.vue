@@ -5,6 +5,7 @@
  *
  * "Help is a feature, not a bug"
  * Shows test results with COPY BUTTONS for easy debugging with Claude Code.
+ * Pytest output gets syntax highlighting!
  */
 
 import { computed } from 'vue'
@@ -28,6 +29,70 @@ const props = defineProps<{
   results: TestResult
   challenge?: ChallengeContext
 }>()
+
+// Highlight pytest output with colors
+function highlightPytestOutput(text: string): string {
+  if (!text) return ''
+
+  // Escape HTML first
+  let html = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+
+  // PASSED - green
+  html = html.replace(/\bPASSED\b/g, '<span class="pytest-passed">PASSED</span>')
+
+  // FAILED - red
+  html = html.replace(/\bFAILED\b/g, '<span class="pytest-failed">FAILED</span>')
+
+  // ERROR - red
+  html = html.replace(/\bERROR\b/g, '<span class="pytest-error">ERROR</span>')
+
+  // Test names (test_something)
+  html = html.replace(/\b(test_\w+)/g, '<span class="pytest-test-name">$1</span>')
+
+  // AssertionError and other exceptions
+  html = html.replace(/\b(AssertionError|ValueError|TypeError|KeyError|IndexError|AttributeError|NameError|SyntaxError|Exception)\b/g,
+    '<span class="pytest-exception">$1</span>')
+
+  // Expected/got patterns - highlight the quoted values
+  html = html.replace(/Expected\s+&#39;([^&#]+)&#39;/g,
+    'Expected <span class="pytest-expected">\'$1\'</span>')
+  html = html.replace(/got\s+&#39;([^&#]+)&#39;/g,
+    'got <span class="pytest-actual">\'$1\'</span>')
+
+  // Also handle double quotes
+  html = html.replace(/Expected\s+&quot;([^&]+)&quot;/g,
+    'Expected <span class="pytest-expected">"$1"</span>')
+  html = html.replace(/got\s+&quot;([^&]+)&quot;/g,
+    'got <span class="pytest-actual">"$1"</span>')
+
+  // Summary line: "X passed" in green, "X failed" in red
+  html = html.replace(/(\d+)\s+passed/g, '<span class="pytest-passed">$1 passed</span>')
+  html = html.replace(/(\d+)\s+failed/g, '<span class="pytest-failed">$1 failed</span>')
+  html = html.replace(/(\d+)\s+error/g, '<span class="pytest-error">$1 error</span>')
+
+  // File paths and line numbers (muted)
+  html = html.replace(/([\/\w\-_.]+\.py):(\d+)/g,
+    '<span class="pytest-file">$1</span>:<span class="pytest-line">$2</span>')
+
+  // assert keyword
+  html = html.replace(/\b(assert)\b/g, '<span class="pytest-keyword">$1</span>')
+
+  // Arrows and markers
+  html = html.replace(/(&gt;|&lt;|\|)/g, '<span class="pytest-marker">$1</span>')
+
+  return html
+}
+
+const highlightedOutput = computed(() => {
+  return highlightPytestOutput(props.results.output || '')
+})
+
+const highlightedError = computed(() => {
+  return highlightPytestOutput(props.results.error || '')
+})
 
 // Format for copying - includes full context for Claude Code
 const formatForClaude = computed(() => {
@@ -117,7 +182,7 @@ const statusColor = computed(() => {
         <div class="section-label text-accent-error">Error</div>
         <CopyButton :content="results.error" label="Copy Error" />
       </div>
-      <pre class="output-pre error">{{ results.error }}</pre>
+      <pre class="output-pre error" v-html="highlightedError"></pre>
     </div>
 
     <!-- Test Output -->
@@ -126,7 +191,7 @@ const statusColor = computed(() => {
         <div class="section-label">Output</div>
         <CopyButton :content="results.output" label="Copy Output" />
       </div>
-      <pre class="output-pre">{{ results.output }}</pre>
+      <pre class="output-pre" v-html="highlightedOutput"></pre>
     </div>
 
     <!-- Copy All Button -->
@@ -231,7 +296,6 @@ const statusColor = computed(() => {
 }
 
 .output-pre.error {
-  color: #ef4444;
   background: rgba(239, 68, 68, 0.05);
 }
 
@@ -243,5 +307,61 @@ const statusColor = computed(() => {
 .success-message {
   padding: 2rem;
   text-align: center;
+}
+
+/* Pytest Syntax Highlighting */
+:deep(.pytest-passed) {
+  color: #22c55e;
+  font-weight: 600;
+}
+
+:deep(.pytest-failed) {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+:deep(.pytest-error) {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+:deep(.pytest-test-name) {
+  color: #60a5fa;
+}
+
+:deep(.pytest-exception) {
+  color: #f472b6;
+  font-weight: 600;
+}
+
+:deep(.pytest-expected) {
+  color: #22c55e;
+  background: rgba(34, 197, 94, 0.1);
+  padding: 0 0.25em;
+  border-radius: 0.125em;
+}
+
+:deep(.pytest-actual) {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+  padding: 0 0.25em;
+  border-radius: 0.125em;
+}
+
+:deep(.pytest-file) {
+  color: #6b7280;
+}
+
+:deep(.pytest-line) {
+  color: #fbbf24;
+}
+
+:deep(.pytest-keyword) {
+  color: #818cf8;
+  font-weight: 600;
+}
+
+:deep(.pytest-marker) {
+  color: #6b7280;
 }
 </style>

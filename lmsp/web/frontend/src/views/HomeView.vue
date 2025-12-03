@@ -3,11 +3,15 @@ import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePlayerStore } from '@/stores/player'
 import { useGamepadStore } from '@/stores/gamepad'
+import { useGamepadNav } from '@/composables/useGamepadNav'
 import { playerApi } from '@/api/client'
 
 const router = useRouter()
 const playerStore = usePlayerStore()
 const gamepadStore = useGamepadStore()
+
+// Enable gamepad navigation
+useGamepadNav({ onBack: () => {} }) // No back action on home
 
 const recommendation = ref<{ concept: string; reason: string; challenge_id: string } | null>(null)
 
@@ -92,13 +96,13 @@ function viewProgress() {
     <!-- Action Buttons -->
     <div class="flex flex-col sm:flex-row gap-4 w-full max-w-md">
       <button
-        class="oled-button-primary flex-1 py-4 text-lg"
+        class="oled-button-primary gamepad-focusable flex-1 py-4 text-lg"
         @click="startRecommended"
       >
         🚀 Start Learning
       </button>
       <button
-        class="oled-button-secondary flex-1 py-4 text-lg"
+        class="oled-button-secondary gamepad-focusable flex-1 py-4 text-lg"
         @click="browseChallenges"
       >
         📚 Browse Challenges
@@ -106,7 +110,7 @@ function viewProgress() {
     </div>
 
     <button
-      class="oled-button mt-4 w-full max-w-md py-3"
+      class="oled-button gamepad-focusable mt-4 w-full max-w-md py-3"
       @click="viewProgress"
     >
       📊 View Progress

@@ -157,6 +157,36 @@ class LMSPDatabase:
             )
         """)
 
+        # XP History table - tracks every XP gain for time-series graphs
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS xp_history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                player_id TEXT NOT NULL,
+                xp_amount INTEGER NOT NULL,
+                reason TEXT NOT NULL,
+                challenge_id TEXT,
+                solve_time REAL,
+                timestamp TEXT NOT NULL,
+                FOREIGN KEY (player_id) REFERENCES players(player_id)
+            )
+        """)
+
+        # Emotional feedback table - tracks satisfaction/frustration ratings
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS emotional_feedback (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                player_id TEXT NOT NULL,
+                challenge_id TEXT,
+                stage INTEGER,
+                enjoyment REAL NOT NULL DEFAULT 0,
+                frustration REAL NOT NULL DEFAULT 0,
+                skipped INTEGER NOT NULL DEFAULT 0,
+                context TEXT,
+                timestamp TEXT NOT NULL,
+                FOREIGN KEY (player_id) REFERENCES players(player_id)
+            )
+        """)
+
         # Indexes for common queries
         cursor.execute("""
             CREATE INDEX IF NOT EXISTS idx_completions_player
@@ -169,6 +199,14 @@ class LMSPDatabase:
         cursor.execute("""
             CREATE INDEX IF NOT EXISTS idx_sessions_player
             ON sessions(player_id)
+        """)
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_xp_history_player_timestamp
+            ON xp_history(player_id, timestamp)
+        """)
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_emotional_feedback_player
+            ON emotional_feedback(player_id, challenge_id)
         """)
 
     # =========================================================================
@@ -588,6 +626,261 @@ class LMSPDatabase:
         current = self.get_mastery_levels(player_id).get(concept_id, 0)
         new_level = min(4.0, current + increment)
         return self.set_mastery_level(player_id, concept_id, new_level)
+
+    # =========================================================================
+    # XP History
+    # =========================================================================
+
+    def record_xp_event(
+        self,
+        player_id: str,
+        xp_amount: int,
+        reason: str,
+        challenge_id: Optional[str] = None,
+        solve_time: Optional[float] = None
+    ):
+        """Record an XP gain event for history tracking."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """INSERT INTO xp_history
+                   (player_id, xp_amount, reason, challenge_id, solve_time, timestamp)
+                   VALUES (?, ?, ?, ?, ?, ?)""",
+                (player_id, xp_amount, reason, challenge_id, solve_time,
+                 datetime.now().isoformat())
+            )
+
+    def get_xp_history(
+        self,
+        player_id: str,
+        start_time: Optional[str] = None,
+        end_time: Optional[str] = None,
+        limit: Optional[int] = None
+    ) -> list[dict]:
+        """
+        Get XP history for a player, optionally filtered by time range.
+
+        Returns list of dicts with: xp_amount, reason, challenge_id, solve_time, timestamp
+        """
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+
+            query = "SELECT * FROM xp_history WHERE player_id = ?"
+            params: list = [player_id]
+
+            if start_time:
+                query += " AND timestamp >= ?"
+                params.append(start_time)
+            if end_time:
+                query += " AND timestamp <= ?"
+                params.append(end_time)
+
+            query += " ORDER BY timestamp ASC"
+
+            if limit:
+                query += " LIMIT ?"
+                params.append(limit)
+
+            cursor.execute(query, params)
+
+            return [
+                {
+                    "xp_amount": row["xp_amount"],
+                    "reason": row["reason"],
+                    "challenge_id": row["challenge_id"],
+                    "solve_time": row["solve_time"],
+                    "timestamp": row["timestamp"],
+                }
+                for row in cursor.fetchall()
+            ]
+
+    def get_xp_stats_by_period(
+        self,
+        player_id: str,
+        period: str = "day"
+    ) -> list[dict]:
+        """
+        Get XP aggregated by time period.
+
+        Args:
+            period: 'hour', 'day', 'week', 'month', 'year'
+
+        Returns list of dicts with: period_start, total_xp, event_count
+        """
+        # SQLite date formatting for grouping
+        format_map = {
+            "hour": "%Y-%m-%d %H:00:00",
+            "day": "%Y-%m-%d",
+            "week": "%Y-W%W",
+            "month": "%Y-%m",
+            "year": "%Y",
+        }
+        date_format = format_map.get(period, "%Y-%m-%d")
+
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                f"""SELECT
+                       strftime('{date_format}', timestamp) as period_start,
+                       SUM(xp_amount) as total_xp,
+                       COUNT(*) as event_count,
+                       AVG(solve_time) as avg_solve_time
+                   FROM xp_history
+                   WHERE player_id = ?
+                   GROUP BY period_start
+                   ORDER BY period_start ASC""",
+                (player_id,)
+            )
+
+            return [
+                {
+                    "period_start": row["period_start"],
+                    "total_xp": row["total_xp"],
+                    "event_count": row["event_count"],
+                    "avg_solve_time": row["avg_solve_time"],
+                }
+                for row in cursor.fetchall()
+            ]
+
+    # =========================================================================
+    # Emotional Feedback / Satisfaction
+    # =========================================================================
+
+    def record_emotional_feedback(
+        self,
+        player_id: str,
+        enjoyment: float,
+        frustration: float,
+        challenge_id: Optional[str] = None,
+        stage: Optional[int] = None,
+        context: Optional[str] = None,
+        skipped: bool = False
+    ):
+        """
+        Record emotional feedback for a challenge/stage.
+
+        Args:
+            player_id: Player identifier
+            enjoyment: Satisfaction rating 0.0-1.0 (RT trigger)
+            frustration: Frustration rating 0.0-1.0 (LT trigger)
+            challenge_id: Optional challenge this feedback is for
+            stage: Optional stage number (for multi-stage challenges)
+            context: Additional context string
+            skipped: True if player skipped rating (0%/0% submitted without interaction)
+
+        Note: 0%/0% with skipped=False means player deliberately rated neutral.
+              0%/0% with skipped=True means player didn't engage with rating.
+        """
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """INSERT INTO emotional_feedback
+                   (player_id, challenge_id, stage, enjoyment, frustration, skipped, context, timestamp)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                (player_id, challenge_id, stage, enjoyment, frustration,
+                 1 if skipped else 0, context, datetime.now().isoformat())
+            )
+
+    def get_satisfaction_history(
+        self,
+        player_id: str,
+        challenge_id: Optional[str] = None,
+        limit: int = 100
+    ) -> list[dict]:
+        """
+        Get satisfaction/feedback history for a player.
+
+        Returns list of feedback records, newest first.
+        """
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+
+            if challenge_id:
+                cursor.execute(
+                    """SELECT * FROM emotional_feedback
+                       WHERE player_id = ? AND challenge_id = ?
+                       ORDER BY timestamp DESC LIMIT ?""",
+                    (player_id, challenge_id, limit)
+                )
+            else:
+                cursor.execute(
+                    """SELECT * FROM emotional_feedback
+                       WHERE player_id = ?
+                       ORDER BY timestamp DESC LIMIT ?""",
+                    (player_id, limit)
+                )
+
+            return [
+                {
+                    "challenge_id": row["challenge_id"],
+                    "stage": row["stage"],
+                    "enjoyment": row["enjoyment"],
+                    "frustration": row["frustration"],
+                    "skipped": bool(row["skipped"]),
+                    "context": row["context"],
+                    "timestamp": row["timestamp"],
+                }
+                for row in cursor.fetchall()
+            ]
+
+    def get_challenge_satisfaction_avg(
+        self,
+        player_id: str,
+        challenge_id: str
+    ) -> dict:
+        """
+        Get average satisfaction for a specific challenge.
+
+        Only includes non-skipped ratings.
+        Returns: {avg_enjoyment, avg_frustration, rating_count, skipped_count}
+        """
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """SELECT
+                       AVG(CASE WHEN skipped = 0 THEN enjoyment END) as avg_enjoyment,
+                       AVG(CASE WHEN skipped = 0 THEN frustration END) as avg_frustration,
+                       SUM(CASE WHEN skipped = 0 THEN 1 ELSE 0 END) as rating_count,
+                       SUM(CASE WHEN skipped = 1 THEN 1 ELSE 0 END) as skipped_count
+                   FROM emotional_feedback
+                   WHERE player_id = ? AND challenge_id = ?""",
+                (player_id, challenge_id)
+            )
+            row = cursor.fetchone()
+
+            return {
+                "avg_enjoyment": row["avg_enjoyment"] or 0.0,
+                "avg_frustration": row["avg_frustration"] or 0.0,
+                "rating_count": row["rating_count"] or 0,
+                "skipped_count": row["skipped_count"] or 0,
+            }
+
+    def calculate_mastery_from_satisfaction(
+        self,
+        player_id: str,
+        challenge_id: str
+    ) -> float:
+        """
+        Calculate mastery adjustment based on satisfaction history.
+
+        High satisfaction + low frustration = mastered
+        Low satisfaction OR high frustration = needs more practice
+
+        Returns mastery adjustment factor: 0.0 to 1.0
+        """
+        stats = self.get_challenge_satisfaction_avg(player_id, challenge_id)
+
+        if stats["rating_count"] == 0:
+            return 0.5  # No data, neutral
+
+        # Mastery = high enjoyment * (1 - frustration)
+        # This means:
+        # - High enjoyment + low frustration = high mastery (~1.0)
+        # - High enjoyment + high frustration = medium mastery (~0.5)
+        # - Low enjoyment + high frustration = low mastery (~0.0)
+        mastery = stats["avg_enjoyment"] * (1 - stats["avg_frustration"])
+
+        return mastery
 
     # =========================================================================
     # Statistics

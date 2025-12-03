@@ -69,6 +69,11 @@ const holdStartTime = ref(0)
 const HOLD_DURATION = 1500 // 1.5 seconds to force unlock
 let holdAnimationFrame: number | null = null
 
+// Right stick panning (No Man's Sky style - "fly around" the tree)
+const RIGHT_STICK_PAN_SPEED = 20 // Pixels per frame at full deflection
+const STICK_DEADZONE = 0.2
+let panAnimationFrame: number | null = null
+
 // Level colors
 const levelColors: Record<number, string> = {
   0: '#00ff88',
@@ -477,16 +482,75 @@ function handleKeyup(e: KeyboardEvent) {
   }
 }
 
+// Left stick navigation threshold tracking
+const LEFT_STICK_NAV_THRESHOLD = 0.7
+let prevLeftStickMag = 0
+
+// Right stick panning loop - "fly around" the skill tree like No Man's Sky
+// Also handles left stick as D-pad equivalent for node navigation
+function updatePan() {
+  const { rightStick, leftStick } = gamepadStore
+
+  // === LEFT STICK: D-pad equivalent for node navigation ===
+  const leftX = leftStick.x
+  const leftY = leftStick.y
+  const leftMag = Math.sqrt(leftX * leftX + leftY * leftY)
+
+  // Edge detection: only navigate when crossing threshold
+  if (leftMag >= LEFT_STICK_NAV_THRESHOLD && prevLeftStickMag < LEFT_STICK_NAV_THRESHOLD) {
+    // Determine primary direction
+    const absX = Math.abs(leftX)
+    const absY = Math.abs(leftY)
+
+    if (absX > absY) {
+      // Horizontal dominant
+      if (leftX > 0) navigateRight()
+      else navigateLeft()
+    } else {
+      // Vertical dominant
+      if (leftY > 0) navigateDown()
+      else navigateUp()
+    }
+  }
+  prevLeftStickMag = leftMag
+
+  // === RIGHT STICK: Camera pan (fly around the tree) ===
+  const stickX = rightStick.x
+  const stickY = rightStick.y
+  const magnitude = Math.sqrt(stickX * stickX + stickY * stickY)
+
+  if (magnitude > STICK_DEADZONE) {
+    // Remap magnitude past deadzone to 0-1
+    const adjustedMag = (magnitude - STICK_DEADZONE) / (1 - STICK_DEADZONE)
+    // Quadratic curve for smooth feel at low deflections, fast at high
+    const speed = RIGHT_STICK_PAN_SPEED * adjustedMag * adjustedMag
+
+    // Pan the viewBox (move the "camera")
+    const normX = stickX / magnitude
+    const normY = stickY / magnitude
+    viewBox.value.x += normX * speed
+    viewBox.value.y += normY * speed
+  }
+
+  panAnimationFrame = requestAnimationFrame(updatePan)
+}
+
 onMounted(() => {
   loadSkillTree()
   window.addEventListener('keydown', handleKeydown)
   window.addEventListener('keyup', handleKeyup)
+  // Start right stick pan loop
+  panAnimationFrame = requestAnimationFrame(updatePan)
 })
 
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeydown)
   window.removeEventListener('keyup', handleKeyup)
   cancelHold() // Clean up any pending hold animation
+  // Clean up pan animation
+  if (panAnimationFrame !== null) {
+    cancelAnimationFrame(panAnimationFrame)
+  }
 })
 </script>
 

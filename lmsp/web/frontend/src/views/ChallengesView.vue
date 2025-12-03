@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { onMounted, ref, computed } from 'vue'
+import { onMounted, onUnmounted, ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { challengesApi } from '@/api/client'
+import { useGamepadNav } from '@/composables/useGamepadNav'
 import RadialProgress from '@/components/ui/RadialProgress.vue'
 
 interface ChallengeProgress {
@@ -26,6 +27,9 @@ const router = useRouter()
 const allChallenges = ref<ChallengeItem[]>([])  // Full list for stats
 const isLoading = ref(true)
 const selectedLevel = ref<number | null>(null)
+
+// Enable gamepad navigation
+useGamepadNav({ onBack: () => router.push('/') })
 
 onMounted(async () => {
   await loadAllChallenges()
@@ -121,7 +125,46 @@ function selectChallenge(id: string) {
 function filterByLevel(level: number | null) {
   selectedLevel.value = level
   // No need to reload - filtering is done locally via computed
+  // Gently scroll to top to see filters
+  window.scrollTo({ top: 0, behavior: 'smooth' })
 }
+
+// Scroll to top when focusing on filter buttons (for gamepad nav)
+function onFilterFocus() {
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+// Watch for gamepad focus on filter buttons
+let filterObserver: MutationObserver | null = null
+
+onMounted(() => {
+  // Observe filter row for gamepad-focused class changes
+  const filterRow = document.querySelector('.level-filter-row')
+  if (filterRow) {
+    filterObserver = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+          const target = mutation.target as HTMLElement
+          if (target.classList.contains('level-filter-btn') &&
+              target.classList.contains('gamepad-focused')) {
+            onFilterFocus()
+          }
+        }
+      }
+    })
+    filterObserver.observe(filterRow, {
+      attributes: true,
+      subtree: true,
+      attributeFilter: ['class']
+    })
+  }
+})
+
+onUnmounted(() => {
+  if (filterObserver) {
+    filterObserver.disconnect()
+  }
+})
 </script>
 
 <template>
@@ -133,35 +176,44 @@ function filterByLevel(level: number | null) {
     <!-- Level Filter with Radial Progress -->
     <div class="level-filter-row">
       <button
-        class="level-filter-btn"
+        class="level-filter-btn gamepad-focusable"
         :class="{ 'active': selectedLevel === null }"
         @click="filterByLevel(null)"
+        @mouseenter="onFilterFocus"
+        @focus="onFilterFocus"
       >
         <span class="level-filter-label">All</span>
       </button>
       <button
         v-for="level in 7"
         :key="level - 1"
-        class="level-filter-btn"
+        class="level-filter-btn gamepad-focusable"
         :class="{
           'active': selectedLevel === level - 1,
           'has-progress': levelStats[level - 1]?.completed > 0
         }"
         @click="filterByLevel(level - 1)"
+        @mouseenter="onFilterFocus"
+        @focus="onFilterFocus"
       >
-        <RadialProgress
-          v-if="levelStats[level - 1]?.total > 0"
-          :percent="levelStats[level - 1]?.avgRetention || 0"
-          :size="36"
-          :stroke-width="3"
-          :animate="false"
-        >
-          <span class="level-number">{{ level - 1 }}</span>
-        </RadialProgress>
-        <span v-else class="level-number-empty">{{ level - 1 }}</span>
-        <span class="level-stats-hint" v-if="levelStats[level - 1]?.total > 0">
-          {{ levelStats[level - 1].completed }}/{{ levelStats[level - 1].total }}
-        </span>
+        <div class="level-btn-content">
+          <span class="level-label">Level {{ level - 1 }}</span>
+          <div class="level-progress-container" v-if="levelStats[level - 1]?.total > 0">
+            <RadialProgress
+              :percent="levelStats[level - 1]?.avgRetention || 0"
+              :size="40"
+              :stroke-width="4"
+              :show-label="true"
+            />
+            <span class="level-stats-text">
+              {{ levelStats[level - 1].completed }}/{{ levelStats[level - 1].total }}
+            </span>
+          </div>
+          <div v-else class="level-empty-progress">
+            <span class="level-empty-circle">○</span>
+            <span class="level-stats-text">0/0</span>
+          </div>
+        </div>
       </button>
     </div>
 
@@ -191,7 +243,7 @@ function filterByLevel(level: number | null) {
           <div
             v-for="challenge in groupedByLevel[level]"
             :key="challenge.id"
-            class="challenge-card cursor-pointer"
+            class="challenge-card cursor-pointer gamepad-focusable"
             :class="{
               'needs-review': challenge.progress?.needs_review,
               'mastered': challenge.progress?.mastered,
@@ -270,8 +322,8 @@ function filterByLevel(level: number | null) {
   align-items: center;
   justify-content: center;
   gap: 0.25rem;
-  padding: 0.5rem 0.75rem;
-  min-width: 3.5rem;
+  padding: 0.75rem 1rem;
+  min-width: 5rem;
   border-radius: 0.5rem;
   background: var(--oled-panel);
   border: 2px solid var(--oled-border);
@@ -290,7 +342,7 @@ function filterByLevel(level: number | null) {
   background: rgba(0, 255, 136, 0.1);
 }
 
-.level-filter-btn.active .level-number,
+.level-filter-btn.active .level-label,
 .level-filter-btn.active .level-filter-label {
   color: var(--accent-primary);
 }
@@ -300,29 +352,51 @@ function filterByLevel(level: number | null) {
   font-weight: 600;
 }
 
-.level-number {
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: var(--text-secondary);
-}
-
-.level-number-empty {
-  width: 36px;
-  height: 36px;
+.level-btn-content {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--text-muted);
-  border: 2px dashed var(--oled-border);
-  border-radius: 50%;
+  gap: 0.5rem;
 }
 
-.level-stats-hint {
+.level-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.level-progress-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.level-stats-text {
   font-size: 0.6rem;
   color: var(--text-muted);
   white-space: nowrap;
+}
+
+.level-empty-progress {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.level-empty-circle {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  color: var(--text-muted);
+  border: 2px dashed var(--oled-border);
+  border-radius: 50%;
+  opacity: 0.5;
 }
 
 /* Challenge card states */

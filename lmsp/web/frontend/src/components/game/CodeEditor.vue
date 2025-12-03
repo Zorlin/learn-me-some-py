@@ -3,11 +3,13 @@
  * Code Editor Component
  * ======================
  *
+ * Prism.js syntax highlighting with textarea overlay
  * Tab/Shift+Tab = Indentation (as it should be!)
- * Copy button for easy debugging
  */
 
-import { ref, watch, onMounted } from 'vue'
+import { ref, watch, onMounted, computed } from 'vue'
+import Prism from 'prismjs'
+import 'prismjs/components/prism-python'
 import CopyButton from '@/components/ui/CopyButton.vue'
 
 const props = defineProps<{
@@ -20,15 +22,23 @@ const emit = defineEmits<{
 }>()
 
 const editorRef = ref<HTMLTextAreaElement | null>(null)
-const lineNumbers = ref<string[]>([])
+const highlightRef = ref<HTMLPreElement | null>(null)
 
 // Calculate line numbers
-function updateLineNumbers() {
+const lineNumbers = computed(() => {
   const lines = props.code.split('\n')
-  lineNumbers.value = lines.map((_, i) => String(i + 1))
-}
+  return lines.map((_, i) => String(i + 1))
+})
 
-watch(() => props.code, updateLineNumbers, { immediate: true })
+// Highlighted code using Prism
+const highlightedCode = computed(() => {
+  // Add a space at end if code ends with newline to match textarea behavior
+  let codeToHighlight = props.code
+  if (codeToHighlight.endsWith('\n')) {
+    codeToHighlight += ' '
+  }
+  return Prism.highlight(codeToHighlight, Prism.languages.python, 'python')
+})
 
 function handleInput(event: Event) {
   const target = event.target as HTMLTextAreaElement
@@ -46,7 +56,6 @@ function handleKeydown(event: KeyboardEvent) {
     const spaces = '    '
     const newValue = props.code.substring(0, start) + spaces + props.code.substring(end)
     emit('update:code', newValue)
-    // Set cursor position after spaces
     requestAnimationFrame(() => {
       target.selectionStart = target.selectionEnd = start + spaces.length
     })
@@ -55,13 +64,10 @@ function handleKeydown(event: KeyboardEvent) {
   // Shift+Tab removes 4 spaces (dedent)
   if (event.key === 'Tab' && event.shiftKey) {
     event.preventDefault()
-
-    // Find the start of the current line
     const beforeCursor = props.code.substring(0, start)
     const lineStart = beforeCursor.lastIndexOf('\n') + 1
     const lineIndent = props.code.substring(lineStart, start)
 
-    // Check if line starts with spaces we can remove
     if (lineIndent.startsWith('    ')) {
       const newValue = props.code.substring(0, lineStart) +
                        props.code.substring(lineStart + 4)
@@ -75,15 +81,11 @@ function handleKeydown(event: KeyboardEvent) {
   // Enter key maintains current indentation
   if (event.key === 'Enter') {
     event.preventDefault()
-
-    // Get the current line's indentation
     const beforeCursor = props.code.substring(0, start)
     const lineStart = beforeCursor.lastIndexOf('\n') + 1
     const currentLine = props.code.substring(lineStart, start)
     const indentMatch = currentLine.match(/^(\s*)/)
     const indent = indentMatch ? indentMatch[1] : ''
-
-    // Add extra indent if line ends with ':'
     const trimmedLine = currentLine.trim()
     const extraIndent = trimmedLine.endsWith(':') ? '    ' : ''
 
@@ -101,6 +103,10 @@ function handleScroll(event: Event) {
   const lineNumbersEl = document.querySelector('.line-numbers') as HTMLElement
   if (lineNumbersEl) {
     lineNumbersEl.scrollTop = target.scrollTop
+  }
+  if (highlightRef.value) {
+    highlightRef.value.scrollTop = target.scrollTop
+    highlightRef.value.scrollLeft = target.scrollLeft
   }
 }
 
@@ -136,20 +142,30 @@ onMounted(() => {
         </div>
       </div>
 
-      <!-- Code Area -->
-      <textarea
-        ref="editorRef"
-        :value="code"
-        :readonly="readonly"
-        class="code-textarea"
-        spellcheck="false"
-        autocomplete="off"
-        autocorrect="off"
-        autocapitalize="off"
-        @input="handleInput"
-        @keydown="handleKeydown"
-        @scroll="handleScroll"
-      />
+      <!-- Code Area with Syntax Highlighting -->
+      <div class="code-area">
+        <!-- Highlighted code (behind textarea) -->
+        <pre
+          ref="highlightRef"
+          class="code-highlight"
+          aria-hidden="true"
+        ><code class="language-python" v-html="highlightedCode"></code></pre>
+
+        <!-- Transparent textarea (captures input) -->
+        <textarea
+          ref="editorRef"
+          :value="code"
+          :readonly="readonly"
+          class="code-textarea"
+          spellcheck="false"
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="off"
+          @input="handleInput"
+          @keydown="handleKeydown"
+          @scroll="handleScroll"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -195,8 +211,43 @@ onMounted(() => {
   padding-right: 0.5rem;
 }
 
-.code-textarea {
+.code-area {
+  position: relative;
   flex: 1;
+  overflow: hidden;
+}
+
+.code-highlight {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  margin: 0;
+  padding: 1rem;
+  overflow: auto;
+  pointer-events: none;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.875rem;
+  line-height: 1.5rem;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  background: transparent;
+}
+
+.code-highlight code {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  background: transparent;
+}
+
+.code-textarea {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   padding: 1rem;
   background: transparent;
   border: none;
@@ -205,20 +256,78 @@ onMounted(() => {
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
   font-size: 0.875rem;
   line-height: 1.5rem;
-  color: #e0e0e0;
+  color: transparent;
+  caret-color: #fff;
   tab-size: 4;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow: auto;
 }
 
 .code-textarea:focus {
   outline: none;
 }
 
-.code-textarea::placeholder {
-  color: rgba(255, 255, 255, 0.3);
+.code-textarea::selection {
+  background: rgba(99, 102, 241, 0.4);
 }
 
 .code-textarea:read-only {
-  opacity: 0.7;
+  caret-color: transparent;
   cursor: not-allowed;
+}
+
+/* Prism Theme - OLED Dark */
+:deep(.token.comment),
+:deep(.token.prolog),
+:deep(.token.doctype),
+:deep(.token.cdata) {
+  color: #6b7280;
+}
+
+:deep(.token.punctuation) {
+  color: #9ca3af;
+}
+
+:deep(.token.property),
+:deep(.token.tag),
+:deep(.token.boolean),
+:deep(.token.number),
+:deep(.token.constant),
+:deep(.token.symbol) {
+  color: #f472b6;
+}
+
+:deep(.token.selector),
+:deep(.token.attr-name),
+:deep(.token.string),
+:deep(.token.char),
+:deep(.token.builtin) {
+  color: #a3e635;
+}
+
+:deep(.token.operator),
+:deep(.token.entity),
+:deep(.token.url),
+:deep(.language-css .token.string),
+:deep(.style .token.string) {
+  color: #fbbf24;
+}
+
+:deep(.token.atrule),
+:deep(.token.attr-value),
+:deep(.token.keyword) {
+  color: #818cf8;
+}
+
+:deep(.token.function),
+:deep(.token.class-name) {
+  color: #60a5fa;
+}
+
+:deep(.token.regex),
+:deep(.token.important),
+:deep(.token.variable) {
+  color: #f472b6;
 }
 </style>

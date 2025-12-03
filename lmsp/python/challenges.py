@@ -21,12 +21,38 @@ class TestCase:
 
     Attributes:
         name: Test case identifier (e.g., "basic", "edge_case")
-        input: Input value(s) for the test
+        input: Input value(s) for the test (or stdin for interactive mode)
         expected: Expected output value(s)
+        setup: Optional code to run before user's code (e.g., inject variables)
     """
     name: str
     input: Any
     expected: Any
+    setup: str | None = None
+
+
+@dataclass
+class ChallengeStage:
+    """
+    A single stage within a multi-stage challenge.
+
+    In multi-stage challenges, learners complete stages sequentially.
+    Code from previous stages carries forward automatically.
+
+    Attributes:
+        stage_number: Order of this stage (1, 2, 3...)
+        name: Human-readable stage name
+        description: What the learner needs to accomplish
+        skeleton_code: Initial code for this stage (or carries from previous)
+        test_cases: Tests that must pass to advance to next stage
+        hints: Stage-specific hints
+    """
+    stage_number: int
+    name: str
+    description: str
+    skeleton_code: str | None = None  # None means carry forward from previous stage
+    test_cases: list[TestCase] = field(default_factory=list)
+    hints: dict[int, str] = field(default_factory=dict)
 
 
 @dataclass
@@ -61,6 +87,18 @@ class Challenge:
     speed_run_target: int = 60
     points: int = 100
 
+    # Challenge mode: "standard", "time_attack", "speed_run"
+    # - standard: Normal challenge, timer is informational
+    # - time_attack: Must complete within time_limit_seconds or fail
+    # - speed_run: Track best times, leaderboard competition
+    challenge_mode: str = "standard"
+
+    # Multi-stage challenge support
+    # If stages is non-empty, this is a multi-stage challenge
+    # Learner must complete stages in order, code carries forward
+    stages: list[ChallengeStage] = field(default_factory=list)
+    current_stage: int = 1  # Which stage the learner is on (runtime state, not persisted in TOML)
+
     # Adaptive learning
     fun_factor: str = ""
     weakness_signals: list[str] = field(default_factory=list)
@@ -74,10 +112,10 @@ class ChallengeLoader:
     """
     Loads and caches challenge definitions from TOML files.
 
-    The loader scans a directory tree for .toml files, parses them,
-    and provides methods to search and filter challenges.
+    The loader scans a directory tree for .toml files and provides
+    lazy loading with mtime-based cache invalidation.
 
-    Challenges are cached after first load for performance.
+    Index is built from filenames (fast), parsing happens on-demand.
     """
 
     def __init__(self, challenges_dir: Path) -> None:
@@ -88,40 +126,39 @@ class ChallengeLoader:
             challenges_dir: Path to the root directory containing challenge TOML files
         """
         self.challenges_dir = Path(challenges_dir)
-        self._cache: dict[str, Challenge] = {}
-        self._all_challenges: list[str] | None = None
+        # Cache: challenge_id -> (Challenge, file_mtime)
+        self._cache: dict[str, tuple[Challenge, float]] = {}
+        # Index: challenge_id -> file_path (built lazily from filenames, no parsing)
+        self._index: dict[str, Path] | None = None
+
+    def _build_index(self) -> dict[str, Path]:
+        """Build index from filenames - NO PARSING, just path mapping."""
+        if self._index is not None:
+            return self._index
+
+        self._index = {}
+        for toml_file in self.challenges_dir.rglob("*.toml"):
+            # Derive challenge ID from filename (e.g., "guess_my_number.toml" -> "guess_my_number")
+            challenge_id = toml_file.stem
+            self._index[challenge_id] = toml_file
+        return self._index
 
     def list_challenges(self) -> list[str]:
         """
         List all available challenge IDs.
 
-        Scans the challenges directory for .toml files and extracts challenge IDs.
+        Returns filenames without parsing - instant!
 
         Returns:
             List of challenge IDs
         """
-        if self._all_challenges is not None:
-            return self._all_challenges
-
-        challenge_ids = []
-
-        # Recursively find all .toml files
-        for toml_file in self.challenges_dir.rglob("*.toml"):
-            try:
-                with open(toml_file, "rb") as f:
-                    data = tomllib.load(f)
-                    if "challenge" in data and "id" in data["challenge"]:
-                        challenge_ids.append(data["challenge"]["id"])
-            except Exception:
-                # Skip files that can't be parsed
-                continue
-
-        self._all_challenges = challenge_ids
-        return challenge_ids
+        return list(self._build_index().keys())
 
     def load(self, challenge_id: str) -> Challenge:
         """
         Load a challenge by ID.
+
+        Uses mtime-based cache invalidation for hot reload support.
 
         Args:
             challenge_id: The challenge ID to load
@@ -133,14 +170,19 @@ class ChallengeLoader:
             FileNotFoundError: If challenge TOML file doesn't exist
             ValueError: If TOML is missing required fields
         """
-        # Check cache first
-        if challenge_id in self._cache:
-            return self._cache[challenge_id]
-
-        # Find the TOML file
-        toml_file = self._find_challenge_file(challenge_id)
-        if not toml_file:
+        # Find the TOML file from index
+        index = self._build_index()
+        toml_file = index.get(challenge_id)
+        if not toml_file or not toml_file.exists():
             raise FileNotFoundError(f"Challenge '{challenge_id}' not found")
+
+        # Check cache with mtime invalidation
+        current_mtime = toml_file.stat().st_mtime
+        if challenge_id in self._cache:
+            cached_challenge, cached_mtime = self._cache[challenge_id]
+            if cached_mtime == current_mtime:
+                return cached_challenge
+            # File changed, need to reload
 
         # Parse TOML
         with open(toml_file, "rb") as f:
@@ -161,8 +203,9 @@ class ChallengeLoader:
         for case_data in tests_data.get("case", []):
             test_cases.append(TestCase(
                 name=case_data["name"],
-                input=case_data["input"],
-                expected=case_data["expected"]
+                input=case_data.get("input"),
+                expected=case_data["expected"],
+                setup=case_data.get("setup")
             ))
 
         # Parse hints (convert level_N keys to integer keys)
@@ -179,6 +222,49 @@ class ChallengeLoader:
         # Parse gamepad hints
         gamepad_hints = data.get("gamepad_hints", {})
 
+        # Parse multi-stage challenges
+        stages_data = data.get("stages", {})
+        stages = []
+        for stage_key, stage_info in stages_data.items():
+            if not stage_key.startswith("stage_"):
+                continue
+            try:
+                stage_num = int(stage_key.split("_")[1])
+            except (IndexError, ValueError):
+                continue
+
+            # Parse stage test cases
+            stage_test_cases = []
+            for case_data in stage_info.get("tests", {}).get("case", []):
+                stage_test_cases.append(TestCase(
+                    name=case_data["name"],
+                    input=case_data.get("input"),
+                    expected=case_data["expected"],
+                    setup=case_data.get("setup")
+                ))
+
+            # Parse stage hints
+            stage_hints = {}
+            for hint_key, hint_value in stage_info.get("hints", {}).items():
+                if hint_key.startswith("level_"):
+                    try:
+                        hint_level = int(hint_key.split("_")[1])
+                        stage_hints[hint_level] = hint_value
+                    except (IndexError, ValueError):
+                        pass
+
+            stages.append(ChallengeStage(
+                stage_number=stage_num,
+                name=stage_info.get("name", f"Stage {stage_num}"),
+                description=stage_info.get("description", ""),
+                skeleton_code=stage_info.get("skeleton_code"),
+                test_cases=stage_test_cases,
+                hints=stage_hints
+            ))
+
+        # Sort stages by number
+        stages.sort(key=lambda s: s.stage_number)
+
         # Create Challenge object
         challenge = Challenge(
             id=challenge_data["id"],
@@ -187,7 +273,7 @@ class ChallengeLoader:
             prerequisites=challenge_data.get("prerequisites", []),
             description_brief=description_data["brief"],
             description_detailed=description_data["detailed"],
-            skeleton_code=skeleton_data["code"],
+            skeleton_code=skeleton_data.get("code", ""),
             test_cases=test_cases,
             hints=hints,
             gamepad_hints=gamepad_hints,
@@ -195,14 +281,16 @@ class ChallengeLoader:
             time_limit_seconds=meta_data.get("time_limit_seconds", 300),
             speed_run_target=meta_data.get("speed_run_target", 60),
             points=meta_data.get("points", 100),
+            challenge_mode=meta_data.get("challenge_mode", "standard"),
+            stages=stages,
             fun_factor=adaptive_data.get("fun_factor", ""),
             weakness_signals=adaptive_data.get("weakness_signals", []),
             validation_type=validation_data.get("type", "legacy"),
             test_file=validation_data.get("test_file")
         )
 
-        # Cache and return
-        self._cache[challenge_id] = challenge
+        # Cache with mtime and return
+        self._cache[challenge_id] = (challenge, current_mtime)
         return challenge
 
     def get_by_level(self, level: int) -> list[Challenge]:
@@ -238,27 +326,6 @@ class ChallengeLoader:
             if prereq in challenge.prerequisites:
                 challenges.append(challenge)
         return challenges
-
-    def _find_challenge_file(self, challenge_id: str) -> Path | None:
-        """
-        Find the TOML file for a challenge ID.
-
-        Args:
-            challenge_id: The challenge ID to find
-
-        Returns:
-            Path to the TOML file, or None if not found
-        """
-        for toml_file in self.challenges_dir.rglob("*.toml"):
-            try:
-                with open(toml_file, "rb") as f:
-                    data = tomllib.load(f)
-                    if data.get("challenge", {}).get("id") == challenge_id:
-                        return toml_file
-            except Exception:
-                continue
-        return None
-
 
 # Self-teaching note:
 #

@@ -2,338 +2,190 @@
  * Gamepad State Store
  * ====================
  *
- * Handles Gamepad API integration for controller input.
- * Supports analog triggers for emotional feedback.
+ * Pinia store wrapping the gamepad module for Vue reactivity.
+ * Uses the clean gamepad library for cross-controller support.
  */
 
 import { defineStore } from 'pinia'
-import { ref, readonly } from 'vue'
-
-export interface GamepadState {
-  connected: boolean
-  leftTrigger: number      // 0.0-1.0
-  rightTrigger: number     // 0.0-1.0
-  leftStick: { x: number; y: number }
-  rightStick: { x: number; y: number }
-  buttons: Record<string, boolean>
-}
-
-// Standard Gamepad button indices
-// Note: W3C spec says 2=X, 3=Y but many controllers (Nintendo, some 3rd party)
-// report these swapped. Xbox-style layout used here for consistency.
-const BUTTON_NAMES: Record<number, string> = {
-  0: 'A',
-  1: 'B',
-  2: 'Y',  // Physical left button in diamond - swapped for Nintendo-style
-  3: 'X',  // Physical top button in diamond - swapped for Nintendo-style
-  4: 'LB',
-  5: 'RB',
-  6: 'LT', // Also available as axis
-  7: 'RT', // Also available as axis
-  8: 'Back',
-  9: 'Start',
-  10: 'L3',
-  11: 'R3',
-  12: 'DPadUp',
-  13: 'DPadDown',
-  14: 'DPadLeft',
-  15: 'DPadRight',
-  16: 'Home',
-  17: 'Share',
-}
+import { ref, readonly, computed } from 'vue'
+import {
+  GamepadManager,
+  type UnifiedGamepadState,
+  type ControllerProfile,
+  createEmptyState,
+  listProfiles,
+  debugDetection,
+} from '@/lib/gamepad'
 
 export const useGamepadStore = defineStore('gamepad', () => {
-  // State
-  const connected = ref(false)
-  const leftTrigger = ref(0)
-  const rightTrigger = ref(0)
-  const leftStick = ref({ x: 0, y: 0 })
-  const rightStick = ref({ x: 0, y: 0 })
-  const buttons = ref<Record<string, boolean>>({})
-  const gamepadIndex = ref<number | null>(null)
+  // Internal state
+  const state = ref<UnifiedGamepadState>(createEmptyState())
+  const manager = new GamepadManager()
 
-  // Debug mode - toggle with gamepadStore.setDebug(true) in console
+  // Debug mode
   const debugMode = ref(false)
-  // Track previous state for change detection
-  let prevButtons: Record<string, boolean> = {}
-  let prevLeftTrigger = 0
-  let prevRightTrigger = 0
+  let prevState: UnifiedGamepadState | null = null
 
-  let animationFrameId: number | null = null
+  // Computed getters for common values
+  const connected = computed(() => state.value.connected)
+  const controllerName = computed(() => state.value.id)
+  const profileName = computed(() => state.value.profileName)
 
-  // Actions
+  // Sticks
+  const leftStick = computed(() => state.value.leftStick)
+  const rightStick = computed(() => state.value.rightStick)
+
+  // Triggers
+  const leftTrigger = computed(() => state.value.leftTrigger)
+  const rightTrigger = computed(() => state.value.rightTrigger)
+
+  // Buttons - transform to simple record for compatibility
+  const buttons = computed(() => state.value.buttons as Record<string, boolean>)
+
+  // Start polling
   function startPolling() {
-    // Listen for gamepad connection
-    window.addEventListener('gamepadconnected', onGamepadConnected)
-    window.addEventListener('gamepaddisconnected', onGamepadDisconnected)
+    manager.onStateChange((newState) => {
+      state.value = newState
 
-    // Check for already-connected gamepads
-    const gamepads = navigator.getGamepads()
-    for (const gp of gamepads) {
-      if (gp) {
-        onGamepadConnected({ gamepad: gp } as GamepadEvent)
-        break
+      // Debug logging
+      if (debugMode.value && prevState) {
+        logChanges(prevState, newState)
       }
-    }
-
-    // Start polling loop
-    pollGamepad()
+      prevState = { ...newState, buttons: { ...newState.buttons } }
+    })
+    manager.start()
   }
 
   function stopPolling() {
-    window.removeEventListener('gamepadconnected', onGamepadConnected)
-    window.removeEventListener('gamepaddisconnected', onGamepadDisconnected)
-
-    if (animationFrameId !== null) {
-      cancelAnimationFrame(animationFrameId)
-      animationFrameId = null
-    }
+    manager.stop()
   }
 
-  function onGamepadConnected(event: GamepadEvent) {
-    console.log('Gamepad connected:', event.gamepad.id)
-    connected.value = true
-    gamepadIndex.value = event.gamepad.index
-  }
-
-  function onGamepadDisconnected(event: GamepadEvent) {
-    console.log('Gamepad disconnected:', event.gamepad.id)
-    if (gamepadIndex.value === event.gamepad.index) {
-      connected.value = false
-      gamepadIndex.value = null
-      resetState()
-    }
-  }
-
-  function pollGamepad() {
-    if (gamepadIndex.value !== null) {
-      const gamepads = navigator.getGamepads()
-      const gp = gamepads[gamepadIndex.value]
-
-      if (gp) {
-        updateState(gp)
-      }
-    }
-
-    animationFrameId = requestAnimationFrame(pollGamepad)
-  }
-
-  // Deadzone for triggers (ignore values below this)
-  const TRIGGER_DEADZONE = 0.05
-
-  function applyDeadzone(value: number, deadzone: number): number {
-    if (Math.abs(value) < deadzone) return 0
-    // Remap value from deadzone..1 to 0..1
-    const sign = Math.sign(value)
-    const magnitude = Math.abs(value)
-    return sign * (magnitude - deadzone) / (1 - deadzone)
-  }
-
-  function updateState(gp: Gamepad) {
-    // Triggers handling - different controllers report differently:
-    // - Some controllers: buttons[6]/buttons[7] with analog .value (0-1)
-    // - Xbox controllers: axes[2] (LT) and axes[5] (RT) ranging 0-1 or -1 to 1
-    // We check both and use whichever has a value
-
-    let rawLeftTrigger = 0
-    let rawRightTrigger = 0
-
-    // Try button values first (PS, some others)
-    const buttonLT = gp.buttons[6]?.value ?? 0
-    const buttonRT = gp.buttons[7]?.value ?? 0
-
-    // Try axis values (Xbox) - triggers are typically on axes 4 (LT) and 5 (RT)
-    // Some controllers use -1 to 1 range, others use 0 to 1
-    let axisLT = 0
-    let axisRT = 0
-
-    if (gp.axes.length > 4) {
-      // Axis 4 is LT on Xbox controllers
-      const raw4 = gp.axes[4] ?? 0
-      // Normalize: if range is -1 to 1, convert to 0 to 1
-      axisLT = raw4 < 0 ? 0 : raw4
-    }
-    if (gp.axes.length > 5) {
-      // Axis 5 is RT on Xbox controllers
-      const raw5 = gp.axes[5] ?? 0
-      axisRT = raw5 < 0 ? 0 : raw5
-    }
-
-    // Use whichever source has the higher value
-    rawLeftTrigger = Math.max(buttonLT, axisLT)
-    rawRightTrigger = Math.max(buttonRT, axisRT)
-
-    // Apply deadzone to prevent drift and ensure clean 0 at rest
-    const newLeftTrigger = applyDeadzone(rawLeftTrigger, TRIGGER_DEADZONE)
-    const newRightTrigger = applyDeadzone(rawRightTrigger, TRIGGER_DEADZONE)
-
-    // Debug: Log trigger changes
-    if (debugMode.value) {
-      if (Math.abs(newLeftTrigger - prevLeftTrigger) > 0.01) {
-        console.log(`🎮 LT: ${(newLeftTrigger * 100).toFixed(0)}%`)
-        prevLeftTrigger = newLeftTrigger
-      }
-      if (Math.abs(newRightTrigger - prevRightTrigger) > 0.01) {
-        console.log(`🎮 RT: ${(newRightTrigger * 100).toFixed(0)}%`)
-        prevRightTrigger = newRightTrigger
-      }
-    }
-
-    leftTrigger.value = newLeftTrigger
-    rightTrigger.value = newRightTrigger
-
-    // Update sticks (axes 0,1 = left stick, axes 2,3 = right stick)
-    if (gp.axes.length >= 2) {
-      leftStick.value = { x: gp.axes[0], y: gp.axes[1] }
-    }
-    if (gp.axes.length >= 4) {
-      rightStick.value = { x: gp.axes[2], y: gp.axes[3] }
-    }
-
-    // Update buttons
-    const newButtons: Record<string, boolean> = {}
-    for (let i = 0; i < gp.buttons.length; i++) {
-      const name = BUTTON_NAMES[i] || `Button${i}`
-      newButtons[name] = gp.buttons[i].pressed
-
-      // Debug: Log button state changes (only if previous state was known)
-      if (debugMode.value && name in prevButtons && newButtons[name] !== prevButtons[name]) {
-        if (newButtons[name]) {
-          console.log(`🎮 ${name} pressed`)
-        } else {
-          console.log(`🎮 ${name} released`)
-        }
-      }
-    }
-    prevButtons = { ...newButtons }
-    buttons.value = newButtons
-  }
-
-  function resetState() {
-    leftTrigger.value = 0
-    rightTrigger.value = 0
-    leftStick.value = { x: 0, y: 0 }
-    rightStick.value = { x: 0, y: 0 }
-    buttons.value = {}
-  }
-
-  // Check if a button was just pressed (for edge detection, call externally)
-  function isButtonPressed(buttonName: string): boolean {
-    return buttons.value[buttonName] || false
-  }
-
-  // Debug mode toggle - call from browser console:
-  // gamepadDebug.enable() or gamepadDebug.status()
   function setDebug(enabled: boolean) {
     debugMode.value = enabled
     if (enabled) {
       console.log('🎮 Gamepad debug mode ENABLED')
-      console.log('   - Button presses/releases will be logged')
-      console.log('   - Trigger values will be logged as they change')
-      console.log('   - Call gamepadDebug.disable() to turn off')
-      // Log immediate status
-      console.log('🎮 Current state:', {
-        connected: connected.value,
-        leftTrigger: leftTrigger.value,
-        rightTrigger: rightTrigger.value,
-        buttons: Object.entries(buttons.value).filter(([_, v]) => v).map(([k]) => k),
-      })
+      console.log('   Profile:', state.value.profileName)
+      console.log('   Controller:', state.value.id)
     } else {
       console.log('🎮 Gamepad debug mode disabled')
     }
   }
 
-  // Continuous debug (logs every frame while held)
   function setVerboseDebug(enabled: boolean) {
+    debugMode.value = enabled
     if (enabled) {
-      debugMode.value = true
-      console.log('🎮 VERBOSE debug mode - logging EVERY frame')
+      console.log('🎮 VERBOSE debug mode - logging every frame')
       const logFrame = () => {
         if (!debugMode.value) return
         console.log('🎮 Frame:', {
-          LT: (leftTrigger.value * 100).toFixed(0) + '%',
-          RT: (rightTrigger.value * 100).toFixed(0) + '%',
-          buttons: Object.entries(buttons.value).filter(([_, v]) => v).map(([k]) => k).join(', ') || 'none',
+          LT: `${Math.round(state.value.leftTrigger * 100)}%`,
+          RT: `${Math.round(state.value.rightTrigger * 100)}%`,
+          LS: `${state.value.leftStick.x.toFixed(2)},${state.value.leftStick.y.toFixed(2)}`,
+          RS: `${state.value.rightStick.x.toFixed(2)},${state.value.rightStick.y.toFixed(2)}`,
+          buttons: Object.entries(state.value.buttons)
+            .filter(([_, v]) => v)
+            .map(([k]) => k)
+            .join(', ') || 'none',
         })
         if (debugMode.value) requestAnimationFrame(logFrame)
       }
       requestAnimationFrame(logFrame)
-    } else {
-      debugMode.value = false
     }
   }
 
-  // Expose debug tools globally for console access
+  function logChanges(prev: UnifiedGamepadState, curr: UnifiedGamepadState) {
+    // Log trigger changes
+    if (Math.abs(curr.leftTrigger - prev.leftTrigger) > 0.01) {
+      console.log(`🎮 LT: ${Math.round(curr.leftTrigger * 100)}%`)
+    }
+    if (Math.abs(curr.rightTrigger - prev.rightTrigger) > 0.01) {
+      console.log(`🎮 RT: ${Math.round(curr.rightTrigger * 100)}%`)
+    }
+
+    // Log button changes
+    for (const [name, pressed] of Object.entries(curr.buttons)) {
+      const wasPressed = prev.buttons[name as keyof typeof prev.buttons]
+      if (pressed !== wasPressed) {
+        console.log(`🎮 ${name} ${pressed ? 'pressed' : 'released'}`)
+      }
+    }
+  }
+
+  function isButtonPressed(buttonName: string): boolean {
+    return state.value.buttons[buttonName as keyof typeof state.value.buttons] ?? false
+  }
+
+  // Override profile manually
+  function setProfileOverride(profileName: string | null) {
+    manager.setProfileOverride(profileName)
+  }
+
+  // Expose debug tools globally
   if (typeof window !== 'undefined') {
     (window as any).gamepadDebug = {
       enable: () => setDebug(true),
       disable: () => setDebug(false),
       verbose: () => setVerboseDebug(true),
       status: () => {
-        const state = {
-          connected: connected.value,
-          debugMode: debugMode.value,
-          leftTrigger: leftTrigger.value,
-          rightTrigger: rightTrigger.value,
-          leftStick: leftStick.value,
-          rightStick: rightStick.value,
-          buttons: buttons.value,
-          pressedButtons: Object.entries(buttons.value).filter(([_, v]) => v).map(([k]) => k),
-        }
-        console.log('🎮 Gamepad Status:', state)
-        return state
+        const s = state.value
+        console.log('🎮 Gamepad Status:', {
+          connected: s.connected,
+          profile: s.profileName,
+          controller: s.id,
+          leftTrigger: s.leftTrigger,
+          rightTrigger: s.rightTrigger,
+          leftStick: s.leftStick,
+          rightStick: s.rightStick,
+          pressedButtons: Object.entries(s.buttons)
+            .filter(([_, v]) => v)
+            .map(([k]) => k),
+        })
+        return s
       },
       raw: () => {
-        // Show raw gamepad data from browser API
-        const gp = navigator.getGamepads()[0]
+        const gp = manager.getRawGamepad()
         if (gp) {
-          console.log('🎮 Raw gamepad data:')
+          console.log('🎮 Raw gamepad:')
+          console.log('   ID:', gp.id)
           console.log('   Buttons:', gp.buttons.map((b, i) => `${i}:${b.value.toFixed(2)}`).join(' '))
           console.log('   Axes:', gp.axes.map((a, i) => `${i}:${a.toFixed(2)}`).join(' '))
-          // Highlight non-zero axes (likely active triggers/sticks)
-          const activeAxes = gp.axes.map((a, i) => ({ i, v: a })).filter(x => Math.abs(x.v) > 0.1)
-          if (activeAxes.length > 0) {
-            console.log('   Active axes:', activeAxes.map(x => `axis[${x.i}]=${x.v.toFixed(2)}`).join(', '))
-          }
         } else {
           console.log('🎮 No gamepad connected')
         }
       },
-      // Live axis monitor - call while pressing triggers to find which axis they use
-      axisMonitor: () => {
-        console.log('🎮 Axis monitor started - press triggers to see which axes move')
-        let lastAxes: number[] = []
-        const monitor = () => {
-          const gp = navigator.getGamepads()[0]
-          if (!gp) return
-          const changed = gp.axes.map((a, i) => {
-            const prev = lastAxes[i] ?? 0
-            const diff = Math.abs(a - prev)
-            return diff > 0.05 ? `axis[${i}]: ${a.toFixed(2)}` : null
-          }).filter(Boolean)
-          if (changed.length > 0) {
-            console.log('🎮 Axis change:', changed.join(', '))
-          }
-          lastAxes = [...gp.axes]
-          if (debugMode.value) requestAnimationFrame(monitor)
-        }
-        debugMode.value = true
-        requestAnimationFrame(monitor)
-        console.log('🎮 Call gamepadDebug.disable() to stop')
+      profiles: () => {
+        console.log('🎮 Available profiles:', listProfiles())
+      },
+      testId: (id: string) => {
+        console.log('🎮 Testing ID:', id)
+        console.log('   Matches:', debugDetection(id))
+      },
+      setProfile: (name: string) => {
+        manager.setProfileOverride(name)
+        console.log(`🎮 Profile override: ${name}`)
+      },
+      autoProfile: () => {
+        manager.setProfileOverride(null)
+        console.log('🎮 Auto profile detection enabled')
       },
     }
-    console.log('🎮 Gamepad debug available: gamepadDebug.enable(), gamepadDebug.verbose(), gamepadDebug.status(), gamepadDebug.raw()')
+    console.log('🎮 Gamepad debug: gamepadDebug.enable(), .status(), .raw(), .profiles(), .testId(id)')
   }
 
   return {
-    // State (readonly for external access)
-    connected: readonly(connected),
-    leftTrigger: readonly(leftTrigger),
-    rightTrigger: readonly(rightTrigger),
-    leftStick: readonly(leftStick),
-    rightStick: readonly(rightStick),
-    buttons: readonly(buttons),
+    // State (readonly)
+    connected,
+    controllerName,
+    profileName,
+    leftTrigger,
+    rightTrigger,
+    leftStick,
+    rightStick,
+    buttons,
     debugMode: readonly(debugMode),
+
+    // Full state access
+    state: readonly(state),
 
     // Actions
     startPolling,
@@ -341,5 +193,6 @@ export const useGamepadStore = defineStore('gamepad', () => {
     isButtonPressed,
     setDebug,
     setVerboseDebug,
+    setProfileOverride,
   }
 })

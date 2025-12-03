@@ -80,15 +80,54 @@ export const usePlayerStore = defineStore('player', () => {
   }
 
   async function recordEmotionalFeedback(trigger: 'RT' | 'LT', value: number, context: string) {
+    // Legacy method - prefer recordSatisfaction for new code
     try {
       await api.post('/api/emotional/record', {
         player_id: 'default',
-        trigger,
-        value,
+        enjoyment: trigger === 'RT' ? value : 0,
+        frustration: trigger === 'LT' ? value : 0,
         context,
+        interacted: value > 0,
       })
     } catch (e) {
       console.error('Failed to record emotional feedback:', e)
+    }
+  }
+
+  /**
+   * Record satisfaction feedback with full context.
+   *
+   * @param enjoyment - 0.0-1.0 satisfaction/fun rating
+   * @param frustration - 0.0-1.0 frustration/confusion rating
+   * @param challengeId - Challenge this feedback is for
+   * @param stage - Stage number (for multi-stage challenges)
+   * @param interacted - True if user actually interacted with controls
+   *                     If false and both values are 0, backend treats as "skipped"
+   */
+  async function recordSatisfaction(
+    enjoyment: number,
+    frustration: number,
+    challengeId?: string,
+    stage?: number,
+    interacted: boolean = true
+  ): Promise<{ skipped: boolean; mastery_factor?: number }> {
+    try {
+      const response = await api.post('/api/emotional/record', {
+        player_id: 'default',
+        enjoyment,
+        frustration,
+        challenge_id: challengeId,
+        stage,
+        context: challengeId ? `challenge:${challengeId}` : 'general',
+        interacted,
+      })
+      return {
+        skipped: response.data.skipped,
+        mastery_factor: response.data.mastery_factor,
+      }
+    } catch (e) {
+      console.error('Failed to record satisfaction:', e)
+      return { skipped: false }
     }
   }
 
@@ -109,5 +148,6 @@ export const usePlayerStore = defineStore('player', () => {
     loadProfile,
     loadAchievements,
     recordEmotionalFeedback,
+    recordSatisfaction,
   }
 })

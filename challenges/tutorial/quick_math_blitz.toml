@@ -1,0 +1,116 @@
+# Challenge: Quick Math Blitz (Time Attack)
+# Test your Python math skills under pressure!
+
+[challenge]
+id = "quick_math_blitz"
+name = "Quick Math Blitz"
+level = 0
+prerequisites = ["simple_math"]
+
+[description]
+brief = "Complete 5 math problems before time runs out!"
+detailed = """
+**TIME ATTACK MODE!**
+
+You have 60 seconds to complete all 5 calculations.
+The clock is ticking - can you beat the timer?
+
+Your mission:
+1. Calculate result1 = 15 + 27
+2. Calculate result2 = 100 - 37
+3. Calculate result3 = 8 * 12
+4. Calculate result4 = 144 / 12
+5. Calculate result5 = (result1 + result2) * 2
+
+Print all 5 results!
+"""
+
+[skeleton]
+code = '''
+# QUICK MATH BLITZ - Beat the clock!
+# Calculate each result and print them all
+
+# 1. Addition: 15 + 27
+result1 = 0
+
+# 2. Subtraction: 100 - 37
+result2 = 0
+
+# 3. Multiplication: 8 * 12
+result3 = 0
+
+# 4. Division: 144 / 12
+result4 = 0
+
+# 5. Combo: (result1 + result2) * 2
+result5 = 0
+
+# Print all results
+print(result1)
+print(result2)
+print(result3)
+print(result4)
+print(result5)
+'''
+
+[validation]
+type = "pytest"
+test_file = "test_quick_math_blitz.py"
+
+[hints]
+level_1 = "Just do the math! 15 + 27 = 42"
+level_2 = "100 - 37 = 63, 8 * 12 = 96, 144 / 12 = 12"
+level_3 = "result5 uses result1 and result2: (42 + 63) * 2 = 210"
+
+[meta]
+time_limit_seconds = 60
+speed_run_target = 30
+points = 100
+challenge_mode = "time_attack"  # Timer is enforced!
+
+[solution]
+code = '''
+result1 = 15 + 27
+result2 = 100 - 37
+result3 = 8 * 12
+result4 = 144 / 12
+result5 = (result1 + result2) * 2
+
+print(result1)
+print(result2)
+print(result3)
+print(result4)
+print(result5)
+'''
+
+[adaptive]
+fun_factor = "speedrun"
+weakness_signals = ["slow_typing", "calculation_errors", "order_of_operations"]
+project_themes = ["speed_challenges", "mental_math", "quick_thinking"]
+
+[emotional_checkpoints]
+after_completion = """
+**TIME!**
+
+Your results:
+- 15 + 27 = 42
+- 100 - 37 = 63
+- 8 * 12 = 96
+- 144 / 12 = 12
+- Combo = 210
+
+Did you beat the clock? Try again for a faster time!
+
+[RT] That was fun! | [LT] Too stressful | [Y] Try again for speed record
+"""
+
+# Self-teaching note:
+#
+# This demonstrates time_attack mode where the timer matters!
+# Good for:
+# - Building typing speed
+# - Quick mental math
+# - Getting comfortable with Python syntax
+#
+# The pressure is designed to be fun, not frustrating.
+# If someone finds it stressful, they can do standard challenges instead.

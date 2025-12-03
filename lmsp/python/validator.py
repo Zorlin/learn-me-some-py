@@ -103,6 +103,27 @@ class CodeValidator:
                 test_results=[]
             )
 
+        # Determine validation mode from test cases BEFORE executing code
+        # (Interactive mode uses input() which would fail without stdin mock)
+        def is_interactive_mode_test(tc):
+            has_input = tc.input is not None and tc.input != []
+            expected_is_output = (
+                isinstance(tc.expected, str) or
+                (isinstance(tc.expected, list) and all(isinstance(e, str) for e in tc.expected))
+            )
+            return has_input and expected_is_output
+
+        use_interactive_mode = test_cases and all(
+            is_interactive_mode_test(tc) for tc in test_cases
+        )
+
+        if use_interactive_mode:
+            # Interactive mode: mock stdin, run code for each test, compare stdout
+            # Must handle BEFORE regular exec since input() would block/fail
+            return self._validate_interactive_mode(
+                code, test_cases, start_time
+            )
+
         # Execute code to define the solution function
         namespace = self._create_restricted_namespace()
         captured_output = io.StringIO()
@@ -123,7 +144,6 @@ class CodeValidator:
         has_solution_func = "solution" in namespace
         output_text = captured_output.getvalue()
 
-        # Determine validation mode based on test cases and code
         # Script mode: tests expect stdout output (expected is string/list, no/empty input)
         def is_script_mode_test(tc):
             # Input should be None or empty list
@@ -228,6 +248,82 @@ class CodeValidator:
         return ValidationResult(
             success=all_passed,
             output=output,
+            error=None,
+            time_seconds=time.time() - start_time,
+            test_results=test_results
+        )
+
+    def _validate_interactive_mode(
+        self,
+        code: str,
+        test_cases: list[TestCase],
+        start_time: float
+    ) -> ValidationResult:
+        """
+        Validate interactive scripts that use input().
+
+        For challenges where learners read input with input() and print output.
+        Each test case provides stdin input and expects stdout output.
+        """
+        test_results = []
+        all_output = []
+
+        for test_case in test_cases:
+            # Prepare input values as a queue
+            input_values = list(test_case.input)
+            input_index = [0]  # Use list to allow mutation in closure
+
+            # Create a silent input() that doesn't print prompts
+            def mock_input(prompt=""):
+                if input_index[0] < len(input_values):
+                    value = str(input_values[input_index[0]])
+                    input_index[0] += 1
+                    return value
+                raise EOFError("No more input values")
+
+            captured_output = io.StringIO()
+
+            # Create fresh namespace with our mock input()
+            namespace = self._create_restricted_namespace()
+            namespace['input'] = mock_input
+
+            try:
+                with contextlib.redirect_stdout(captured_output):
+                    exec(code, namespace)
+
+                actual_output = captured_output.getvalue().strip()
+                all_output.append(actual_output)
+
+                # Handle expected as string or list of strings
+                if isinstance(test_case.expected, list):
+                    expected = '\n'.join(str(e).strip() for e in test_case.expected)
+                else:
+                    expected = str(test_case.expected).strip()
+
+                passed = actual_output == expected
+
+                test_results.append(TestResult(
+                    test_name=test_case.name or "test",
+                    passed=passed,
+                    expected=expected,
+                    actual=actual_output,
+                    error=None if passed else f"Expected '{expected}', got '{actual_output}'"
+                ))
+
+            except Exception as e:
+                test_results.append(TestResult(
+                    test_name=test_case.name or "test",
+                    passed=False,
+                    expected=test_case.expected,
+                    actual=None,
+                    error=f"Execution Error: {e}"
+                ))
+
+        all_passed = all(r.passed for r in test_results)
+
+        return ValidationResult(
+            success=all_passed,
+            output='\n---\n'.join(all_output),
             error=None,
             time_seconds=time.time() - start_time,
             test_results=test_results
@@ -374,7 +470,8 @@ class PytestValidator:
         self,
         code: str,
         challenge_id: str,
-        test_file: str
+        test_file: str,
+        test_pattern: str | None = None
     ) -> ValidationResult:
         """
         Validate player code using pytest.
@@ -383,6 +480,7 @@ class PytestValidator:
             code: Player's code
             challenge_id: ID of the challenge
             test_file: Name of the test file (e.g., "test_simple_math.py")
+            test_pattern: Optional pattern to filter tests (e.g., "test_stage1" for stage 1)
 
         Returns:
             ValidationResult with test outcomes
@@ -429,7 +527,7 @@ def player_file():
             test_dest.write_text(test_path.read_text())
 
             # Run pytest with JSON output
-            result = self._run_pytest(tmpdir, test_file)
+            result = self._run_pytest(tmpdir, test_file, test_pattern)
 
             return ValidationResult(
                 success=result["success"],
@@ -453,17 +551,34 @@ def player_file():
 
         return None
 
-    def _run_pytest(self, test_dir: Path, test_file: str) -> dict:
-        """Run pytest and parse results."""
+    def _run_pytest(
+        self,
+        test_dir: Path,
+        test_file: str,
+        test_pattern: str | None = None
+    ) -> dict:
+        """Run pytest and parse results.
+
+        Args:
+            test_dir: Directory containing test files
+            test_file: Name of the test file to run
+            test_pattern: Optional pattern to filter tests (passed to pytest -k)
+        """
         try:
+            cmd = [
+                sys.executable, "-m", "pytest",
+                str(test_dir / test_file),
+                "-v",
+                "--tb=short",
+                "-q"
+            ]
+
+            # Add test pattern filter if specified
+            if test_pattern:
+                cmd.extend(["-k", test_pattern])
+
             result = subprocess.run(
-                [
-                    sys.executable, "-m", "pytest",
-                    str(test_dir / test_file),
-                    "-v",
-                    "--tb=short",
-                    "-q"
-                ],
+                cmd,
                 capture_output=True,
                 text=True,
                 timeout=self.timeout_seconds,

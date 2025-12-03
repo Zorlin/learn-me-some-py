@@ -138,7 +138,8 @@ def record_challenge_completion(
     player_id: str,
     challenge_id: str,
     time_seconds: float,
-    xp_earned: int
+    xp_earned: int,
+    xp_reason: str
 ):
     """Record a challenge completion to database."""
     db = get_database()
@@ -148,6 +149,15 @@ def record_challenge_completion(
 
     # Add XP
     db.add_player_xp(player_id, xp_earned)
+
+    # Record XP event for history tracking
+    db.record_xp_event(
+        player_id=player_id,
+        xp_amount=xp_earned,
+        reason=xp_reason,
+        challenge_id=challenge_id,
+        solve_time=time_seconds
+    )
 
 
 def find_concept_for_challenge(challenge_id: str) -> Optional[str]:
@@ -380,6 +390,8 @@ async def list_challenges(level: Optional[int] = None, player_id: str = "default
                     "name": challenge.name,
                     "level": challenge.level,
                     "points": challenge.points,
+                    "challenge_mode": challenge.challenge_mode,
+                    "is_multi_stage": len(challenge.stages) > 0,
                 }
 
                 # Add progress data if challenge has been completed
@@ -431,6 +443,19 @@ async def get_challenge(challenge_id: str):
     """Get a specific challenge."""
     try:
         challenge = challenge_loader.load(challenge_id)
+
+        # Build stages data if this is a multi-stage challenge
+        stages_data = []
+        for stage in challenge.stages:
+            stages_data.append({
+                "stage_number": stage.stage_number,
+                "name": stage.name,
+                "description": stage.description,
+                "skeleton_code": stage.skeleton_code,
+                "test_count": len(stage.test_cases),
+                "hints": stage.hints,
+            })
+
         return JSONResponse({
             "id": challenge.id,
             "name": challenge.name,
@@ -441,6 +466,12 @@ async def get_challenge(challenge_id: str):
             "skeleton_code": challenge.skeleton_code,
             "hints": challenge.hints,
             "test_count": len(challenge.test_cases),
+            # New fields for time attack and multi-stage
+            "challenge_mode": challenge.challenge_mode,
+            "time_limit_seconds": challenge.time_limit_seconds,
+            "speed_run_target": challenge.speed_run_target,
+            "stages": stages_data if stages_data else None,
+            "is_multi_stage": len(stages_data) > 0,
         })
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail=f"Challenge '{challenge_id}' not found")
@@ -454,6 +485,7 @@ async def submit_code(request: Request):
     code = data.get("code", "")
     player_id = data.get("player_id", "default")
     is_spaced_repetition = data.get("is_spaced_repetition", False)
+    current_stage = data.get("stage", None)  # For multi-stage challenges
 
     if not challenge_id or not code:
         return JSONResponse({
@@ -465,11 +497,21 @@ async def submit_code(request: Request):
 
     try:
         challenge = challenge_loader.load(challenge_id)
+        is_multi_stage = len(challenge.stages) > 0
+        total_stages = len(challenge.stages) if is_multi_stage else 0
 
         # Use the appropriate validator based on challenge config
         if challenge.validation_type == "pytest" and challenge.test_file:
             pytest_validator = PytestValidator(CHALLENGES_DIR, timeout_seconds=30)
-            result = pytest_validator.validate(code, challenge.id, challenge.test_file)
+
+            # For multi-stage challenges, filter tests by current stage
+            test_pattern = None
+            if is_multi_stage and current_stage is not None:
+                test_pattern = f"test_stage{current_stage}"
+
+            result = pytest_validator.validate(
+                code, challenge.id, challenge.test_file, test_pattern
+            )
         else:
             result = code_validator.validate(code, challenge.test_cases)
 
@@ -484,19 +526,85 @@ async def submit_code(request: Request):
             "output": result.output,
         }
 
+        # Add multi-stage information
+        if is_multi_stage:
+            response_data["is_multi_stage"] = True
+            response_data["total_stages"] = total_stages
+            response_data["current_stage"] = current_stage
+
+            if result.success and current_stage is not None:
+                # Stage passed - check if there's a next stage
+                if current_stage < total_stages:
+                    response_data["stage_complete"] = True
+                    response_data["next_stage"] = current_stage + 1
+                    response_data["challenge_complete"] = False
+
+                    # Get next stage info
+                    next_stage_data = challenge.stages[current_stage]  # 0-indexed
+                    response_data["next_stage_info"] = {
+                        "stage_number": next_stage_data.stage_number,
+                        "name": next_stage_data.name,
+                        "description": next_stage_data.description,
+                    }
+                else:
+                    # Final stage complete - whole challenge done
+                    response_data["stage_complete"] = True
+                    response_data["challenge_complete"] = True
+            else:
+                response_data["stage_complete"] = False
+                response_data["challenge_complete"] = False
+
         if result.error:
             response_data["error"] = result.error
 
         if result.success:
-            # Calculate XP reward (WoW-style)
-            xp_earned, xp_reason = calculate_xp_reward(
-                challenge, player_id, result.time_seconds, is_spaced_repetition
-            )
+            # XP logic for multi-stage challenges:
+            # - Award proportional XP on first completion of each stage
+            # - No XP for repeating a stage before challenge is fully complete
+            # - After challenge complete, spaced repetition bonuses apply
+            db = get_database()
 
-            # Record completion
-            record_challenge_completion(
-                player_id, challenge_id, result.time_seconds, xp_earned
-            )
+            if is_multi_stage and current_stage is not None:
+                # Check if this stage was already completed
+                stage_key = f"{challenge_id}_stage{current_stage}"
+                stage_completions = db.get_completions(player_id)
+                stage_already_done = stage_key in stage_completions
+
+                if stage_already_done:
+                    # Already completed this stage - no XP until challenge is fully done
+                    xp_earned = 0
+                    xp_reason = f"Stage {current_stage}/{total_stages} already completed - finish challenge for repeat XP"
+                else:
+                    # First time completing this stage - award proportional XP
+                    stage_xp = challenge.points // total_stages
+                    xp_earned = stage_xp
+                    xp_reason = f"Stage {current_stage}/{total_stages} complete: +{xp_earned} XP"
+
+                    # Record stage completion
+                    db.record_completion(player_id, stage_key, result.time_seconds)
+                    db.add_player_xp(player_id, xp_earned)
+                    db.record_xp_event(
+                        player_id=player_id,
+                        xp_amount=xp_earned,
+                        reason=xp_reason,
+                        challenge_id=stage_key,
+                        solve_time=result.time_seconds
+                    )
+
+                # If this was the final stage, also record overall challenge completion
+                if current_stage == total_stages:
+                    record_challenge_completion(
+                        player_id, challenge_id, result.time_seconds, 0,
+                        f"Challenge complete (XP already awarded per stage)"
+                    )
+            else:
+                # Non-multi-stage challenge - use standard XP logic
+                xp_earned, xp_reason = calculate_xp_reward(
+                    challenge, player_id, result.time_seconds, is_spaced_repetition
+                )
+                record_challenge_completion(
+                    player_id, challenge_id, result.time_seconds, xp_earned, xp_reason
+                )
 
             # Find associated concept and update mastery
             concept_id = find_concept_for_challenge(challenge_id)
@@ -617,28 +725,111 @@ async def list_achievements(player_id: str = "default"):
     })
 
 
+@app.get("/api/xp/history")
+async def get_xp_history(
+    player_id: str = "default",
+    start_time: Optional[str] = None,
+    end_time: Optional[str] = None,
+    period: Optional[str] = None
+):
+    """
+    Get XP history for graphing.
+
+    Query params:
+    - start_time: ISO datetime string to filter from
+    - end_time: ISO datetime string to filter to
+    - period: 'hour', 'day', 'week', 'month', 'year' for aggregated data
+    """
+    db = get_database()
+
+    if period:
+        # Return aggregated stats by period
+        stats = db.get_xp_stats_by_period(player_id, period)
+        return JSONResponse({
+            "aggregated": True,
+            "period": period,
+            "data": stats,
+            "total_xp": sum(s["total_xp"] for s in stats),
+            "total_events": sum(s["event_count"] for s in stats),
+        })
+    else:
+        # Return raw XP events
+        events = db.get_xp_history(player_id, start_time, end_time)
+
+        # Calculate cumulative XP for line chart
+        cumulative = 0
+        for event in events:
+            cumulative += event["xp_amount"]
+            event["cumulative_xp"] = cumulative
+
+        return JSONResponse({
+            "aggregated": False,
+            "data": events,
+            "total_xp": cumulative,
+            "total_events": len(events),
+        })
+
+
 @app.post("/api/emotional/record")
 async def record_emotional_feedback(request: Request):
-    """Record emotional feedback (RT/LT trigger values)."""
+    """
+    Record emotional feedback (RT/LT trigger values).
+
+    Body:
+        player_id: Player identifier
+        enjoyment: Satisfaction rating 0.0-1.0
+        frustration: Frustration rating 0.0-1.0
+        challenge_id: Optional challenge ID
+        stage: Optional stage number
+        context: Context string
+        interacted: True if user actually interacted with sliders/triggers
+                   If false and both values are 0, treat as "skipped"
+    """
     data = await request.json()
     player_id = data.get("player_id", "default")
     enjoyment = data.get("enjoyment", 0.0)
     frustration = data.get("frustration", 0.0)
+    challenge_id = data.get("challenge_id")
+    stage = data.get("stage")
     context = data.get("context", "")
+    interacted = data.get("interacted", True)
 
+    # Detect "skipped" - 0%/0% with no interaction means user skipped rating
+    # This is different from deliberately rating 0%/0% (which would be strange but valid)
+    skipped = (enjoyment == 0 and frustration == 0 and not interacted)
+
+    # Store to database
+    db = get_database()
+    db.record_emotional_feedback(
+        player_id=player_id,
+        enjoyment=enjoyment,
+        frustration=frustration,
+        challenge_id=challenge_id,
+        stage=stage,
+        context=context,
+        skipped=skipped
+    )
+
+    # Also feed to adaptive engine (for in-memory recommendations)
     engine = get_adaptive_engine(player_id)
-
     from lmsp.input.emotional import EmotionalDimension
     if enjoyment > 0:
         engine.observe_emotion(EmotionalDimension.ENJOYMENT, enjoyment, context)
     if frustration > 0:
         engine.observe_emotion(EmotionalDimension.FRUSTRATION, frustration, context)
 
+    # Calculate mastery adjustment if we have challenge data
+    mastery_factor = None
+    if challenge_id and not skipped:
+        mastery_factor = db.calculate_mastery_from_satisfaction(player_id, challenge_id)
+
     return JSONResponse({
         "success": True,
         "enjoyment": enjoyment,
         "frustration": frustration,
-        "message": "Feedback recorded",
+        "skipped": skipped,
+        "mastery_factor": mastery_factor,
+        "message": "Feedback recorded" if not skipped else "Rating skipped",
     })
 
 

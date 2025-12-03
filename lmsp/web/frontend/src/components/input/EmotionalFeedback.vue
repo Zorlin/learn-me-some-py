@@ -6,10 +6,12 @@ import { usePlayerStore } from '@/stores/player'
 const props = defineProps<{
   question?: string
   context?: string
+  challengeId?: string
+  stage?: number
 }>()
 
 const emit = defineEmits<{
-  confirm: [{ enjoyment: number; frustration: number }]
+  confirm: [{ enjoyment: number; frustration: number; skipped: boolean }]
 }>()
 
 const gamepadStore = useGamepadStore()
@@ -24,16 +26,23 @@ const confirmed = ref(false)
 const enjoyment = ref(0)
 const frustration = ref(0)
 
+// Track if user actually interacted with controls
+// 0%/0% with no interaction = "skipped" (user didn't engage)
+// 0%/0% WITH interaction = deliberate neutral rating (rare but valid)
+const hasInteracted = ref(false)
+
 // Watch gamepad triggers
 watch(() => gamepadStore.rightTrigger, (val) => {
   if (gamepadStore.connected) {
     enjoyment.value = val
+    if (val > 0.1) hasInteracted.value = true
   }
 })
 
 watch(() => gamepadStore.leftTrigger, (val) => {
   if (gamepadStore.connected) {
     frustration.value = val
+    if (val > 0.1) hasInteracted.value = true
   }
 })
 
@@ -41,30 +50,34 @@ watch(() => gamepadStore.leftTrigger, (val) => {
 watch(manualEnjoyment, (val) => {
   if (!gamepadStore.connected) {
     enjoyment.value = val
+    if (val > 0) hasInteracted.value = true
   }
 })
 
 watch(manualFrustration, (val) => {
   if (!gamepadStore.connected) {
     frustration.value = val
+    if (val > 0) hasInteracted.value = true
   }
 })
 
 // Confirm and submit feedback
-function confirmFeedback() {
+async function confirmFeedback() {
   confirmed.value = true
 
-  // Record to backend
-  if (enjoyment.value > 0.1) {
-    playerStore.recordEmotionalFeedback('RT', enjoyment.value, props.context || 'challenge')
-  }
-  if (frustration.value > 0.1) {
-    playerStore.recordEmotionalFeedback('LT', frustration.value, props.context || 'challenge')
-  }
+  // Use new recordSatisfaction API with interaction tracking
+  const result = await playerStore.recordSatisfaction(
+    enjoyment.value,
+    frustration.value,
+    props.challengeId,
+    props.stage,
+    hasInteracted.value
+  )
 
   emit('confirm', {
     enjoyment: enjoyment.value,
     frustration: frustration.value,
+    skipped: result.skipped,
   })
 }
 

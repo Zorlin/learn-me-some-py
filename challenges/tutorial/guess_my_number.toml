@@ -25,35 +25,28 @@ This is your first interactive program!
 
 [skeleton]
 code = '''
-# Set your secret number
-secret =
+# The secret number is 42 - don't change this!
+secret = 42
 
-# Ask for a guess
-guess =
+# Ask the user to guess - use input() to get their answer
+# Remember: input() returns text, but we need a number!
+guess = ...
 
-# Compare and print result
-if
-else
+# Compare guess to secret:
+# - If they match, print "correct"
+# - Otherwise, print "wrong"
+if ...:
+    print(...)
+else:
+    print(...)
 '''
 
+[validation]
+type = "pytest"
+test_file = "test_guess_my_number.py"
+
 [tests]
-[[tests.case]]
-name = "correct_guess"
-input = ["42"]
-setup = 'secret = 42'
-expected = ["correct"]
-
-[[tests.case]]
-name = "wrong_guess"
-input = ["100"]
-setup = 'secret = 42'
-expected = ["wrong"]
-
-[[tests.case]]
-name = "another_wrong"
-input = ["1"]
-setup = 'secret = 42'
-expected = ["wrong"]
+# Tests are defined in test_guess_my_number.py
 
 [hints]
 level_1 = "Use input() to get the guess: guess = input('Enter a number: ')"

@@ -1,0 +1,242 @@
+# Challenge: Build a Calculator (Multi-Stage)
+# Learn functions by building something useful step by step
+
+[challenge]
+id = "build_calculator"
+name = "Build a Calculator"
+level = 1
+prerequisites = ["simple_math"]
+
+[description]
+brief = "Build a working calculator, one operation at a time"
+detailed = """
+Let's build a real calculator - but we'll do it step by step!
+
+Each stage adds a new operation. Your code carries forward,
+so by the end you'll have a fully working calculator.
+
+Stage 1: Addition
+Stage 2: Subtraction
+Stage 3: Multiplication
+Stage 4: All together with a main function
+"""
+
+[skeleton]
+code = '''
+# We'll build this step by step!
+# Start with Stage 1: Addition
+
+def add(a, b):
+    # Return the sum of a and b
+    pass
+'''
+
+[validation]
+type = "pytest"
+test_file = "test_build_calculator.py"
+
+[hints]
+level_1 = "Functions use 'return' to give back a value"
+level_2 = "def add(a, b): return a + b"
+
+[meta]
+time_limit_seconds = 600
+speed_run_target = 120
+points = 150
+challenge_mode = "standard"  # Could also be "time_attack" for timed challenge
+
+# Multi-stage structure
+[stages.stage_1]
+name = "Addition"
+description = """
+Create the `add` function:
+
+```python
+def add(a, b):
+    # Return the sum of a and b
+```
+
+**Examples:**
+- `add(2, 3)` → returns `5`
+- `add(-1, 5)` → returns `4`
+- `add(0, 0)` → returns `0`
+"""
+skeleton_code = '''
+def add(a, b):
+    # Return the sum of a and b
+    pass
+'''
+
+[stages.stage_1.tests]
+[[stages.stage_1.tests.case]]
+name = "add_basic"
+input = [2, 3]
+expected = 5
+
+[[stages.stage_1.tests.case]]
+name = "add_negative"
+input = [-1, 5]
+expected = 4
+
+[stages.stage_1.hints]
+level_1 = "Use the + operator"
+level_2 = "return a + b"
+
+[stages.stage_2]
+name = "Subtraction"
+description = """
+Now add the `subtract` function. **Keep your `add` function!**
+
+```python
+def subtract(a, b):
+    # Return a minus b
+```
+
+**Examples:**
+- `subtract(10, 4)` → returns `6`
+- `subtract(5, 8)` → returns `-3`
+
+Your code carries forward - `add` should still work!
+"""
+# No skeleton_code means code carries forward from previous stage
+
+[stages.stage_2.tests]
+[[stages.stage_2.tests.case]]
+name = "subtract_basic"
+input = [10, 4]
+expected = 6
+
+[[stages.stage_2.tests.case]]
+name = "subtract_negative"
+input = [5, 8]
+expected = -3
+
+[stages.stage_2.hints]
+level_1 = "Use the - operator"
+level_2 = "def subtract(a, b): return a - b"
+
+[stages.stage_3]
+name = "Multiplication"
+description = """
+Add the `multiply` function. You now have three operations!
+
+```python
+def multiply(a, b):
+    # Return a times b
+```
+
+**Examples:**
+- `multiply(4, 5)` → returns `20`
+- `multiply(0, 100)` → returns `0`
+
+Keep `add` and `subtract` working - they'll be tested too!
+"""
+
+[stages.stage_3.tests]
+[[stages.stage_3.tests.case]]
+name = "multiply_basic"
+input = [4, 5]
+expected = 20
+
+[[stages.stage_3.tests.case]]
+name = "multiply_zero"
+input = [0, 100]
+expected = 0
+
+[stages.stage_3.hints]
+level_1 = "Use the * operator"
+level_2 = "def multiply(a, b): return a * b"
+
+[stages.stage_4]
+name = "Calculator Complete"
+description = """
+**Final stage!** Create the dispatcher function:
+
+```python
+def calculate(operation, a, b):
+    # Return the result of calling the right operation
+```
+
+The `operation` parameter is a string: `'add'`, `'subtract'`, or `'multiply'`.
+
+**Examples:**
+- `calculate('add', 2, 3)` → returns `5`
+- `calculate('subtract', 10, 4)` → returns `6`
+- `calculate('multiply', 4, 5)` → returns `20`
+
+Use `if/elif` to check which operation to call!
+"""
+
+[stages.stage_4.tests]
+[[stages.stage_4.tests.case]]
+name = "calc_add"
+input = ["add", 2, 3]
+expected = 5
+
+[[stages.stage_4.tests.case]]
+name = "calc_subtract"
+input = ["subtract", 10, 4]
+expected = 6
+
+[[stages.stage_4.tests.case]]
+name = "calc_multiply"
+input = ["multiply", 4, 5]
+expected = 20
+
+[stages.stage_4.hints]
+level_1 = "Use if/elif to check the operation string"
+level_2 = """
+def calculate(op, a, b):
+    if op == 'add':
+        return add(a, b)
+    elif op == 'subtract':
+        return subtract(a, b)
+    elif op == 'multiply':
+        return multiply(a, b)
+"""
+
+[solution]
+code = '''
+def add(a, b):
+    return a + b
+
+def subtract(a, b):
+    return a - b
+
+def multiply(a, b):
+    return a * b
+
+def calculate(op, a, b):
+    if op == 'add':
+        return add(a, b)
+    elif op == 'subtract':
+        return subtract(a, b)
+    elif op == 'multiply':
+        return multiply(a, b)
+'''
+
+[adaptive]
+fun_factor = "building_something"
+weakness_signals = ["no_return", "wrong_operator", "function_syntax"]
+project_themes = ["calculators", "math_tools", "utilities"]
+
+[emotional_checkpoints]
+after_completion = """
+You built a real calculator!
+
+Functions you created:
+- add(a, b)
+- subtract(a, b)
+- multiply(a, b)
+- calculate(op, a, b)
+
+This is how real programs are built - one piece at a time!
+
+[RT] I want to add division! | [LT] Show me more patterns | [Y] What's next?
+"""
+
+# Self-teaching note:
+#
+# This demonstrates multi-stage challenges where code carries forward.
+# Each stage builds on the previous, teaching incremental development.
+# The learner sees their work accumulate into something complete.

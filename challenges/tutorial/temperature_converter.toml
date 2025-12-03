@@ -27,31 +27,17 @@ code = '''
 # Set the Fahrenheit temperature
 fahrenheit = 98.6
 
-# Convert to Celsius
-celsius =
+# Convert to Celsius using the formula: (fahrenheit - 32) * 5 / 9
+# Then round to 1 decimal place with round(number, 1)
+celsius = 0  # <- Replace 0 with the formula!
 
 # Print the result
-print()
+print(celsius)
 '''
 
-[tests]
-[[tests.case]]
-name = "body_temperature"
-input = []
-setup = 'fahrenheit = 98.6'
-expected = ["37.0"]
-
-[[tests.case]]
-name = "freezing"
-input = []
-setup = 'fahrenheit = 32'
-expected = ["0.0"]
-
-[[tests.case]]
-name = "boiling"
-input = []
-setup = 'fahrenheit = 212'
-expected = ["100.0"]
+[validation]
+type = "pytest"
+test_file = "test_temperature_converter.py"
 
 [hints]
 level_1 = "The formula is: (fahrenheit - 32) * 5 / 9"

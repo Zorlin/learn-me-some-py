@@ -18,54 +18,49 @@ You'll learn about VARIABLES - named containers that hold data.
 Think of them like labeled boxes where you can store information.
 
 Create a variable called 'name', put your name in it, then print a greeting.
+
+Example outputs that would work:
+- "Hello Ben"
+- "Hello, Ben!"
+- "hello Ben"
+
+As long as your greeting includes "Hello" and your name, you're good!
 """
 
 [skeleton]
 code = '''
 # Store your name in a variable
-name =
+name = "YourName"
 
 # Print a greeting using your name
-print()
+# Hint: combine "Hello " with your name variable using +
+print(name)
 '''
 
-[tests]
-[[tests.case]]
-name = "alice"
-input = []
-setup = 'name = "Alice"'
-expected = ["Hello, Alice!"]
-
-[[tests.case]]
-name = "bob"
-input = []
-setup = 'name = "Bob"'
-expected = ["Hello, Bob!"]
-
-[[tests.case]]
-name = "wings"
-input = []
-setup = 'name = "Wings"'
-expected = ["Hello, Wings!"]
+[validation]
+type = "pytest"
+test_file = "test_personal_greeting.py"
 
 [hints]
 level_1 = "First create a variable: name = \"YourName\""
-level_2 = "Then print it: print(\"Hello, \" + name + \"!\")"
-level_3 = "You can also use an f-string: print(f\"Hello, {name}!\")"
+level_2 = "Then print it: print(\"Hello \" + name)"
+level_3 = "You can also use an f-string: print(f\"Hello {name}\")"
 level_4 = """
 Two ways to solve this:
 
 Method 1 (concatenation):
 ```python
 name = "Alice"
-print("Hello, " + name + "!")
+print("Hello " + name)
 ```
 
-Method 2 (f-string - cooler!):
+Method 2 (f-string - more flexible!):
 ```python
 name = "Alice"
-print(f"Hello, {name}!")
+print(f"Hello {name}")
 ```
+
+Both work! The exact punctuation doesn't matter - experiment!
 """
 
 [gamepad_hints]

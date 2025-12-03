@@ -23,10 +23,11 @@ Computers are REALLY good at math. This is where they shine.
 [skeleton]
 code = '''
 # Calculate 42 + 58 and store in result
-result =
+# Change the 0 below to the actual calculation!
+result = 0
 
 # Print the result
-print()
+print(result)
 '''
 
 [validation]
