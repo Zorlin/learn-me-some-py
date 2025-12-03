@@ -1,0 +1,30 @@
+{
+  "captured_at": "2025-12-03T03:12:55.132780",
+  "total_screenshots": 2,
+  "screenshots": {
+    "welcome/screen1": {
+      "name": "screen1",
+      "state": "welcome",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "theme": "oled_dark",
+      "timestamp": "2025-12-03T03:12:55.091487",
+      "url": null,
+      "context": {}
+    },
+    "challenge/screen2": {
+      "name": "screen2",
+      "state": "challenge",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "theme": "light",
+      "timestamp": "2025-12-03T03:12:55.121042",
+      "url": null,
+      "context": {}
+    }
+  }
+}

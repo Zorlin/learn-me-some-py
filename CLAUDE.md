@@ -164,6 +164,32 @@ We want a **Primary Control Surface** for every context:
 - Works on TV/console/laptop/tablet/browser
 - Progressive transformation across input devices
 
+### WebUI Tech Stack (MANDATORY)
+
+**Stack: Vue.js + TailwindCSS + Three.js/WebGPU**
+
+```
+Frontend:
+├── Vue.js 3         # Progressive SPA framework (Composition API)
+├── TailwindCSS      # Utility-first CSS (dark mode, responsive)
+├── Three.js         # 3D graphics, visualizations
+└── WebGPU           # Hardware-accelerated rendering (with fallback)
+
+Backend:
+├── FastAPI          # Python API server
+└── WebSockets       # Real-time gamepad/multiplayer sync
+```
+
+**REFACTOR AWAY FROM HTMX** - The current HTMX implementation was a prototype.
+We are migrating to Vue.js for:
+- Proper SPA routing and state management
+- Reactive gamepad input handling
+- 3D visualizations (concept DAG, achievements, progress)
+- WebGPU shader effects for that premium gaming feel
+- Better TypeScript support
+
+**DO NOT add more HTMX code.** All new WebUI work should use Vue.js.
+
 **Touchscreen UI:**
 - Optimized for finger interaction when touchscreen detected
 - Drag and drop with your finger

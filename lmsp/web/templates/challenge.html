@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ challenge_name }} - LMSP</title>
+    <link rel="stylesheet" href="/static/css/oled-dark.css">
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="/static/js/gamepad.js"></script>
+    <script src="/static/js/achievements.js"></script>
+</head>
+<body>
+    <div id="app">
+        <header>
+            <h1>🎮 LMSP - {{ challenge_name }}</h1>
+            <div id="player-info">
+                <button class="btn btn-secondary" hx-get="/" hx-target="body" hx-swap="innerHTML">← Back</button>
+                <span id="gamepad-status" class="status">⚙️ Detecting...</span>
+            </div>
+        </header>
+
+        <main class="challenge-view">
+            <section class="challenge-info panel">
+                <h2>{{ challenge_name }}</h2>
+                <p class="challenge-description">{{ challenge_description }}</p>
+            </section>
+
+            <section class="code-editor-section panel">
+                <h3>💻 Your Code</h3>
+                <textarea id="code-input" class="code-editor" placeholder="# Write your Python code here...
+def solution():
+    pass
+"></textarea>
+                <div class="editor-actions">
+                    <button
+                        class="btn btn-primary"
+                        hx-post="/api/code/submit"
+                        hx-vals='js:{challenge_id: "{{ challenge_id }}", code: document.getElementById("code-input").value, player_id: "default"}'
+                        hx-target="#results"
+                        hx-swap="innerHTML"
+                        onclick="handleCodeSubmission(event)">
+                        ▶️ Run (Start)
+                    </button>
+                    <button class="btn btn-secondary">💡 Hint (Select)</button>
+                </div>
+            </section>
+
+            <section id="results" class="results-section panel">
+                <h3>📊 Results</h3>
+                <p class="text-muted">Run your code to see results...</p>
+            </section>
+
+            <section class="feedback-section panel">
+                <h3>🎮 How did that feel?</h3>
+                <div class="trigger-feedback">
+                    <div class="trigger-bar">
+                        <span>😤 LT</span>
+                        <div class="progress-track">
+                            <div id="lt-bar" class="progress-fill frustration" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div class="trigger-bar">
+                        <span>😊 RT</span>
+                        <div class="progress-track">
+                            <div id="rt-bar" class="progress-fill enjoyment" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>Press A to confirm | B to cancel | Y for complex response</p>
+        </footer>
+    </div>
+
+    <script>
+        // Gamepad trigger visualization
+        function updateTriggers() {
+            const gamepads = navigator.getGamepads();
+            const gp = gamepads[0];
+            if (gp) {
+                const lt = Math.round((gp.buttons[6]?.value || 0) * 100);
+                const rt = Math.round((gp.buttons[7]?.value || 0) * 100);
+                document.getElementById('lt-bar').style.width = lt + '%';
+                document.getElementById('rt-bar').style.width = rt + '%';
+            }
+            requestAnimationFrame(updateTriggers);
+        }
+
+        window.addEventListener('gamepadconnected', () => {
+            document.getElementById('gamepad-status').textContent = '🎮 Connected';
+            updateTriggers();
+        });
+
+        // Handle code submission and achievement unlocks
+        async function handleCodeSubmission(event) {
+            // Let HTMX handle the submission
+            // After HTMX completes, check for achievements in the response
+            document.body.addEventListener('htmx:afterRequest', async function checkAchievement(e) {
+                // Only handle this specific request
+                if (e.detail.pathInfo.requestPath !== '/api/code/submit') return;
+
+                // Remove this listener after handling once
+                document.body.removeEventListener('htmx:afterRequest', checkAchievement);
+
+                // Parse response for achievement
+                try {
+                    const response = JSON.parse(e.detail.xhr.response);
+                    if (response.achievement_unlocked && window.LMSP && window.LMSP.achievements) {
+                        window.LMSP.achievements.handleResponse(response);
+                    }
+                } catch (err) {
+                    // Response may not be JSON, that's ok
+                    console.log('Response was not JSON achievement data');
+                }
+            });
+        }
+    </script>
+</body>
+</html>
