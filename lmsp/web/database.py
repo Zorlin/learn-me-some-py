@@ -38,6 +38,7 @@ DB_PATH = DB_DIR / "lmsp.db"
 class PlayerData:
     """Player data from database."""
     player_id: str
+    display_name: Optional[str] = None  # Friendly name shown in UI
     password_hash: Optional[str] = None
     salt: Optional[str] = None
     total_xp: int = 0
@@ -90,6 +91,8 @@ class LMSPDatabase:
         """Get a database connection (context manager)."""
         conn = sqlite3.connect(str(self.db_path))
         conn.row_factory = sqlite3.Row
+        # Enable WAL mode for better concurrent read/write performance
+        conn.execute("PRAGMA journal_mode=WAL")
         try:
             yield conn
             conn.commit()
@@ -107,6 +110,7 @@ class LMSPDatabase:
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS players (
                 player_id TEXT PRIMARY KEY,
+                display_name TEXT,
                 password_hash TEXT,
                 salt TEXT,
                 total_xp INTEGER DEFAULT 0,
@@ -115,6 +119,12 @@ class LMSPDatabase:
                 gamepad_combo TEXT
             )
         """)
+
+        # Migration: Add display_name column if it doesn't exist
+        cursor.execute("PRAGMA table_info(players)")
+        columns = [row[1] for row in cursor.fetchall()]
+        if "display_name" not in columns:
+            cursor.execute("ALTER TABLE players ADD COLUMN display_name TEXT")
 
         # Completions table
         cursor.execute("""
@@ -187,6 +197,81 @@ class LMSPDatabase:
             )
         """)
 
+        # =====================================================================
+        # The Director - Adaptive Learning AI Tables
+        # =====================================================================
+
+        # Director observations - every code submission
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS director_observations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                player_id TEXT NOT NULL,
+                challenge_id TEXT NOT NULL,
+                success INTEGER NOT NULL,
+                error TEXT,
+                output TEXT,
+                tests_passing INTEGER DEFAULT 0,
+                tests_total INTEGER DEFAULT 0,
+                time_seconds REAL NOT NULL,
+                attempt_number INTEGER NOT NULL,
+                concepts TEXT DEFAULT '[]',
+                timestamp TEXT NOT NULL,
+                FOREIGN KEY (player_id) REFERENCES players(player_id)
+            )
+        """)
+
+        # Director mastery tracking per concept
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS director_mastery (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                player_id TEXT NOT NULL,
+                concept TEXT NOT NULL,
+                successes INTEGER DEFAULT 0,
+                failures INTEGER DEFAULT 0,
+                total_time REAL DEFAULT 0,
+                fastest_time REAL,
+                first_try_successes INTEGER DEFAULT 0,
+                streak INTEGER DEFAULT 0,
+                last_attempt TEXT,
+                FOREIGN KEY (player_id) REFERENCES players(player_id),
+                UNIQUE(player_id, concept)
+            )
+        """)
+
+        # Director struggles - active problem areas
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS director_struggles (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                player_id TEXT NOT NULL,
+                struggle_key TEXT NOT NULL,
+                struggle_type TEXT NOT NULL,
+                description TEXT NOT NULL,
+                error_message TEXT,
+                code_context TEXT,
+                frequency INTEGER DEFAULT 1,
+                first_seen TEXT NOT NULL,
+                last_seen TEXT NOT NULL,
+                resolved INTEGER DEFAULT 0,
+                FOREIGN KEY (player_id) REFERENCES players(player_id),
+                UNIQUE(player_id, struggle_key)
+            )
+        """)
+
+        # Director state - momentum, frustration, totals
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS director_state (
+                player_id TEXT PRIMARY KEY,
+                frustration_level REAL DEFAULT 0,
+                momentum REAL DEFAULT 0.5,
+                total_successes INTEGER DEFAULT 0,
+                total_failures INTEGER DEFAULT 0,
+                first_try_successes INTEGER DEFAULT 0,
+                last_success_time TEXT,
+                updated_at TEXT NOT NULL,
+                FOREIGN KEY (player_id) REFERENCES players(player_id)
+            )
+        """)
+
         # Indexes for common queries
         cursor.execute("""
             CREATE INDEX IF NOT EXISTS idx_completions_player
@@ -208,6 +293,18 @@ class LMSPDatabase:
             CREATE INDEX IF NOT EXISTS idx_emotional_feedback_player
             ON emotional_feedback(player_id, challenge_id)
         """)
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_director_observations_player
+            ON director_observations(player_id, timestamp)
+        """)
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_director_mastery_player
+            ON director_mastery(player_id)
+        """)
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_director_struggles_player
+            ON director_struggles(player_id, resolved)
+        """)
 
     # =========================================================================
     # Player Operations
@@ -228,6 +325,7 @@ class LMSPDatabase:
             if row:
                 return PlayerData(
                     player_id=row["player_id"],
+                    display_name=row["display_name"],
                     password_hash=row["password_hash"],
                     salt=row["salt"],
                     total_xp=row["total_xp"],
@@ -250,6 +348,18 @@ class LMSPDatabase:
                 created_at=now,
                 last_active=now,
             )
+
+    def set_display_name(self, player_id: str, display_name: str) -> bool:
+        """Set player's display name."""
+        self.get_or_create_player(player_id)  # Ensure player exists
+
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "UPDATE players SET display_name = ? WHERE player_id = ?",
+                (display_name, player_id)
+            )
+            return True
 
     def update_player_activity(self, player_id: str):
         """Update last_active timestamp."""
@@ -907,6 +1017,7 @@ class LMSPDatabase:
 
         return {
             "player_id": player_id,
+            "display_name": player.display_name,
             "total_xp": player.total_xp,
             "level": level,
             "total_attempts": total_attempts,
@@ -918,6 +1029,221 @@ class LMSPDatabase:
             "has_password": bool(player.password_hash),
             "has_gamepad_combo": bool(player.gamepad_combo),
         }
+
+    # =========================================================================
+    # The Director - Adaptive AI Persistence
+    # =========================================================================
+
+    def save_director_observation(
+        self,
+        player_id: str,
+        challenge_id: str,
+        success: bool,
+        error: Optional[str],
+        output: Optional[str],
+        tests_passing: int,
+        tests_total: int,
+        time_seconds: float,
+        attempt_number: int,
+        concepts: list[str],
+        timestamp: str
+    ):
+        """Save a Director observation to the database."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """INSERT INTO director_observations
+                   (player_id, challenge_id, success, error, output, tests_passing,
+                    tests_total, time_seconds, attempt_number, concepts, timestamp)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (player_id, challenge_id, 1 if success else 0, error, output,
+                 tests_passing, tests_total, time_seconds, attempt_number,
+                 json.dumps(concepts), timestamp)
+            )
+
+    def load_director_observations(
+        self,
+        player_id: str,
+        limit: int = 100
+    ) -> list[dict]:
+        """Load recent observations for a player."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """SELECT * FROM director_observations
+                   WHERE player_id = ?
+                   ORDER BY timestamp DESC
+                   LIMIT ?""",
+                (player_id, limit)
+            )
+            return [
+                {
+                    "player_id": row["player_id"],
+                    "challenge_id": row["challenge_id"],
+                    "success": bool(row["success"]),
+                    "error": row["error"],
+                    "output": row["output"],
+                    "tests_passing": row["tests_passing"],
+                    "tests_total": row["tests_total"],
+                    "time_seconds": row["time_seconds"],
+                    "attempt_number": row["attempt_number"],
+                    "concepts": json.loads(row["concepts"]) if row["concepts"] else [],
+                    "timestamp": row["timestamp"],
+                }
+                for row in cursor.fetchall()
+            ]
+
+    def save_director_mastery(
+        self,
+        player_id: str,
+        concept: str,
+        successes: int,
+        failures: int,
+        total_time: float,
+        fastest_time: Optional[float],
+        first_try_successes: int,
+        streak: int,
+        last_attempt: str
+    ):
+        """Save or update Director mastery for a concept."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """INSERT INTO director_mastery
+                   (player_id, concept, successes, failures, total_time, fastest_time,
+                    first_try_successes, streak, last_attempt)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                   ON CONFLICT(player_id, concept)
+                   DO UPDATE SET
+                       successes = ?, failures = ?, total_time = ?, fastest_time = ?,
+                       first_try_successes = ?, streak = ?, last_attempt = ?""",
+                (player_id, concept, successes, failures, total_time, fastest_time,
+                 first_try_successes, streak, last_attempt,
+                 successes, failures, total_time, fastest_time,
+                 first_try_successes, streak, last_attempt)
+            )
+
+    def load_director_mastery(self, player_id: str) -> dict[str, dict]:
+        """Load all Director mastery entries for a player."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT * FROM director_mastery WHERE player_id = ?",
+                (player_id,)
+            )
+            return {
+                row["concept"]: {
+                    "successes": row["successes"],
+                    "failures": row["failures"],
+                    "total_time": row["total_time"],
+                    "fastest_time": row["fastest_time"],
+                    "first_try_successes": row["first_try_successes"],
+                    "streak": row["streak"],
+                    "last_attempt": row["last_attempt"],
+                }
+                for row in cursor.fetchall()
+            }
+
+    def save_director_struggle(
+        self,
+        player_id: str,
+        struggle_key: str,
+        struggle_type: str,
+        description: str,
+        error_message: Optional[str],
+        code_context: Optional[str],
+        frequency: int,
+        first_seen: str,
+        last_seen: str,
+        resolved: bool
+    ):
+        """Save or update a Director struggle."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """INSERT INTO director_struggles
+                   (player_id, struggle_key, struggle_type, description, error_message,
+                    code_context, frequency, first_seen, last_seen, resolved)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                   ON CONFLICT(player_id, struggle_key)
+                   DO UPDATE SET
+                       frequency = ?, last_seen = ?, resolved = ?""",
+                (player_id, struggle_key, struggle_type, description, error_message,
+                 code_context, frequency, first_seen, last_seen, 1 if resolved else 0,
+                 frequency, last_seen, 1 if resolved else 0)
+            )
+
+    def load_director_struggles(self, player_id: str) -> dict[str, dict]:
+        """Load all Director struggles for a player."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT * FROM director_struggles WHERE player_id = ?",
+                (player_id,)
+            )
+            return {
+                row["struggle_key"]: {
+                    "type": row["struggle_type"],
+                    "description": row["description"],
+                    "error_message": row["error_message"],
+                    "code_context": row["code_context"],
+                    "frequency": row["frequency"],
+                    "first_seen": row["first_seen"],
+                    "last_seen": row["last_seen"],
+                    "resolved": bool(row["resolved"]),
+                }
+                for row in cursor.fetchall()
+            }
+
+    def save_director_state(
+        self,
+        player_id: str,
+        frustration_level: float,
+        momentum: float,
+        total_successes: int,
+        total_failures: int,
+        first_try_successes: int,
+        last_success_time: Optional[str]
+    ):
+        """Save Director state (momentum, frustration, totals)."""
+        now = datetime.now().isoformat()
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """INSERT INTO director_state
+                   (player_id, frustration_level, momentum, total_successes,
+                    total_failures, first_try_successes, last_success_time, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                   ON CONFLICT(player_id)
+                   DO UPDATE SET
+                       frustration_level = ?, momentum = ?, total_successes = ?,
+                       total_failures = ?, first_try_successes = ?,
+                       last_success_time = ?, updated_at = ?""",
+                (player_id, frustration_level, momentum, total_successes,
+                 total_failures, first_try_successes, last_success_time, now,
+                 frustration_level, momentum, total_successes,
+                 total_failures, first_try_successes, last_success_time, now)
+            )
+
+    def load_director_state(self, player_id: str) -> Optional[dict]:
+        """Load Director state for a player."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT * FROM director_state WHERE player_id = ?",
+                (player_id,)
+            )
+            row = cursor.fetchone()
+            if not row:
+                return None
+            return {
+                "frustration_level": row["frustration_level"],
+                "momentum": row["momentum"],
+                "total_successes": row["total_successes"],
+                "total_failures": row["total_failures"],
+                "first_try_successes": row["first_try_successes"],
+                "last_success_time": row["last_success_time"],
+            }
 
 
 # Global database instance

@@ -28,7 +28,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from lmsp.python.challenges import ChallengeLoader, Challenge
 from lmsp.python.validator import CodeValidator, PytestValidator
 from lmsp.python.concepts import ConceptDAG
+from lmsp.python.concept_lessons import get_lesson_loader, ConceptLesson
 from lmsp.adaptive.engine import AdaptiveEngine, LearnerProfile
+from lmsp.adaptive.director import Director, DirectorObservation, get_director
 from lmsp.ui.achievements import AchievementManager
 from lmsp.web.database import get_database, LMSPDatabase
 from datetime import datetime, timedelta
@@ -168,6 +170,176 @@ def find_concept_for_challenge(challenge_id: str) -> Optional[str]:
             concept.challenge_mastery == challenge_id):
             return concept_id
     return None
+
+
+def find_challenges_for_concept(concept_id: str) -> list[str]:
+    """Find all challenges that teach a specific concept."""
+    challenges = []
+
+    # First check if there's a concept with this exact ID
+    concept = concept_dag.concepts.get(concept_id)
+    if concept:
+        if concept.challenge_starter:
+            challenges.append(concept.challenge_starter)
+        if concept.challenge_intermediate:
+            challenges.append(concept.challenge_intermediate)
+        if concept.challenge_mastery:
+            challenges.append(concept.challenge_mastery)
+
+    # If no concept found or no challenges, try finding challenges by name match
+    # The Director tracks by challenge_id, so we might need to return that directly
+    if not challenges:
+        # Check if this is actually a challenge_id
+        try:
+            challenge = challenge_loader.load(concept_id)
+            if challenge:
+                challenges.append(concept_id)
+        except FileNotFoundError:
+            pass
+
+    return challenges
+
+
+def get_suggested_lessons_for_challenge(challenge_id: str) -> list[dict]:
+    """
+    Get concept lessons relevant when a player is struggling with a challenge.
+
+    Returns the lesson for this challenge's concept AND all its prerequisites,
+    ordered from most basic (prerequisites first) to the target concept.
+
+    Uses multiple strategies to find relevant concepts:
+    1. Direct DAG mapping (challenge_starter/intermediate/mastery)
+    2. Name/ID matching (e.g., 'personal_greeting' -> 'variables')
+    3. Level-based matching (same level concepts)
+    """
+    loader = get_lesson_loader()
+    suggestions = []
+    seen_ids = set()
+
+    # Strategy 1: Find concept via DAG mapping
+    concept_id = find_concept_for_challenge(challenge_id)
+
+    # Strategy 2: Try to find concept by matching challenge keywords to concept IDs
+    if not concept_id:
+        # Load the challenge to get its description and level
+        try:
+            challenge = challenge_loader.load(challenge_id)
+            challenge_level = challenge.level
+
+            # Build a list of keywords from challenge name, id, and description
+            keywords = set()
+            keywords.update(challenge_id.lower().replace('_', ' ').split())
+            keywords.update(challenge.name.lower().replace('_', ' ').split())
+
+            # Common concept keywords to look for
+            concept_keywords = {
+                'greeting': ['strings', 'variables', 'print'],
+                'hello': ['print', 'strings'],
+                'math': ['basic_operators', 'numbers', 'types'],
+                'temperature': ['basic_operators', 'variables', 'types'],
+                'converter': ['basic_operators', 'types'],
+                'calculator': ['basic_operators', 'numbers'],
+                'list': ['lists'],
+                'dict': ['dictionaries'],
+                'loop': ['for_loops', 'while_loops'],
+                'function': ['functions'],
+                'class': ['classes'],
+            }
+
+            # Find matching concepts
+            potential_concepts = set()
+            for keyword in keywords:
+                if keyword in concept_keywords:
+                    potential_concepts.update(concept_keywords[keyword])
+
+            # Also try direct concept ID match (e.g., 'variables' challenge -> 'variables' concept)
+            all_lessons = loader.get_all()
+            lesson_ids = {l.id for l in all_lessons}
+
+            for keyword in keywords:
+                if keyword in lesson_ids:
+                    potential_concepts.add(keyword)
+
+            # Filter to concepts at or below the challenge level
+            valid_concepts = []
+            for pc in potential_concepts:
+                lesson = loader.get(pc)
+                if lesson and lesson.level <= challenge_level + 1:  # Allow one level higher
+                    valid_concepts.append((lesson.level, pc))
+
+            # Sort by level (lowest first) and pick the most relevant
+            if valid_concepts:
+                valid_concepts.sort()
+                concept_id = valid_concepts[-1][1]  # Pick highest relevant level
+
+        except FileNotFoundError:
+            pass
+
+    # Strategy 3: If still no concept, find concepts at the same level
+    if not concept_id:
+        try:
+            challenge = challenge_loader.load(challenge_id)
+            all_lessons = loader.get_all()
+            level_lessons = [l for l in all_lessons if l.level == challenge.level]
+            if level_lessons:
+                # Return first few concepts at this level
+                for lesson in level_lessons[:3]:
+                    suggestions.append({
+                        "id": lesson.id,
+                        "name": lesson.name,
+                        "level": lesson.level,
+                        "category": lesson.category,
+                        "time_to_read": lesson.time_to_read,
+                        "has_try_it": lesson.try_it is not None,
+                        "depth": 0,
+                    })
+                return suggestions
+        except FileNotFoundError:
+            return []
+
+    if not concept_id:
+        return []
+
+    # Get the main concept lesson
+    main_lesson = loader.get(concept_id)
+    if not main_lesson:
+        return []
+
+    # Recursively collect prerequisites (depth-first, then reverse for breadth-first order)
+    def collect_prerequisites(lesson_id: str, depth: int = 0):
+        if lesson_id in seen_ids or depth > 5:  # Prevent cycles and limit depth
+            return []
+        seen_ids.add(lesson_id)
+
+        lesson = loader.get(lesson_id)
+        if not lesson:
+            return []
+
+        result = []
+        # First collect prerequisites of this lesson
+        for prereq_id in lesson.prerequisites:
+            result.extend(collect_prerequisites(prereq_id, depth + 1))
+
+        # Then add this lesson
+        result.append({
+            "id": lesson.id,
+            "name": lesson.name,
+            "level": lesson.level,
+            "category": lesson.category,
+            "time_to_read": lesson.time_to_read,
+            "has_try_it": lesson.try_it is not None,
+            "depth": depth,  # 0 = main concept, higher = more foundational
+        })
+
+        return result
+
+    # Collect all lessons starting from main concept
+    suggestions = collect_prerequisites(concept_id)
+
+    # Reverse so prerequisites come first (foundational → target)
+    suggestions.reverse()
+
+    return suggestions
 
 
 def get_mastery_hint(concept_id: str, current_mastery: int) -> str:
@@ -338,8 +510,12 @@ def get_achievement_manager(player_id: str) -> AchievementManager:
 @app.get("/api/profile")
 async def get_profile(player_id: str = "default"):
     """Get player profile data."""
+    db = get_database()
     engine = get_adaptive_engine(player_id)
     profile_data = engine.profile
+
+    # Get player data including display_name
+    player_data = db.get_or_create_player(player_id)
 
     achievement_mgr = get_achievement_manager(player_id)
     achievement_stats = achievement_mgr.get_achievement_stats()
@@ -362,6 +538,7 @@ async def get_profile(player_id: str = "default"):
 
     return JSONResponse({
         "player_id": profile_data.player_id,
+        "display_name": player_data.display_name,
         "mastery_levels": profile_data.mastery_levels,
         "xp": total_xp,
         "level": player_level,
@@ -369,6 +546,25 @@ async def get_profile(player_id: str = "default"):
         "achievements_unlocked": achievement_stats["unlocked"],
         "achievements_total": achievement_stats["total"],
     })
+
+
+@app.post("/api/profile/display-name")
+async def set_display_name(request: Request):
+    """Set player's display name."""
+    data = await request.json()
+    player_id = data.get("player_id", "default")
+    display_name = data.get("display_name", "").strip()
+
+    if not display_name:
+        return JSONResponse({"error": "Display name cannot be empty"}, status_code=400)
+
+    if len(display_name) > 50:
+        return JSONResponse({"error": "Display name too long (max 50 chars)"}, status_code=400)
+
+    db = get_database()
+    db.set_display_name(player_id, display_name)
+
+    return JSONResponse({"success": True, "display_name": display_name})
 
 
 @app.get("/api/challenges")
@@ -486,6 +682,7 @@ async def submit_code(request: Request):
     player_id = data.get("player_id", "default")
     is_spaced_repetition = data.get("is_spaced_repetition", False)
     current_stage = data.get("stage", None)  # For multi-stage challenges
+    solve_time = data.get("solve_time", None)  # Wall-clock coding time from frontend
 
     if not challenge_id or not code:
         return JSONResponse({
@@ -518,11 +715,14 @@ async def submit_code(request: Request):
         engine = get_adaptive_engine(player_id)
         achievement_mgr = get_achievement_manager(player_id)
 
+        # Use frontend's wall-clock time if provided, else fall back to test execution time
+        actual_solve_time = solve_time if solve_time is not None else result.time_seconds
+
         response_data = {
             "success": result.success,
             "tests_passing": result.tests_passing,
             "tests_total": result.tests_total,
-            "time_seconds": result.time_seconds,
+            "time_seconds": actual_solve_time,  # Return the actual solve time, not test execution time
             "output": result.output,
         }
 
@@ -581,29 +781,29 @@ async def submit_code(request: Request):
                     xp_reason = f"Stage {current_stage}/{total_stages} complete: +{xp_earned} XP"
 
                     # Record stage completion
-                    db.record_completion(player_id, stage_key, result.time_seconds)
+                    db.record_completion(player_id, stage_key, actual_solve_time)
                     db.add_player_xp(player_id, xp_earned)
                     db.record_xp_event(
                         player_id=player_id,
                         xp_amount=xp_earned,
                         reason=xp_reason,
                         challenge_id=stage_key,
-                        solve_time=result.time_seconds
+                        solve_time=actual_solve_time
                     )
 
                 # If this was the final stage, also record overall challenge completion
                 if current_stage == total_stages:
                     record_challenge_completion(
-                        player_id, challenge_id, result.time_seconds, 0,
+                        player_id, challenge_id, actual_solve_time, 0,
                         f"Challenge complete (XP already awarded per stage)"
                     )
             else:
                 # Non-multi-stage challenge - use standard XP logic
                 xp_earned, xp_reason = calculate_xp_reward(
-                    challenge, player_id, result.time_seconds, is_spaced_repetition
+                    challenge, player_id, actual_solve_time, is_spaced_repetition
                 )
                 record_challenge_completion(
-                    player_id, challenge_id, result.time_seconds, xp_earned, xp_reason
+                    player_id, challenge_id, actual_solve_time, xp_earned, xp_reason
                 )
 
             # Find associated concept and update mastery
@@ -615,7 +815,7 @@ async def submit_code(request: Request):
                 engine.observe_attempt(
                     concept=concept_id,
                     success=True,
-                    time_seconds=result.time_seconds,
+                    time_seconds=actual_solve_time,
                 )
 
                 # Get updated mastery level
@@ -638,7 +838,7 @@ async def submit_code(request: Request):
                 engine.observe_attempt(
                     concept=challenge_id,
                     success=True,
-                    time_seconds=result.time_seconds,
+                    time_seconds=actual_solve_time,
                 )
 
             # Add XP and mastery to response
@@ -668,8 +868,69 @@ async def submit_code(request: Request):
             engine.observe_attempt(
                 concept=concept_id or challenge_id,
                 success=False,
-                time_seconds=result.time_seconds,
+                time_seconds=actual_solve_time,
             )
+
+        # ====================================================================
+        # THE DIRECTOR - Observe this attempt for adaptive intervention
+        # ====================================================================
+        director = get_director(player_id, db=get_database())
+
+        # Count attempt number for this challenge
+        recent_obs = [o for o in director._observations
+                      if o.challenge_id == challenge_id]
+        attempt_number = len(recent_obs) + 1
+
+        # Get concepts taught by this challenge for mastery tracking
+        challenge_concept = find_concept_for_challenge(challenge_id)
+        concepts_learned = [challenge_concept] if challenge_concept else []
+
+        director.observe(DirectorObservation(
+            player_id=player_id,
+            challenge_id=challenge_id,
+            code=code,
+            success=result.success,
+            error=result.error,
+            output=result.output,
+            tests_passing=result.tests_passing,
+            tests_total=result.tests_total,
+            time_seconds=actual_solve_time,
+            attempt_number=attempt_number,
+            concepts=concepts_learned,
+        ))
+
+        # Check if Director wants to intervene
+        if director.should_intervene() and not result.success:
+            intervention = director.get_intervention()
+            if intervention:
+                response_data["director_intervention"] = {
+                    "type": intervention.type,
+                    "content": intervention.content,
+                    "reason": intervention.reason,
+                    "confidence": intervention.confidence,
+                }
+                # If Director generated a new challenge, include it
+                if intervention.generated_challenge:
+                    response_data["director_generated_challenge"] = intervention.generated_challenge
+
+                # Include suggested concept lessons when struggling
+                suggested_lessons = get_suggested_lessons_for_challenge(challenge_id)
+                if suggested_lessons:
+                    response_data["director_intervention"]["suggested_lessons"] = suggested_lessons
+
+        # Even without a full intervention, suggest lessons after multiple failures
+        elif not result.success:
+            # Count recent failures for this challenge
+            recent_failures = sum(
+                1 for o in director._observations[-10:]
+                if o.challenge_id == challenge_id and not o.success
+            )
+            # After 2+ failures, suggest reviewing the concept
+            if recent_failures >= 2:
+                suggested_lessons = get_suggested_lessons_for_challenge(challenge_id)
+                if suggested_lessons:
+                    response_data["suggested_lessons"] = suggested_lessons
+                    response_data["suggestion_reason"] = "review_after_failures"
 
         return JSONResponse(response_data)
 
@@ -687,6 +948,58 @@ async def submit_code(request: Request):
             "tests_passing": 0,
             "tests_total": 0,
         }, status_code=500)
+
+
+@app.post("/api/code/run")
+async def run_code(request: Request):
+    """Run Python code and return output (for concept Try It exercises)."""
+    import subprocess
+    import tempfile
+
+    data = await request.json()
+    code = data.get("code", "")
+
+    if not code.strip():
+        return JSONResponse({
+            "output": "",
+            "error": "No code to run",
+        })
+
+    try:
+        # Write code to temp file and run it
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+            f.write(code)
+            temp_path = f.name
+
+        try:
+            result = subprocess.run(
+                ['python3', temp_path],
+                capture_output=True,
+                text=True,
+                timeout=5,  # 5 second timeout
+            )
+
+            output = result.stdout
+            error = result.stderr if result.returncode != 0 else None
+
+            return JSONResponse({
+                "output": output,
+                "error": error,
+            })
+        finally:
+            import os
+            os.unlink(temp_path)
+
+    except subprocess.TimeoutExpired:
+        return JSONResponse({
+            "output": "",
+            "error": "Code execution timed out (5 second limit)",
+        })
+    except Exception as e:
+        return JSONResponse({
+            "output": "",
+            "error": str(e),
+        })
 
 
 @app.get("/api/achievements")
@@ -818,6 +1131,10 @@ async def record_emotional_feedback(request: Request):
     if frustration > 0:
         engine.observe_emotion(EmotionalDimension.FRUSTRATION, frustration, context)
 
+    # Feed to The Director for intervention decisions
+    director = get_director(player_id, db=get_database())
+    director.observe_emotion(enjoyment, frustration)
+
     # Calculate mastery adjustment if we have challenge data
     mastery_factor = None
     if challenge_id and not skipped:
@@ -835,130 +1152,297 @@ async def record_emotional_feedback(request: Request):
 
 @app.get("/api/recommendations")
 async def get_recommendations(player_id: str = "default"):
-    """Get adaptive learning recommendations with actual challenge lookup."""
+    """
+    Get adaptive learning recommendations powered by The Director.
+
+    Uses flow state optimization to recommend challenges that:
+    - Match current skill level (not too easy, not too hard)
+    - Build on momentum when player is doing well
+    - Ease off when player is struggling
+    - Avoid frustrating concepts temporarily
+    - Resurface mastered concepts at the right time
+    """
     engine = get_adaptive_engine(player_id)
-    recommendation = engine.recommend_next()
+    director = get_director(player_id, db=get_database())
+    db = get_database()
 
-    challenge_id = recommendation.challenge_id
-    concept_id = recommendation.concept
-    concept_name = None
+    # Get Director's flow-optimized context
+    flow = director.get_flow_recommendation()
+    mastery = engine.profile.mastery_levels
 
-    # If we have a concept, find its starter challenge
-    if concept_id and concept_id in concept_dag.concepts:
-        concept = concept_dag.concepts[concept_id]
-        concept_name = concept.name
-        challenge_id = concept.challenge_starter
+    # Get player's completions to filter out already-done challenges
+    completions = db.get_completions(player_id)
 
-    # If still no challenge, find an appropriate one for a new player
-    if not challenge_id:
-        mastery = engine.profile.mastery_levels
-
-        # Find level 0 concepts the player hasn't mastered
-        for cid, concept in concept_dag.concepts.items():
-            if concept.level == 0:
-                # Skip if player has mastery >= 1 (they've done at least one challenge)
-                if mastery.get(cid, 0) >= 1:
-                    continue
-                # Skip if no starter challenge defined
-                if not concept.challenge_starter:
-                    continue
-                # Check the challenge actually exists
-                try:
-                    challenge_loader.load(concept.challenge_starter)
-                    challenge_id = concept.challenge_starter
-                    concept_id = cid
-                    concept_name = concept.name
-                    break
-                except FileNotFoundError:
-                    continue
-
-        # If all level 0 complete, try level 1
-        if not challenge_id:
-            for cid, concept in concept_dag.concepts.items():
-                if concept.level == 1 and mastery.get(cid, 0) < 1:
-                    if concept.challenge_starter:
-                        try:
-                            challenge_loader.load(concept.challenge_starter)
-                            challenge_id = concept.challenge_starter
-                            concept_id = cid
-                            concept_name = concept.name
-                            break
-                        except FileNotFoundError:
-                            continue
-
-    # Fallback: just get hello_world as the absolute default
-    if not challenge_id:
+    # Collect all available challenges with their metadata
+    available_challenges = []
+    for cid, concept in concept_dag.concepts.items():
+        if not concept.challenge_starter:
+            continue
         try:
-            challenge_loader.load("hello_world")
-            challenge_id = "hello_world"
-            concept_name = "Print Function"
-        except FileNotFoundError:
-            pass
+            challenge = challenge_loader.load(concept.challenge_starter)
+            challenge_id = concept.challenge_starter
 
+            # Check if this challenge has been completed
+            is_completed = challenge_id in completions
+            needs_review = False
+
+            if is_completed:
+                # Calculate retention to see if it needs review
+                comp = completions[challenge_id]
+                retention = calculate_retention_score(
+                    completion_count=comp.count,
+                    last_completed=comp.last_completed,
+                    best_time=comp.best_time,
+                    expected_time=60.0 * (1 + challenge.level * 0.5),
+                )
+                needs_review = retention.get("needs_review", False)
+
+            available_challenges.append({
+                "id": challenge_id,
+                "concept_id": cid,
+                "concept_name": concept.name,
+                "level": concept.level,
+                "concepts": [cid],
+                "mastery": mastery.get(cid, 0),
+                "is_completed": is_completed,
+                "needs_review": needs_review,
+            })
+        except (FileNotFoundError, Exception) as e:
+            # Skip challenges with loading errors (broken TOML, missing files, etc.)
+            continue
+
+    # Score each challenge for flow state fit
+    scored_challenges = []
+    for ch in available_challenges:
+        # Skip completed challenges unless they need review (spaced repetition)
+        if ch["is_completed"] and not ch["needs_review"]:
+            continue
+
+        # Skip if player has fully mastered (mastery >= 3) unless reviewing
+        if ch["mastery"] >= 3 and flow["difficulty_target"] != "easy_win":
+            continue
+
+        score = director.score_challenge_for_flow(ch)
+
+        # Strong bonus for unstarted/uncompleted challenges (prioritize new content!)
+        if not ch["is_completed"]:
+            score += 0.3
+
+        # Bonus for unstarted challenges at appropriate level
+        if ch["mastery"] == 0:
+            if flow["difficulty_target"] == "easy_win" and ch["level"] == 0:
+                score += 0.2
+            elif flow["difficulty_target"] == "balanced" and ch["level"] <= 1:
+                score += 0.15
+
+        # Penalize if concept is in avoid list
+        if ch["concept_id"] in flow.get("avoid_concepts", []):
+            score -= 0.3
+
+        scored_challenges.append((score, ch))
+
+    # Sort by score (highest first)
+    scored_challenges.sort(key=lambda x: x[0], reverse=True)
+
+    # Pick the best match
+    if scored_challenges:
+        best_score, best_challenge = scored_challenges[0]
+        challenge_id = best_challenge["id"]
+        concept_id = best_challenge["concept_id"]
+        concept_name = best_challenge["concept_name"]
+        confidence = min(0.95, best_score)
+    else:
+        # Fallback: hello_world for complete beginners
+        challenge_id = "hello_world"
+        concept_id = "print_function"
+        concept_name = "Print Function"
+        confidence = 0.5
+
+    # Build the response with rich flow context
     return JSONResponse({
-        "action": recommendation.action,
-        "concept": concept_name or concept_id,
+        "action": "challenge",
+        "concept": concept_name,
         "challenge_id": challenge_id,
-        "reason": recommendation.reason if recommendation.concept else "Start your Python journey!",
-        "confidence": recommendation.confidence,
+        "reason": flow["reason"],
+        "confidence": round(confidence, 2),
+        # Flow state context for UI
+        "flow": {
+            "momentum": flow["momentum"],
+            "velocity": flow["learning_velocity"],
+            "frustration": flow["frustration"],
+            "difficulty_target": flow["difficulty_target"],
+        },
+        # For learning/debugging
+        "alternatives": [
+            {"id": ch["id"], "concept": ch["concept_name"], "score": round(sc, 2)}
+            for sc, ch in scored_challenges[1:4]  # Top 3 alternatives
+        ] if len(scored_challenges) > 1 else [],
     })
 
 
 @app.get("/api/skill-tree")
-async def get_skill_tree(player_id: str = "default"):
-    """Get skill tree data with mastery levels for visualization."""
+async def get_skill_tree(player_id: str = "default", include: str = "both"):
+    """
+    Get unified skill tree data with concepts AND challenges.
+
+    Query params:
+    - player_id: Player ID for mastery tracking
+    - include: "concepts", "challenges", or "both" (default)
+    """
     engine = get_adaptive_engine(player_id)
     mastery_levels = engine.profile.mastery_levels
+    db = get_database()
+    completions = db.get_completions(player_id)
+    loader = get_lesson_loader()
 
-    # Build nodes for each concept
     nodes = []
     edges = []
+    node_ids = set()  # Track all node IDs for edge validation
 
-    for concept_id, concept in concept_dag.concepts.items():
-        # Get mastery level (0-4) for this concept
-        mastery = mastery_levels.get(concept_id, 0)
+    # Build nodes for concept lessons (using ConceptLessonLoader which has prerequisites)
+    if include in ("concepts", "both"):
+        all_lessons = loader.get_all()
 
-        # Calculate position hints based on level and prerequisites
-        # X position: spread concepts at same level horizontally
-        # Y position: based on level (0 at top, higher levels below)
-        level_concepts = [c for c in concept_dag.concepts.values() if c.level == concept.level]
-        x_index = level_concepts.index(concept) if concept in level_concepts else 0
+        # Group by level for x-position calculation
+        lessons_by_level: dict[int, list] = {}
+        for lesson in all_lessons:
+            if lesson.level not in lessons_by_level:
+                lessons_by_level[lesson.level] = []
+            lessons_by_level[lesson.level].append(lesson)
 
-        # Get mastery hint for progression
-        mastery_hint = get_mastery_hint(concept_id, int(mastery))
+        for lesson in all_lessons:
+            concept_id = lesson.id
+            node_ids.add(concept_id)
 
-        nodes.append({
-            "id": concept_id,
-            "name": concept.name,
-            "level": concept.level,
-            "mastery": mastery,
-            "mastery_percent": mastery * 25,  # 0-100 scale
-            "mastery_hint": mastery_hint,  # 60-140 char hint for next stage
-            "description": concept.description_brief,
-            "prerequisites": concept.prerequisites,
-            "unlocks": concept_dag.get_unlocks(concept_id),
-            "challenges": {
-                "starter": concept.challenge_starter,
-                "intermediate": concept.challenge_intermediate,
-                "mastery": concept.challenge_mastery,
-            },
-            # Position hints for layout (frontend can adjust)
-            "position": {
-                "x": x_index * 200,
-                "y": concept.level * 150,
-            },
-            # State for visualization
-            "state": "mastered" if mastery >= 4 else "learning" if mastery > 0 else "locked" if concept.prerequisites and not all(mastery_levels.get(p, 0) >= 2 for p in concept.prerequisites) else "available",
-        })
+            # Get mastery level (0-4)
+            mastery = mastery_levels.get(concept_id, 0)
 
-        # Create edges from prerequisites to this concept
-        for prereq in concept.prerequisites:
-            edges.append({
-                "from": prereq,
-                "to": concept_id,
+            # Calculate x position within level
+            level_lessons = lessons_by_level.get(lesson.level, [])
+            x_index = level_lessons.index(lesson) if lesson in level_lessons else 0
+
+            # Get mastery hint
+            mastery_hint = get_mastery_hint(concept_id, int(mastery))
+
+            # Determine state based on prerequisites mastery
+            prereqs = lesson.prerequisites or []
+            prereqs_met = all(mastery_levels.get(p, 0) >= 2 for p in prereqs) if prereqs else True
+
+            if mastery >= 4:
+                state = "mastered"
+            elif mastery > 0:
+                state = "learning"
+            elif prereqs_met:
+                state = "available"
+            else:
+                state = "locked"
+
+            # Find what this concept unlocks
+            unlocks = [l.id for l in all_lessons if concept_id in (l.prerequisites or [])]
+
+            nodes.append({
+                "id": concept_id,
+                "name": lesson.name,
+                "level": lesson.level,
+                "type": "concept",  # Node type for filtering
+                "mastery": mastery,
+                "mastery_percent": mastery * 25,
+                "mastery_hint": mastery_hint,
+                "description": f"📚 {lesson.category.replace('_', ' ').title()} concept",
+                "prerequisites": prereqs,
+                "unlocks": unlocks,
+                "has_try_it": lesson.try_it is not None,
+                "time_to_read": lesson.time_to_read,
+                "challenges": {
+                    "starter": None,
+                    "intermediate": None,
+                    "mastery": None,
+                },
+                "position": {"x": x_index * 200, "y": lesson.level * 150},
+                "state": state,
             })
 
+            # Create edges from prerequisites
+            for prereq in prereqs:
+                edges.append({"from": prereq, "to": concept_id})
+
+    # Build nodes for challenges
+    if include in ("challenges", "both"):
+        challenge_ids = challenge_loader.list_challenges()
+        # Load actual challenge objects, skip any with parse errors
+        challenges = []
+        for cid in challenge_ids:
+            try:
+                challenges.append(challenge_loader.load(cid))
+            except Exception as e:
+                print(f"Warning: Failed to load challenge {cid}: {e}")
+                continue
+
+        # Group by level for x-position calculation
+        challenges_by_level: dict[int, list] = {}
+        for ch in challenges:
+            if ch.level not in challenges_by_level:
+                challenges_by_level[ch.level] = []
+            challenges_by_level[ch.level].append(ch)
+
+        for challenge in challenges:
+            challenge_id = f"ch_{challenge.id}"  # Prefix to avoid ID collisions
+            node_ids.add(challenge_id)
+
+            # Check completion status
+            is_completed = challenge.id in completions
+            completion_count = completions.get(challenge.id, {}).get("count", 0) if isinstance(completions.get(challenge.id), dict) else (1 if is_completed else 0)
+
+            # Calculate mastery based on completions
+            if completion_count >= 3:
+                mastery = 4
+                state = "mastered"
+            elif completion_count >= 1:
+                mastery = 2
+                state = "learning"
+            else:
+                mastery = 0
+                # Check if prereqs met
+                prereqs = challenge.prerequisites or []
+                prereqs_met = all(p in completions for p in prereqs) if prereqs else True
+                state = "available" if prereqs_met else "locked"
+
+            # Calculate x position within level (offset from concepts)
+            level_challenges = challenges_by_level.get(challenge.level, [])
+            concept_count = len(lessons_by_level.get(challenge.level, [])) if include == "both" else 0
+            x_index = concept_count + level_challenges.index(challenge) if challenge in level_challenges else concept_count
+
+            nodes.append({
+                "id": challenge_id,
+                "name": challenge.name,
+                "level": challenge.level,
+                "type": "challenge",  # Node type for filtering
+                "mastery": mastery,
+                "mastery_percent": mastery * 25,
+                "mastery_hint": f"Complete {3 - completion_count} more times to master" if mastery < 4 else "Mastered!",
+                "description": f"🎮 {challenge.points} XP challenge",
+                "prerequisites": [f"ch_{p}" for p in (challenge.prerequisites or [])],
+                "unlocks": [],
+                "challenges": {
+                    "starter": challenge.id,
+                    "intermediate": None,
+                    "mastery": None,
+                },
+                "position": {"x": x_index * 200, "y": challenge.level * 150},
+                "state": state,
+            })
+
+            # Create edges from challenge prerequisites
+            for prereq in (challenge.prerequisites or []):
+                edges.append({"from": f"ch_{prereq}", "to": challenge_id})
+
+    # Filter edges to only include valid node pairs
+    valid_edges = [e for e in edges if e["from"] in node_ids and e["to"] in node_ids]
+
     # Get counts for summary
+    concept_nodes = [n for n in nodes if n["type"] == "concept"]
+    challenge_nodes = [n for n in nodes if n["type"] == "challenge"]
+
     mastered_count = len([n for n in nodes if n["state"] == "mastered"])
     learning_count = len([n for n in nodes if n["state"] == "learning"])
     available_count = len([n for n in nodes if n["state"] == "available"])
@@ -966,9 +1450,11 @@ async def get_skill_tree(player_id: str = "default"):
 
     return JSONResponse({
         "nodes": nodes,
-        "edges": edges,
+        "edges": valid_edges,
         "summary": {
             "total": len(nodes),
+            "concepts": len(concept_nodes),
+            "challenges": len(challenge_nodes),
             "mastered": mastered_count,
             "learning": learning_count,
             "available": available_count,
@@ -976,7 +1462,7 @@ async def get_skill_tree(player_id: str = "default"):
         },
         "levels": {
             level: len([n for n in nodes if n["level"] == level])
-            for level in range(7)  # Levels 0-6
+            for level in range(7)
         },
     })
 
@@ -1012,6 +1498,366 @@ async def get_concept(concept_id: str, player_id: str = "default"):
         "gotchas": concept.gotchas,
         "fun_type": concept.fun_type,
         "fun_description": concept.fun_description,
+    })
+
+
+# ============================================================================
+# Concept Lessons - Duolingo-style Micro-lessons
+# ============================================================================
+
+
+@app.get("/api/lessons")
+async def get_lessons(player_id: str = "default"):
+    """
+    Get all concept lessons grouped by category.
+
+    Returns a summary suitable for the lesson browser.
+    """
+    loader = get_lesson_loader()
+    db = get_database()
+
+    # Get player's lesson progress
+    # TODO: Add lesson_progress table to database
+    # For now, return lesson list without progress
+
+    categories = {}
+    for category in loader.get_categories():
+        lessons = loader.get_by_category(category)
+        categories[category] = [
+            {
+                "id": l.id,
+                "name": l.name,
+                "level": l.level,
+                "time_to_read": l.time_to_read,
+                "difficulty": l.difficulty,
+                "bonus": l.bonus,
+                "status": "unseen",  # TODO: Load from DB
+            }
+            for l in lessons
+        ]
+
+    return JSONResponse({
+        "categories": categories,
+        "total_lessons": len(loader.get_all()),
+    })
+
+
+@app.get("/api/lessons/{lesson_id}")
+async def get_lesson(lesson_id: str, player_id: str = "default"):
+    """
+    Get a single concept lesson with full content.
+
+    This is what the player reads to learn the concept.
+    """
+    loader = get_lesson_loader()
+    lesson = loader.get(lesson_id)
+
+    if not lesson:
+        raise HTTPException(status_code=404, detail=f"Lesson '{lesson_id}' not found")
+
+    # Build response
+    response = {
+        "id": lesson.id,
+        "name": lesson.name,
+        "level": lesson.level,
+        "category": lesson.category,
+        "lesson": lesson.lesson,
+        "time_to_read": lesson.time_to_read,
+        "difficulty": lesson.difficulty,
+        "bonus": lesson.bonus,
+        "connections": {
+            "prerequisites": lesson.prerequisites,
+            "enables": lesson.enables,
+            "used_in": lesson.used_in,
+            "see_also": lesson.see_also,
+        },
+        "status": "unseen",  # TODO: Load from DB
+    }
+
+    # Add try_it if present
+    if lesson.try_it:
+        response["try_it"] = {
+            "prompt": lesson.try_it.prompt,
+            "starter": lesson.try_it.starter,
+            # Don't send solution until requested
+        }
+
+    return JSONResponse(response)
+
+
+@app.get("/api/lessons/{lesson_id}/solution")
+async def get_lesson_solution(lesson_id: str):
+    """Get the solution for a lesson's try_it exercise."""
+    loader = get_lesson_loader()
+    lesson = loader.get(lesson_id)
+
+    if not lesson:
+        raise HTTPException(status_code=404, detail=f"Lesson '{lesson_id}' not found")
+
+    if not lesson.try_it:
+        raise HTTPException(status_code=404, detail="This lesson has no try_it exercise")
+
+    return JSONResponse({
+        "solution": lesson.try_it.solution,
+    })
+
+
+@app.post("/api/lessons/{lesson_id}/mark-seen")
+async def mark_lesson_seen(lesson_id: str, player_id: str = "default"):
+    """Mark a lesson as seen (player opened it)."""
+    loader = get_lesson_loader()
+    lesson = loader.get(lesson_id)
+
+    if not lesson:
+        raise HTTPException(status_code=404, detail=f"Lesson '{lesson_id}' not found")
+
+    # TODO: Save to database
+    # db = get_database()
+    # db.mark_lesson_seen(player_id, lesson_id)
+
+    return JSONResponse({"success": True, "status": "seen"})
+
+
+@app.post("/api/lessons/{lesson_id}/mark-understood")
+async def mark_lesson_understood(lesson_id: str, player_id: str = "default"):
+    """Mark a lesson as understood (player clicked 'Got it!')."""
+    loader = get_lesson_loader()
+    lesson = loader.get(lesson_id)
+
+    if not lesson:
+        raise HTTPException(status_code=404, detail=f"Lesson '{lesson_id}' not found")
+
+    # TODO: Save to database
+    # db = get_database()
+    # db.mark_lesson_understood(player_id, lesson_id)
+
+    return JSONResponse({"success": True, "status": "understood"})
+
+
+@app.get("/api/lessons/for-challenge/{challenge_id}")
+async def get_lessons_for_challenge(challenge_id: str, player_id: str = "default"):
+    """
+    Get concept lessons relevant to a challenge.
+
+    The Director uses this to suggest lessons when player is struggling.
+    """
+    loader = get_lesson_loader()
+    lessons = loader.get_for_challenge(challenge_id)
+
+    return JSONResponse({
+        "challenge_id": challenge_id,
+        "lessons": [
+            {
+                "id": l.id,
+                "name": l.name,
+                "level": l.level,
+                "time_to_read": l.time_to_read,
+                "status": "unseen",  # TODO: Load from DB
+            }
+            for l in lessons
+        ],
+    })
+
+
+# ============================================================================
+# The Director - Adaptive Learning AI
+# ============================================================================
+
+
+@app.get("/api/director/state")
+async def get_director_state(player_id: str = "default"):
+    """
+    Get The Director's current state for a player.
+
+    Returns frustration level, momentum, active struggles, and whether
+    intervention is recommended.
+    """
+    director = get_director(player_id, db=get_database())
+    state = director.get_state()
+
+    # Add detailed struggle info
+    struggles = []
+    for key, struggle in director._struggles.items():
+        if not struggle.resolved:
+            struggles.append({
+                "type": struggle.type.value,
+                "description": struggle.description,
+                "frequency": struggle.frequency,
+                "first_seen": struggle.first_seen.isoformat(),
+                "last_seen": struggle.last_seen.isoformat(),
+            })
+
+    state["struggles"] = struggles
+    return JSONResponse(state)
+
+
+@app.get("/api/director/practice-challenge")
+async def get_practice_challenge(concept: str):
+    """
+    Find a challenge to practice a specific concept.
+
+    The Director tracks concepts by both concept ID and challenge ID.
+    This endpoint finds the best challenge to practice a given concept.
+
+    Returns the first available challenge that teaches the concept,
+    or the concept itself if it's a challenge_id.
+    """
+    challenges = find_challenges_for_concept(concept)
+
+    if challenges:
+        # Return the first challenge found
+        challenge_id = challenges[0]
+        try:
+            challenge = challenge_loader.load(challenge_id)
+            return JSONResponse({
+                "found": True,
+                "challenge_id": challenge_id,
+                "challenge_name": challenge.name,
+                "all_challenges": challenges,
+            })
+        except FileNotFoundError:
+            pass
+
+    return JSONResponse({
+        "found": False,
+        "message": f"No challenges found for concept '{concept}'",
+        "suggestion": "Try browsing all challenges",
+    })
+
+
+@app.get("/api/director/intervention")
+async def get_director_intervention(player_id: str = "default", force: bool = False):
+    """
+    Explicitly request a Director intervention.
+
+    Args:
+        player_id: Player identifier
+        force: If True, return intervention even if threshold not met
+    """
+    director = get_director(player_id, db=get_database())
+
+    # Check if intervention is warranted (or forced)
+    if not force and not director.should_intervene():
+        return JSONResponse({
+            "intervention": None,
+            "reason": "No intervention needed - player is doing well!",
+            "state": director.get_state(),
+        })
+
+    intervention = director.get_intervention()
+
+    if intervention:
+        return JSONResponse({
+            "intervention": {
+                "type": intervention.type,
+                "content": intervention.content,
+                "reason": intervention.reason,
+                "confidence": intervention.confidence,
+                "generated_challenge": intervention.generated_challenge,
+            },
+            "state": director.get_state(),
+        })
+    else:
+        return JSONResponse({
+            "intervention": None,
+            "reason": "Director has no specific intervention to offer",
+            "state": director.get_state(),
+        })
+
+
+@app.post("/api/director/save-challenge")
+async def save_director_challenge(request: Request):
+    """
+    Save a Director-generated challenge to the challenges directory.
+
+    This allows dynamically created challenges to become permanent
+    parts of the curriculum.
+    """
+    data = await request.json()
+    challenge_data = data.get("challenge")
+    player_id = data.get("player_id", "default")
+
+    if not challenge_data:
+        return JSONResponse({
+            "success": False,
+            "error": "challenge data is required",
+        }, status_code=400)
+
+    # Validate required fields
+    required = ["name", "description", "skeleton_code"]
+    for field in required:
+        if field not in challenge_data:
+            return JSONResponse({
+                "success": False,
+                "error": f"Missing required field: {field}",
+            }, status_code=400)
+
+    # Generate challenge ID from name
+    import re
+    challenge_id = re.sub(r'[^a-z0-9]+', '_', challenge_data["name"].lower()).strip('_')
+
+    # Create TOML content for the challenge
+    toml_content = f'''# Auto-generated by The Director for player: {player_id}
+# Generated to address a specific learning gap
+
+[challenge]
+id = "{challenge_id}"
+name = "{challenge_data['name']}"
+level = {challenge_data.get('level', 1)}
+points = {challenge_data.get('points', 10)}
+
+description_brief = "{challenge_data['description'][:100]}"
+description_detailed = """
+{challenge_data['description']}
+"""
+
+skeleton_code = """
+{challenge_data['skeleton_code']}
+"""
+
+hints = {challenge_data.get('hints', [])}
+'''
+
+    # Save to generated challenges directory
+    generated_dir = CHALLENGES_DIR / "generated"
+    generated_dir.mkdir(exist_ok=True)
+
+    challenge_file = generated_dir / f"{challenge_id}.toml"
+    challenge_file.write_text(toml_content)
+
+    return JSONResponse({
+        "success": True,
+        "challenge_id": challenge_id,
+        "file_path": str(challenge_file),
+        "message": f"Challenge '{challenge_data['name']}' saved successfully",
+    })
+
+
+@app.post("/api/director/resolve-struggle")
+async def resolve_director_struggle(request: Request):
+    """
+    Mark a struggle as resolved after the player overcomes it.
+
+    Called when the player successfully completes a challenge that
+    was related to their struggle.
+    """
+    data = await request.json()
+    player_id = data.get("player_id", "default")
+    struggle_key = data.get("struggle_key")
+
+    if not struggle_key:
+        return JSONResponse({
+            "success": False,
+            "error": "struggle_key is required",
+        }, status_code=400)
+
+    director = get_director(player_id, db=get_database())
+    director.mark_struggle_resolved(struggle_key)
+
+    return JSONResponse({
+        "success": True,
+        "message": f"Struggle '{struggle_key}' marked as resolved",
+        "state": director.get_state(),
     })
 
 

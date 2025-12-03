@@ -70,3 +70,51 @@ export const playerApi = {
   getRecommendations: (playerId: string = 'default') =>
     api.get(`/recommendations?player_id=${playerId}`),
 }
+
+// Concept Lessons API
+export interface TryIt {
+  prompt: string
+  starter: string
+  solution: string
+}
+
+export interface ConceptConnections {
+  prerequisites: string[]
+  enables: string[]
+  used_in: string[]
+  see_also: string[]
+}
+
+export interface ConceptLesson {
+  id: string
+  name: string
+  level: number
+  category: string
+  lesson: string
+  try_it: TryIt | null
+  connections: ConceptConnections
+  time_to_read: number
+  difficulty: string
+  bonus: boolean
+  status: string
+}
+
+export interface ConceptSummary {
+  id: string
+  name: string
+  level: number
+  time_to_read: number
+  bonus: boolean
+}
+
+export const conceptsApi = {
+  list: () => api.get<Record<string, ConceptSummary[]>>('/lessons'),
+  get: (id: string) => api.get<ConceptLesson>(`/lessons/${id}`),
+  getSolution: (id: string) => api.get<{ solution: string }>(`/lessons/${id}/solution`),
+  markSeen: (id: string, playerId: string = 'default') =>
+    api.post(`/lessons/${id}/mark-seen`, { player_id: playerId }),
+  markUnderstood: (id: string, playerId: string = 'default') =>
+    api.post(`/lessons/${id}/mark-understood`, { player_id: playerId }),
+  forChallenge: (challengeId: string) =>
+    api.get<ConceptSummary[]>(`/lessons/for-challenge/${challengeId}`),
+}
