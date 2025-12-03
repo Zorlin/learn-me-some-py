@@ -613,52 +613,10 @@ onUnmounted(() => {
         Back
       </button>
 
-      <div class="tree-title-and-filter">
-        <span class="text-2xl font-bold text-accent-primary">Skill Tree</span>
-        <!-- Filter Slider -->
-        <div class="filter-slider">
-          <button
-            class="filter-btn"
-            :class="{ active: filterMode === 'concepts' }"
-            @click="filterMode = 'concepts'"
-          >
-            <span class="filter-icon">📚</span>
-            <span>Concepts</span>
-            <span v-if="treeData" class="filter-count">{{ treeData.summary.concepts }}</span>
-          </button>
-          <button
-            class="filter-btn both"
-            :class="{ active: filterMode === 'both' }"
-            @click="filterMode = 'both'"
-          >
-            <span>Both</span>
-          </button>
-          <button
-            class="filter-btn"
-            :class="{ active: filterMode === 'challenges' }"
-            @click="filterMode = 'challenges'"
-          >
-            <span class="filter-icon">🎮</span>
-            <span>Challenges</span>
-            <span v-if="treeData" class="filter-count">{{ treeData.summary.challenges }}</span>
-          </button>
-        </div>
-      </div>
+      <span class="text-2xl font-bold text-accent-primary">Skill Tree</span>
 
-      <div v-if="treeData" class="tree-stats">
-        <div class="stat">
-          <span class="stat-value text-accent-primary">{{ treeData.summary.mastered }}</span>
-          <span class="stat-label">Mastered</span>
-        </div>
-        <div class="stat">
-          <span class="stat-value text-accent-warning">{{ treeData.summary.learning }}</span>
-          <span class="stat-label">Learning</span>
-        </div>
-        <div class="stat">
-          <span class="stat-value text-accent-secondary">{{ treeData.summary.available }}</span>
-          <span class="stat-label">Available</span>
-        </div>
-      </div>
+      <!-- Spacer to keep title centered -->
+      <div class="header-spacer"></div>
     </div>
 
     <!-- Loading -->
@@ -941,6 +899,54 @@ onUnmounted(() => {
         <span>Pan</span>
       </div>
     </div>
+
+    <!-- Bottom-right filter panel -->
+    <div class="bottom-right-panel">
+      <!-- Filter Slider: concepts | challenges | both -->
+      <div class="filter-slider">
+        <button
+          class="filter-btn"
+          :class="{ active: filterMode === 'concepts' }"
+          @click="filterMode = 'concepts'"
+        >
+          <span class="filter-icon">📚</span>
+          <span>Concepts</span>
+          <span v-if="treeData" class="filter-count">{{ treeData.summary.concepts }}</span>
+        </button>
+        <button
+          class="filter-btn"
+          :class="{ active: filterMode === 'challenges' }"
+          @click="filterMode = 'challenges'"
+        >
+          <span class="filter-icon">🎮</span>
+          <span>Challenges</span>
+          <span v-if="treeData" class="filter-count">{{ treeData.summary.challenges }}</span>
+        </button>
+        <button
+          class="filter-btn both"
+          :class="{ active: filterMode === 'both' }"
+          @click="filterMode = 'both'"
+        >
+          <span>Both</span>
+        </button>
+      </div>
+
+      <!-- Stats -->
+      <div v-if="treeData" class="tree-stats">
+        <div class="stat">
+          <span class="stat-value text-accent-primary">{{ treeData.summary.mastered }}</span>
+          <span class="stat-label">Mastered</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value text-accent-warning">{{ treeData.summary.learning }}</span>
+          <span class="stat-label">Learning</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value text-accent-secondary">{{ treeData.summary.available }}</span>
+          <span class="stat-label">Available</span>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -984,11 +990,20 @@ onUnmounted(() => {
   color: white;
 }
 
-.tree-title-and-filter {
+.header-spacer {
+  width: 5rem; /* Match back button width for title centering */
+}
+
+/* Bottom-right filter and stats panel */
+.bottom-right-panel {
+  position: absolute;
+  bottom: 1rem;
+  right: 1rem;
+  z-index: 10;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
+  align-items: flex-end;
+  gap: 0.75rem;
 }
 
 .filter-slider {
