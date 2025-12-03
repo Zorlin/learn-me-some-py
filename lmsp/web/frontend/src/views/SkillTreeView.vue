@@ -62,6 +62,13 @@ const showDetails = ref(false)
 const isDragging = ref(false)
 const dragStart = ref({ x: 0, y: 0 })
 
+// Hold-to-force-start state (for locked challenges)
+const isHolding = ref(false)
+const holdProgress = ref(0)
+const holdStartTime = ref(0)
+const HOLD_DURATION = 1500 // 1.5 seconds to force unlock
+let holdAnimationFrame: number | null = null
+
 // Level colors
 const levelColors: Record<number, string> = {
   0: '#00ff88',
@@ -308,6 +315,52 @@ function startChallenge() {
   }
 }
 
+// Force start a locked challenge (after hold completes)
+function forceStartChallenge() {
+  if (!selectedNode.value) return
+  if (selectedNode.value.challenges.starter) {
+    router.push(`/challenge/${selectedNode.value.challenges.starter}`)
+  }
+}
+
+// Hold-to-force-start logic
+function startHold() {
+  if (!selectedNode.value) return
+  if (selectedNode.value.state !== 'locked') return
+  if (!selectedNode.value.challenges.starter) return
+
+  isHolding.value = true
+  holdStartTime.value = performance.now()
+  holdProgress.value = 0
+
+  function updateHold() {
+    if (!isHolding.value) return
+
+    const elapsed = performance.now() - holdStartTime.value
+    holdProgress.value = Math.min(100, (elapsed / HOLD_DURATION) * 100)
+
+    if (elapsed >= HOLD_DURATION) {
+      // Hold complete - force start!
+      cancelHold()
+      forceStartChallenge()
+      return
+    }
+
+    holdAnimationFrame = requestAnimationFrame(updateHold)
+  }
+
+  holdAnimationFrame = requestAnimationFrame(updateHold)
+}
+
+function cancelHold() {
+  isHolding.value = false
+  holdProgress.value = 0
+  if (holdAnimationFrame !== null) {
+    cancelAnimationFrame(holdAnimationFrame)
+    holdAnimationFrame = null
+  }
+}
+
 function goBack() {
   if (showDetails.value) {
     showDetails.value = false
@@ -336,12 +389,24 @@ watch(() => gamepadStore.buttons, (buttons) => {
   if (buttons.DPadLeft && !prev.DPadLeft) navigateLeft()
   if (buttons.DPadRight && !prev.DPadRight) navigateRight()
 
-  // A to select/confirm
+  // A button handling - different for locked vs unlocked
   if (buttons.A && !prev.A) {
-    if (showDetails.value) {
-      startChallenge()
+    // A pressed
+    if (showDetails.value && selectedNode.value) {
+      if (selectedNode.value.state === 'locked' && selectedNode.value.challenges.starter) {
+        // Start hold for locked challenge
+        startHold()
+      } else {
+        // Normal start for unlocked
+        startChallenge()
+      }
     } else {
       selectCurrentNode()
+    }
+  } else if (!buttons.A && prev.A) {
+    // A released - cancel hold if active
+    if (isHolding.value) {
+      cancelHold()
     }
   }
 
@@ -386,8 +451,13 @@ function handleKeydown(e: KeyboardEvent) {
     case 'Enter':
     case ' ':
       e.preventDefault()
-      if (showDetails.value) {
-        startChallenge()
+      if (showDetails.value && selectedNode.value) {
+        if (selectedNode.value.state === 'locked' && selectedNode.value.challenges.starter) {
+          // Start hold for locked challenge
+          if (!isHolding.value) startHold()
+        } else {
+          startChallenge()
+        }
       } else {
         selectCurrentNode()
       }
@@ -399,13 +469,24 @@ function handleKeydown(e: KeyboardEvent) {
   }
 }
 
+function handleKeyup(e: KeyboardEvent) {
+  if (e.key === 'Enter' || e.key === ' ') {
+    if (isHolding.value) {
+      cancelHold()
+    }
+  }
+}
+
 onMounted(() => {
   loadSkillTree()
   window.addEventListener('keydown', handleKeydown)
+  window.addEventListener('keyup', handleKeyup)
 })
 
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeydown)
+  window.removeEventListener('keyup', handleKeyup)
+  cancelHold() // Clean up any pending hold animation
 })
 </script>
 
@@ -651,7 +732,7 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <!-- Action -->
+        <!-- Action - Normal unlocked button -->
         <button
           v-if="selectedNode.state !== 'locked' && selectedNode.challenges.starter"
           class="start-btn mt-6"
@@ -660,6 +741,31 @@ onUnmounted(() => {
           <span class="gamepad-hint-button a">A</span>
           Start Challenge
         </button>
+
+        <!-- Action - Locked but available to force-start -->
+        <div v-else-if="selectedNode.state === 'locked' && selectedNode.challenges.starter" class="mt-6">
+          <button
+            class="force-start-btn"
+            @mousedown="startHold"
+            @mouseup="cancelHold"
+            @mouseleave="cancelHold"
+            @touchstart.prevent="startHold"
+            @touchend="cancelHold"
+            @touchcancel="cancelHold"
+          >
+            <!-- Progress fill -->
+            <div class="force-progress" :style="{ width: `${holdProgress}%` }" />
+            <span class="force-content">
+              <span class="gamepad-hint-button a">A</span>
+              <span>{{ isHolding ? 'Hold...' : 'Try Anyway' }}</span>
+            </span>
+          </button>
+          <div class="force-hint">
+            Not recommended yet — but you can give it a go!
+          </div>
+        </div>
+
+        <!-- No challenge available -->
         <div v-else-if="selectedNode.state === 'locked'" class="locked-msg mt-6">
           Complete prerequisites to unlock
         </div>
@@ -904,6 +1010,61 @@ onUnmounted(() => {
   color: var(--text-muted);
   font-style: italic;
   font-size: 0.875rem;
+}
+
+/* Force-start button for locked challenges - hollow with green border */
+.force-start-btn {
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.875rem;
+  border-radius: 0.5rem;
+  background: transparent;
+  border: 2px solid var(--accent-primary);
+  color: var(--accent-primary);
+  font-weight: bold;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.force-start-btn:hover {
+  background: rgba(0, 255, 136, 0.1);
+}
+
+.force-start-btn:active {
+  transform: scale(0.98);
+}
+
+/* Progress fill that sweeps left to right */
+.force-progress {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: var(--accent-primary);
+  opacity: 0.3;
+  transition: width 0.05s linear;
+  pointer-events: none;
+}
+
+.force-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.force-hint {
+  margin-top: 0.5rem;
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-style: italic;
 }
 
 .controls-hint {
