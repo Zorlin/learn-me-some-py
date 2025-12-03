@@ -58,6 +58,10 @@ solution = '''
 print("Minecraft")
 '''
 
+[validation]
+type = "pytest"
+test_file = "test_print_function.py"
+
 [connections]
 prerequisites = []
 enables = ["variables", "strings"]

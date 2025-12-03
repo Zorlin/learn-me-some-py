@@ -108,6 +108,10 @@ match choice:
         print("Invalid choice")
 '''
 
+[validation]
+type = "pytest"
+test_file = "test_match_case.py"
+
 [connections]
 prerequisites = ["if_else"]
 enables = []

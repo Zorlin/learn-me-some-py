@@ -90,6 +90,10 @@ enables = ["type_conversion", "boolean_logic"]
 used_in = []
 see_also = ["variables", "strings", "numbers"]
 
+[validation]
+type = "pytest"
+test_file = "test_types.py"
+
 [meta]
 time_to_read = 40
 difficulty = "beginner"

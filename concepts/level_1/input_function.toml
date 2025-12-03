@@ -90,6 +90,10 @@ enables = ["type_conversion"]
 used_in = ["personal_greeting", "mad_libs", "guess_my_number"]
 see_also = ["print_function", "type_conversion"]
 
+[validation]
+type = "pytest"
+test_file = "test_input_function.py"
+
 [meta]
 time_to_read = 45
 difficulty = "beginner"

@@ -66,6 +66,10 @@ player_health = 100
 player_health = player_health - 25
 '''
 
+[validation]
+type = "pytest"
+test_file = "test_comments.py"
+
 [connections]
 prerequisites = []
 enables = ["variables", "print_function"]

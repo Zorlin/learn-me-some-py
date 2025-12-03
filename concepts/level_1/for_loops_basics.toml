@@ -97,6 +97,10 @@ for i in range(1, 6):
     print(i)
 '''
 
+[validation]
+type = "pytest"
+test_file = "test_for_loops_basics.py"
+
 [connections]
 prerequisites = ["if_else", "basic_operators"]
 enables = ["while_loops_basics", "for_loops", "lists"]
