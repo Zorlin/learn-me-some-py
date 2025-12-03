@@ -37,6 +37,7 @@ class StruggleType(Enum):
     STRING_VS_IDENTIFIER = "string_vs_identifier"  # Comparing 'foo' to foo (common gotcha!)
     OPERATOR_ORDER_TYPO = "operator_order_typo"    # =- instead of -= (very common typo!)
     OUTPUT_FORMAT_MISMATCH = "output_format"       # Printed raw value instead of formatted string
+    STRING_CONCAT_TYPE_ERROR = "string_concat_type"  # "text" + number without str()
 
 
 @dataclass
@@ -435,14 +436,41 @@ class Director:
                 code_context=obs.code[-500:] if obs.code else None,
             ))
 
-        # Type errors
+        # Type errors - check for specific patterns first
         if "typeerror" in error_text:
-            struggles.append(Struggle(
-                type=StruggleType.TYPE_ERROR,
-                description="Type mismatch or wrong operation on type",
-                error_message=obs.error,
-                code_context=obs.code[-500:] if obs.code else None,
-            ))
+            # STRING_CONCAT_TYPE_ERROR: Trying to concatenate string with non-string
+            # Error: "can only concatenate str (not "int") to str"
+            concat_match = re.search(
+                r'can only concatenate str \(not ["\'](\w+)["\']\) to str',
+                error_text,
+                re.IGNORECASE
+            )
+            if concat_match:
+                wrong_type = concat_match.group(1)
+                # Try to find the variable name that caused the issue
+                var_hint = ""
+                if obs.code and wrong_type == "int":
+                    # Look for + with variables that might be integers (age, count, num, etc.)
+                    int_var_pattern = re.search(
+                        r'["\'][^"\']*["\']\s*\+\s*(\w*(?:age|count|num|year|day|score|total|id|level)\w*)',
+                        obs.code, re.IGNORECASE
+                    )
+                    if int_var_pattern:
+                        var_hint = f" (looks like '{int_var_pattern.group(1)}' needs str())"
+                struggles.append(Struggle(
+                    type=StruggleType.STRING_CONCAT_TYPE_ERROR,
+                    description=f"Tried to combine string with {wrong_type}{var_hint}",
+                    error_message=f"Use str() to convert: str({wrong_type}_value) or use f-strings",
+                    code_context=obs.code[-500:] if obs.code else None,
+                ))
+            else:
+                # Generic type error
+                struggles.append(Struggle(
+                    type=StruggleType.TYPE_ERROR,
+                    description="Type mismatch or wrong operation on type",
+                    error_message=obs.error,
+                    code_context=obs.code[-500:] if obs.code else None,
+                ))
 
         # Name errors - often indicate concept gaps
         if "nameerror" in error_text:
@@ -809,6 +837,12 @@ Respond with JSON:
                 content="📋 Check the output format! The challenge wants a specific message, not just the raw value. Look for text like 'Print: \"Your name has X letters\"' in the instructions - you need to match that exact format using an f-string or string concatenation.",
                 reason="Printed raw value but challenge expected formatted string output",
                 confidence=0.9,
+            ),
+            StruggleType.STRING_CONCAT_TYPE_ERROR: DirectorIntervention(
+                type="micro_lesson",
+                content="🔤 Python won't automatically convert numbers to text! When combining strings with `+`, everything must be a string.\n\n**Two fixes:**\n1. Use `str()`: `\"Age: \" + str(age)`\n2. Use f-strings (easier!): `f\"Age: {age}\"`\n\nF-strings automatically convert values inside `{}`!",
+                reason="Tried to concatenate string with int/float without converting",
+                confidence=0.95,
             ),
         }
 

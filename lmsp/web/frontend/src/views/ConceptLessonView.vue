@@ -303,6 +303,9 @@ function resetCode() {
     tryItCode.value = lesson.value.try_it.starter
     testResult.value = null
     phase.value = 'coding'
+    // Reset timer
+    startTime = Date.now()
+    displayedTime.value = 0
   }
 }
 

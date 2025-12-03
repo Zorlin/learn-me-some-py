@@ -810,9 +810,21 @@ async def submit_code(request: Request):
                 solve_time=0
             )
 
+            # Update mastery tracking (was missing!)
+            engine = get_adaptive_engine(player_id)
+            engine.observe_attempt(
+                concept=lesson_id,  # Use plain lesson_id for mastery (no prefix)
+                success=True,
+                time_seconds=0,  # Concept lessons don't track solve time yet
+            )
+            new_mastery = engine.profile.mastery_levels.get(lesson_id, 0)
+            save_mastery_to_database(player_id, lesson_id, new_mastery)
+
             response_data["xp_earned"] = xp_earned
             response_data["xp_reason"] = xp_reason
             response_data["total_xp"] = get_player_xp(player_id)
+            response_data["mastery_level"] = new_mastery
+            response_data["mastery_percent"] = int(new_mastery * 25)
 
         return JSONResponse(response_data)
 
@@ -1361,13 +1373,14 @@ async def get_recommendations(player_id: str = "default"):
     for lesson in lesson_loader.get_all():
         try:
             lesson_id = lesson.id
+            lesson_key = f"concept:{lesson_id}"  # Must match key used when recording completion
 
             # Check if lesson has been completed (use concept completions from db)
-            is_completed = lesson_id in completions
+            is_completed = lesson_key in completions
             needs_review = False
 
             if is_completed:
-                comp = completions[lesson_id]
+                comp = completions[lesson_key]
                 retention = calculate_retention_score(
                     completion_count=comp.count,
                     last_completed=comp.last_completed,
@@ -1397,9 +1410,14 @@ async def get_recommendations(player_id: str = "default"):
         if ch["is_completed"] and not ch["needs_review"]:
             continue
 
-        # Skip if player has fully mastered (mastery >= 3) unless reviewing
-        if ch["mastery"] >= 3 and flow["difficulty_target"] != "easy_win":
-            continue
+        # Skip if player has fully mastered (mastery >= 3)
+        # Exception: allow replaying CHALLENGES in easy_win mode for confidence boost
+        # But NEVER re-recommend concept lessons - they're read-once content
+        if ch["mastery"] >= 3:
+            if ch["type"] == "concept":
+                continue  # Never recommend mastered concept lessons
+            elif flow["difficulty_target"] != "easy_win":
+                continue  # Only allow mastered challenges in easy_win mode
 
         score = director.score_challenge_for_flow(ch)
 
@@ -1438,6 +1456,59 @@ async def get_recommendations(player_id: str = "default"):
         concept_id = "hello_world"
         concept_name = "Hello World"
         confidence = 0.5
+        best_item = {"mastery": 0, "is_completed": False, "needs_review": False, "level": 0}
+
+    # Generate a specific reason explaining WHY this item was chosen
+    def build_specific_reason(item: dict, flow_ctx: dict, item_concept_id: str) -> str:
+        """Build an insightful reason explaining the recommendation."""
+        reasons = []
+        item_mastery = item.get("mastery", 0)
+        is_completed = item.get("is_completed", False)
+        needs_review = item.get("needs_review", False)
+        item_level = item.get("level", 0)
+        item_type = item.get("type", "challenge")
+        difficulty_target = flow_ctx.get("difficulty_target", "balanced")
+
+        # Primary reason based on mastery/completion state
+        if needs_review:
+            reasons.append("Due for spaced repetition review")
+        elif item_mastery == 0 and not is_completed:
+            # Fresh content - make it inviting!
+            if item_type == "concept":
+                reasons.append("Fresh concept to explore")
+            else:
+                reasons.append("New challenge waiting for you")
+        elif item_mastery > 0 and item_mastery < 1:
+            reasons.append("Almost there - one more practice to level up")
+        elif item_mastery >= 1 and item_mastery < 2:
+            reasons.append("You're learning this - practice builds mastery")
+        elif item_mastery >= 2 and item_mastery < 3:
+            reasons.append("Building solid foundation on this concept")
+        elif is_completed and not needs_review:
+            reasons.append("Good for reinforcement")
+
+        # Secondary reason based on flow state
+        if difficulty_target == "easy_win":
+            if item_level == 0:
+                reasons.append("Quick win to build momentum")
+            else:
+                reasons.append("Within your comfort zone")
+        elif difficulty_target == "slightly_harder":
+            reasons.append("Time to stretch your skills")
+        elif difficulty_target == "easier" and flow_ctx.get("frustration", 0) > 0.4:
+            reasons.append("Easing off to rebuild confidence")
+
+        # Concept relationships
+        prefer_concepts = flow_ctx.get("prefer_concepts", [])
+        if item_concept_id in prefer_concepts:
+            reasons.append("Builds on your recent progress")
+
+        # Combine into a coherent sentence
+        if reasons:
+            return ". ".join(reasons[:2]) + "."
+        return flow_ctx.get("reason", "Good next step!")
+
+    specific_reason = build_specific_reason(best_item, flow, concept_id)
 
     # Build the response with rich flow context
     # action tells the frontend where to navigate
@@ -1449,7 +1520,7 @@ async def get_recommendations(player_id: str = "default"):
         "concept": concept_name,
         "challenge_id": item_id,  # Keep for backwards compat
         "item_id": item_id,
-        "reason": flow["reason"],
+        "reason": specific_reason,
         "confidence": round(confidence, 2),
         # Flow state context for UI
         "flow": {
