@@ -70,6 +70,79 @@ All swarm agents should use `.venv`. Do NOT create `venv/` or other virtual envi
 
 ---
 
+## MANDATORY: Modern Pytest Validation Pattern
+
+**ALL concept try_its and challenges MUST use pytest validation. NO legacy validation.**
+
+### The Pattern
+
+1. **TOML file** has a `[validation]` section:
+```toml
+[validation]
+type = "pytest"
+test_file = "test_concept_name.py"
+```
+
+2. **Test file** lives next to the TOML (e.g., `concepts/level_0/test_variables.py`):
+```python
+"""Pytest tests for [Concept Name] concept."""
+import subprocess
+import sys
+
+def run_player_code(code: str) -> tuple[str, str, int]:
+    """Execute player code and capture output."""
+    result = subprocess.run(
+        [sys.executable, "-c", code],
+        capture_output=True,
+        text=True,
+        timeout=5
+    )
+    return result.stdout, result.stderr, result.returncode
+
+class TestConceptName:
+    """Tests for the concept."""
+
+    def test_no_syntax_errors(self, player_code: str):
+        """Code should have no syntax errors."""
+        try:
+            compile(player_code, "<player>", "exec")
+        except SyntaxError as e:
+            raise AssertionError(f"Syntax error at line {e.lineno}: {e.msg}")
+
+    def test_code_runs(self, player_code: str):
+        """Code should execute without runtime errors."""
+        stdout, stderr, returncode = run_player_code(player_code)
+        assert returncode == 0, f"Code failed with error: {stderr}"
+
+    def test_expected_output(self, player_code: str):
+        """Output should match expected."""
+        stdout, stderr, returncode = run_player_code(player_code)
+        assert returncode == 0, f"Code failed: {stderr}"
+        # Add specific assertions for expected output
+        assert "expected" in stdout.strip()
+```
+
+3. **The `player_code` fixture** is automatically provided by the validator (see `lmsp/python/validator.py:PytestValidator`)
+
+### NEVER DO THIS (Legacy Pattern - FORBIDDEN)
+
+```python
+# WRONG: Comparing stdout with solution output
+result = code_validator.validate(code, [])  # Empty test cases = BROKEN
+
+# WRONG: Using [[tests.case]] in TOML
+[[tests.case]]
+name = "basic"
+input = [1, 2]
+expected = 3
+```
+
+### Reference Example
+
+See `concepts/level_0/basic_operators.toml` and `concepts/level_0/test_basic_operators.py` for the canonical implementation.
+
+---
+
 ## Development with Palace
 
 ### Quick Iteration
@@ -97,6 +170,22 @@ pal next --mask accessibility-expert # For controller/input UX
 ```
 
 ## Key Concepts
+
+### The Director (`lmsp/adaptive/director.py`)
+
+The invisible AI that watches the learner's journey and shapes their experience.
+
+**When you encounter a common learner mistake:**
+1. **Add a `StruggleType`** - enum value describing the pattern
+2. **Add detection in `_analyze_failure()`** - regex/heuristics to spot it
+3. **Add intervention in `_get_rule_based_intervention()`** - helpful micro-lesson
+
+**Examples of Director-detected patterns:**
+- `STRING_VS_IDENTIFIER` - `if op == add` instead of `if op == 'add'`
+- `OPERATOR_ORDER_TYPO` - `health =- damage` instead of `health -= damage`
+- `OUTPUT_FORMAT_MISMATCH` - printed `5` when expected `Your name has 5 letters`
+
+**DO NOT hardcode error checks in pytest tests.** The Director provides intelligent, personalized feedback. Tests just validate correctness; The Director teaches.
 
 ### Adaptive Learning Engine (`lmsp/adaptive/`)
 
@@ -141,6 +230,44 @@ Every file should end with:
 3. Implement minimal code to pass
 4. Refactor if needed
 5. Test file name must match: `foo.py` → `tests/test_foo.py`
+
+## NO LEGACY - UPDATE EVERYTHING
+
+**There is no such thing as "legacy". Do NOT keep "old styles" around.**
+
+When you encounter old formats, old patterns, or outdated code:
+- **UPDATE IT** to match current formats
+- **DO NOT** preserve "old-style" anything
+- **DO NOT** add compatibility shims for deprecated approaches
+- **DO NOT** say "this is the legacy way" - there is only ONE way: the current way
+
+If old curricula, tests, or code don't match current standards, FIX THEM.
+
+## Challenge Test Format: PYTEST ONLY
+
+**NEVER use the legacy inline TOML `[tests]` format. ALWAYS use pytest files.**
+
+Every challenge MUST use:
+```toml
+[validation]
+type = "pytest"
+test_file = "test_challenge_name.py"
+```
+
+The pytest file goes in the same directory as the challenge TOML (e.g., `challenges/tutorial/test_simple_math.py`).
+
+**If you encounter a challenge using the old `[[tests.case]]` format, FIX IT:**
+1. Create a `test_*.py` file with proper pytest tests
+2. Update the TOML to use `[validation] type = "pytest"`
+3. Remove the old `[tests]` section
+
+**Why pytest?**
+- Allows personalized validation (extract user's values, check patterns)
+- The Director handles teaching; tests just validate correctness
+- Better error messages for learners
+- Consistent with how real Python projects work
+
+See `challenges/tutorial/test_favorite_things.py` for the pattern.
 
 ## PRIORITY ZERO: THE EXPERIENCE MUST FEEL GOOD
 
