@@ -17,9 +17,11 @@ interface SkillNode {
   name: string
   level: number
   type: 'concept' | 'challenge'  // Node type for filtering
-  mastery: number
-  mastery_percent: number
+  mastery?: number  // For concepts (0-4)
+  retention?: number  // For challenges (Director-managed, 0-100)
+  mastery_percent: number  // Unified progress (mastery*25 for concepts, retention for challenges)
   mastery_hint?: string
+  needs_review?: boolean  // Challenge needs spaced repetition review
   description: string
   prerequisites: string[]
   unlocks: string[]
@@ -30,7 +32,7 @@ interface SkillNode {
   }
   position: { x: number; y: number }
   state: 'mastered' | 'learning' | 'available' | 'locked'
-  // Challenge-specific fields
+  // Concept-specific fields
   has_try_it?: boolean
   time_to_read?: number
 }
@@ -96,7 +98,7 @@ const levelColors: Record<number, string> = {
 
 // State colors
 const stateColors: Record<string, string> = {
-  mastered: '#00ff88',
+  mastered: '#a855f7',  // Legendary purple when mastered!
   learning: '#ffaa00',
   available: '#0088ff',
   locked: '#333333',
@@ -106,6 +108,44 @@ const stateColors: Record<string, string> = {
 const typeColors: Record<string, string> = {
   concept: '#a855f7',  // Purple for concepts (learning/theory)
   challenge: '#22c55e',  // Green for challenges (practice/action)
+}
+
+// Item rarity gradient based on mastery percent (0-100)
+// Progresses: Grey -> Red -> Yellow -> Blue -> Green -> Purple (mastered)
+function getMasteryColor(percent: number, isMastered: boolean): string {
+  if (isMastered) return '#a855f7'  // Legendary purple - Director won't show anymore
+  if (percent <= 0) return '#333333'  // Not started - grey
+
+  // Item rarity color stops (smooth gradient with decimal precision)
+  const stops = [
+    { pct: 0, color: [51, 51, 51] },      // Grey (not started)
+    { pct: 15, color: [185, 28, 28] },    // Dark red
+    { pct: 30, color: [239, 68, 68] },    // Red
+    { pct: 45, color: [234, 179, 8] },    // Yellow
+    { pct: 60, color: [59, 130, 246] },   // Blue (rare)
+    { pct: 80, color: [34, 197, 94] },    // Green (uncommon/good)
+    { pct: 100, color: [34, 197, 94] },   // Bright green at 100% (until mastered)
+  ]
+
+  // Find the two stops we're between
+  let lower = stops[0]
+  let upper = stops[stops.length - 1]
+  for (let i = 0; i < stops.length - 1; i++) {
+    if (percent >= stops[i].pct && percent <= stops[i + 1].pct) {
+      lower = stops[i]
+      upper = stops[i + 1]
+      break
+    }
+  }
+
+  // Interpolate between the two colors with decimal precision
+  const range = upper.pct - lower.pct
+  const pctInRange = range > 0 ? (percent - lower.pct) / range : 0
+  const r = Math.round(lower.color[0] + (upper.color[0] - lower.color[0]) * pctInRange)
+  const g = Math.round(lower.color[1] + (upper.color[1] - lower.color[1]) * pctInRange)
+  const b = Math.round(lower.color[2] + (upper.color[2] - lower.color[2]) * pctInRange)
+
+  return `rgb(${r}, ${g}, ${b})`
 }
 
 // Get node stroke color (combines state and type)
@@ -122,6 +162,55 @@ function getNodeTypeAccent(node: SkillNode): string {
 // Get node icon based on type
 function getNodeIcon(node: SkillNode): string {
   return node.type === 'concept' ? '📚' : '🎮'
+}
+
+// Check if node has progress to show (works for both concepts and challenges)
+function hasProgress(node: SkillNode): boolean {
+  return node.mastery_percent > 0 && node.state !== 'mastered'
+}
+
+// Generate SVG arc path for mastery ring (two arcs meeting in the middle)
+// Each side goes from top (12 o'clock) towards bottom (6 o'clock)
+function getMasteryArcPath(radius: number, percent: number, side: 'left' | 'right'): string {
+  if (percent <= 0) return ''
+
+  // Each side covers half the circle (180 degrees max)
+  // At 100%, both arcs meet at the bottom
+  const halfPercent = Math.min(percent, 100) / 2
+  const angleExtent = (halfPercent / 50) * 180  // 0-180 degrees per side
+
+  if (angleExtent <= 0) return ''
+
+  // Start at top (12 o'clock = -90 degrees in standard coords)
+  const startAngle = -90
+  // End angle depends on side
+  const endAngle = side === 'right'
+    ? startAngle + angleExtent  // Clockwise to bottom
+    : startAngle - angleExtent  // Counter-clockwise to bottom
+
+  // Convert to radians
+  const startRad = (startAngle * Math.PI) / 180
+  const endRad = (endAngle * Math.PI) / 180
+
+  // Calculate start and end points
+  const x1 = radius * Math.cos(startRad)
+  const y1 = radius * Math.sin(startRad)
+  const x2 = radius * Math.cos(endRad)
+  const y2 = radius * Math.sin(endRad)
+
+  // Large arc flag: 1 if angle > 180 degrees
+  const largeArc = angleExtent > 180 ? 1 : 0
+  // Sweep flag: 1 for clockwise (right), 0 for counter-clockwise (left)
+  const sweep = side === 'right' ? 1 : 0
+
+  return `M ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} ${sweep} ${x2} ${y2}`
+}
+
+// Check if edge is connected to selected node (for highlighting)
+function isEdgeConnectedToSelected(edge: SkillEdge): boolean {
+  if (!selectedNode.value) return false
+  const selectedId = selectedNode.value.id
+  return edge.from === selectedId || edge.to === selectedId
 }
 
 // Computed filtered nodes (based on filter mode) - MUST come before selectedNode and nodesByLevel
@@ -167,7 +256,9 @@ const nodesByLevel = computed(() => {
 async function loadSkillTree() {
   isLoading.value = true
   try {
-    const response = await api.get(`/api/skill-tree?include=${filterMode.value}`)
+    // Always fetch ALL data - filtering is done client-side via filteredNodes/filteredEdges
+    // This keeps summary counts stable regardless of current filter
+    const response = await api.get('/api/skill-tree?include=both')
     treeData.value = response.data
     if (treeData.value) {
       layoutNodes(treeData.value.nodes)
@@ -180,9 +271,12 @@ async function loadSkillTree() {
   }
 }
 
-// Watch filter changes and reload
+// Watch filter changes - just re-layout filtered nodes (no API refetch needed)
 watch(filterMode, () => {
-  loadSkillTree()
+  if (treeData.value) {
+    layoutNodes(treeData.value.nodes)
+    selectedNodeIndex.value = 0
+  }
 })
 
 function layoutNodes(nodes: SkillNode[]) {
@@ -673,10 +767,11 @@ onUnmounted(() => {
           v-for="(edge, i) in filteredEdges"
           :key="`edge-${i}`"
           :d="getEdgePath(edge)"
-          :stroke="getEdgeColor(edge)"
-          stroke-width="3"
+          :stroke="isEdgeConnectedToSelected(edge) ? '#ffffff' : getEdgeColor(edge)"
+          :stroke-width="isEdgeConnectedToSelected(edge) ? 4 : 2"
           fill="none"
-          stroke-opacity="0.5"
+          :stroke-opacity="selectedNode ? (isEdgeConnectedToSelected(edge) ? 0.9 : 0.15) : 0.4"
+          :class="{ 'edge-highlighted': isEdgeConnectedToSelected(edge) }"
         />
       </g>
 
@@ -726,38 +821,57 @@ onUnmounted(() => {
           <circle
             :r="getNodeRadius(node)"
             :fill="node.state === 'locked' ? '#111' : '#000'"
-            :stroke="stateColors[node.state]"
+            :stroke="getMasteryColor(node.mastery_percent, node.state === 'mastered')"
             stroke-width="4"
             :filter="node.state === 'mastered' ? 'url(#glow)' : ''"
           />
 
-          <!-- Mastery ring -->
-          <circle
-            v-if="node.mastery > 0 && node.state !== 'mastered'"
-            :r="getNodeRadius(node) - 6"
-            fill="none"
-            :stroke="stateColors[node.state]"
-            stroke-width="5"
-            :stroke-dasharray="`${node.mastery_percent * 0.628} 100`"
-            transform="rotate(-90)"
-            stroke-linecap="round"
-          />
+          <!-- Mastery/Retention ring - two arcs meeting in the middle -->
+          <g v-if="hasProgress(node)">
+            <!-- Left arc (top to bottom, counter-clockwise) -->
+            <path
+              :d="getMasteryArcPath(getNodeRadius(node) - 6, node.mastery_percent, 'left')"
+              fill="none"
+              :stroke="getMasteryColor(node.mastery_percent, false)"
+              stroke-width="5"
+              stroke-linecap="round"
+            />
+            <!-- Right arc (top to bottom, clockwise) -->
+            <path
+              :d="getMasteryArcPath(getNodeRadius(node) - 6, node.mastery_percent, 'right')"
+              fill="none"
+              :stroke="getMasteryColor(node.mastery_percent, false)"
+              stroke-width="5"
+              stroke-linecap="round"
+            />
+          </g>
 
           <!-- Type icon -->
           <text
-            y="-10"
+            y="-12"
             text-anchor="middle"
-            font-size="14"
+            font-size="12"
           >
             {{ getNodeIcon(node) }}
           </text>
 
+          <!-- Percentage in center -->
+          <text
+            y="4"
+            text-anchor="middle"
+            :fill="getMasteryColor(node.mastery_percent, node.state === 'mastered')"
+            font-size="14"
+            font-weight="bold"
+          >
+            {{ node.mastery_percent > 0 ? Math.round(node.mastery_percent) + '%' : '' }}
+          </text>
+
           <!-- Level badge -->
           <text
-            y="8"
+            y="18"
             text-anchor="middle"
             :fill="levelColors[node.level]"
-            font-size="10"
+            font-size="9"
             font-weight="bold"
           >
             L{{ node.level }}
@@ -800,18 +914,21 @@ onUnmounted(() => {
 
         <p class="text-text-secondary text-sm mt-3">{{ selectedNode.description }}</p>
 
-        <!-- Mastery -->
+        <!-- Mastery / Retention -->
         <div class="mastery-section mt-4">
           <div class="flex justify-between text-sm mb-2">
-            <span class="text-text-muted">Mastery Progress</span>
-            <span :style="{ color: stateColors[selectedNode.state] }">
-              {{ selectedNode.mastery }}/4 ({{ selectedNode.mastery_percent }}%)
+            <span class="text-text-muted">
+              {{ selectedNode.type === 'challenge' ? 'Retention' : 'Mastery Progress' }}
+            </span>
+            <span :style="{ color: getMasteryColor(selectedNode.mastery_percent, selectedNode.state === 'mastered') }">
+              {{ Math.round(selectedNode.mastery_percent) }}%
+              <span v-if="selectedNode.needs_review" class="text-accent-warning ml-1">⚠️</span>
             </span>
           </div>
           <div class="progress-bar">
             <div
               class="progress-fill"
-              :style="{ width: `${selectedNode.mastery_percent}%`, background: stateColors[selectedNode.state] }"
+              :style="{ width: `${selectedNode.mastery_percent}%`, background: getMasteryColor(selectedNode.mastery_percent, selectedNode.state === 'mastered') }"
             />
           </div>
           <div v-if="selectedNode.mastery_hint" class="mastery-hint mt-3">

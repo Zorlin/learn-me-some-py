@@ -1389,19 +1389,40 @@ async def get_skill_tree(player_id: str = "default", include: str = "both"):
             challenge_id = f"ch_{challenge.id}"  # Prefix to avoid ID collisions
             node_ids.add(challenge_id)
 
-            # Check completion status
+            # Check completion status and calculate Director-managed retention
             is_completed = challenge.id in completions
-            completion_count = completions.get(challenge.id, {}).get("count", 0) if isinstance(completions.get(challenge.id), dict) else (1 if is_completed else 0)
+            comp = completions.get(challenge.id)
 
-            # Calculate mastery based on completions
-            if completion_count >= 3:
-                mastery = 4
-                state = "mastered"
-            elif completion_count >= 1:
-                mastery = 2
-                state = "learning"
+            if is_completed and comp:
+                # Use Director's retention system (same as ChallengesView)
+                expected_time = 60.0 * (1 + challenge.level * 0.5)
+                retention_data = calculate_retention_score(
+                    completion_count=comp.count,
+                    last_completed=comp.last_completed,
+                    best_time=comp.best_time,
+                    expected_time=expected_time,
+                )
+                retention = retention_data["retention"]
+                is_mastered = retention_data.get("mastered", False)
+                needs_review = retention_data.get("needs_review", False)
+
+                if is_mastered:
+                    state = "mastered"
+                    mastery_hint = "Mastered! 🎉"
+                elif needs_review:
+                    state = "learning"
+                    mastery_hint = f"Retention at {int(retention)}% - review to strengthen!"
+                else:
+                    state = "learning"
+                    mastery_hint = f"Retention at {int(retention)}% - keep practicing!"
+
+                mastery_percent = retention
             else:
-                mastery = 0
+                # Not completed yet
+                retention = 0
+                mastery_percent = 0
+                mastery_hint = "Not yet attempted"
+
                 # Check if prereqs met
                 prereqs = challenge.prerequisites or []
                 prereqs_met = all(p in completions for p in prereqs) if prereqs else True
@@ -1412,14 +1433,19 @@ async def get_skill_tree(player_id: str = "default", include: str = "both"):
             concept_count = len(lessons_by_level.get(challenge.level, [])) if include == "both" else 0
             x_index = concept_count + level_challenges.index(challenge) if challenge in level_challenges else concept_count
 
+            # Convert retention (0-100) to mastery scale (0-4) for consistent node sizing
+            mastery = retention / 25.0 if retention > 0 else 0
+
             nodes.append({
                 "id": challenge_id,
                 "name": challenge.name,
                 "level": challenge.level,
                 "type": "challenge",  # Node type for filtering
-                "mastery": mastery,
-                "mastery_percent": mastery * 25,
-                "mastery_hint": f"Complete {3 - completion_count} more times to master" if mastery < 4 else "Mastered!",
+                "mastery": mastery,  # 0-4 scale for node radius calculation
+                "retention": retention,  # Director-managed retention (0-100)
+                "mastery_percent": mastery_percent,  # Same as retention for challenges
+                "mastery_hint": mastery_hint,
+                "needs_review": needs_review if is_completed else False,
                 "description": f"🎮 {challenge.points} XP challenge",
                 "prerequisites": [f"ch_{p}" for p in (challenge.prerequisites or [])],
                 "unlocks": [],
