@@ -142,19 +142,19 @@ export const useGamepadStore = defineStore('gamepad', () => {
     const buttonLT = gp.buttons[6]?.value ?? 0
     const buttonRT = gp.buttons[7]?.value ?? 0
 
-    // Try axis values (Xbox) - axes 2 and 5 are common for triggers
+    // Try axis values (Xbox) - triggers are typically on axes 4 (LT) and 5 (RT)
     // Some controllers use -1 to 1 range, others use 0 to 1
     let axisLT = 0
     let axisRT = 0
 
-    if (gp.axes.length > 2) {
-      // Axis 2 is often LT on Xbox
-      const raw2 = gp.axes[2] ?? 0
+    if (gp.axes.length > 4) {
+      // Axis 4 is LT on Xbox controllers
+      const raw4 = gp.axes[4] ?? 0
       // Normalize: if range is -1 to 1, convert to 0 to 1
-      axisLT = raw2 < 0 ? 0 : raw2
+      axisLT = raw4 < 0 ? 0 : raw4
     }
     if (gp.axes.length > 5) {
-      // Axis 5 is often RT on Xbox
+      // Axis 5 is RT on Xbox controllers
       const raw5 = gp.axes[5] ?? 0
       axisRT = raw5 < 0 ? 0 : raw5
     }
