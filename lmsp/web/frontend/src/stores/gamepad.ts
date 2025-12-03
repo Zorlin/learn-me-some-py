@@ -38,6 +38,8 @@ const BUTTON_NAMES: Record<number, string> = {
   13: 'DPadDown',
   14: 'DPadLeft',
   15: 'DPadRight',
+  16: 'Home',
+  17: 'Share',
 }
 
 export const useGamepadStore = defineStore('gamepad', () => {
