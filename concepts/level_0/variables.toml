@@ -65,6 +65,10 @@ score = 100
 print(score)
 '''
 
+[validation]
+type = "pytest"
+test_file = "test_variables.py"
+
 [connections]
 prerequisites = ["print_function"]
 enables = ["strings", "numbers", "if_else"]
