@@ -43,10 +43,10 @@ function handleAchievement(event: CustomEvent) {
 </script>
 
 <template>
-  <div class="min-h-screen bg-oled-black text-white">
-    <!-- Header -->
-    <header class="fixed top-0 left-0 right-0 z-40 bg-oled-black/80 backdrop-blur-sm border-b border-oled-border">
-      <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+  <div class="app-layout min-h-screen bg-oled-black text-white flex flex-col">
+    <!-- Header - sticky instead of fixed for proper full-page screenshots -->
+    <header class="app-header sticky top-0 z-40 bg-oled-black/95 backdrop-blur-sm border-b border-oled-border flex-shrink-0">
+      <div class="responsive-container-wide py-3 flex items-center justify-between">
         <router-link
           to="/"
           class="flex items-center gap-2 gamepad-focusable rounded-lg px-2 py-1 -ml-2"
@@ -90,8 +90,8 @@ function handleAchievement(event: CustomEvent) {
       </div>
     </header>
 
-    <!-- Main Content -->
-    <main class="pt-16 pb-12">
+    <!-- Main Content - flex-grow ensures it fills available space -->
+    <main class="app-main flex-grow">
       <router-view v-slot="{ Component }">
         <transition name="fade" mode="out-in">
           <component :is="Component" />
@@ -111,9 +111,9 @@ function handleAchievement(event: CustomEvent) {
     <!-- Gamepad Button Hints (visible in gamepad mode) -->
     <GamepadOverlay />
 
-    <!-- Footer -->
-    <footer class="fixed bottom-0 left-0 right-0 bg-oled-black/80 backdrop-blur-sm border-t border-oled-border py-2">
-      <div class="max-w-7xl mx-auto px-4 flex items-center justify-between text-xs text-text-muted">
+    <!-- Footer - flex-shrink-0 keeps it at natural size, not fixed for proper screenshots -->
+    <footer class="app-footer flex-shrink-0 bg-oled-black border-t border-oled-border py-2">
+      <div class="responsive-container-wide flex items-center justify-between text-xs text-text-muted">
         <span>The game that teaches you to build it</span>
         <span v-if="gamepadStore.connected" class="text-accent-primary">
           🎮 Gamepad Connected

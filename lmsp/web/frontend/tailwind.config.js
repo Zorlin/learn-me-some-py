@@ -7,6 +7,18 @@ export default {
   darkMode: 'class',
   theme: {
     extend: {
+      // Custom breakpoints for TV and ultrawide
+      screens: {
+        'xs': '480px',       // Small phones
+        'sm': '640px',       // Phones landscape
+        'md': '768px',       // Tablets
+        'lg': '1024px',      // Small laptops
+        'xl': '1280px',      // Laptops/desktops
+        '2xl': '1536px',     // Large desktops
+        '3xl': '1920px',     // 1080p TV/monitors
+        '4k': '2560px',      // 1440p / 4K TV
+        'ultrawide': '3440px', // Ultrawide monitors
+      },
       colors: {
         // OLED-optimized palette
         'oled': {
@@ -41,6 +53,26 @@ export default {
       fontFamily: {
         'mono': ['JetBrains Mono', 'Fira Code', 'monospace'],
         'game': ['Orbitron', 'sans-serif'],
+      },
+      // Responsive font sizes
+      fontSize: {
+        // Base sizes that scale up on larger screens
+        'responsive-xs': ['clamp(0.625rem, 0.5rem + 0.25vw, 0.75rem)', { lineHeight: '1.4' }],
+        'responsive-sm': ['clamp(0.75rem, 0.625rem + 0.35vw, 0.875rem)', { lineHeight: '1.4' }],
+        'responsive-base': ['clamp(0.875rem, 0.75rem + 0.4vw, 1.125rem)', { lineHeight: '1.5' }],
+        'responsive-lg': ['clamp(1rem, 0.875rem + 0.5vw, 1.375rem)', { lineHeight: '1.5' }],
+        'responsive-xl': ['clamp(1.125rem, 1rem + 0.6vw, 1.625rem)', { lineHeight: '1.4' }],
+        'responsive-2xl': ['clamp(1.25rem, 1.125rem + 0.75vw, 2rem)', { lineHeight: '1.3' }],
+        'responsive-3xl': ['clamp(1.5rem, 1.25rem + 1vw, 2.5rem)', { lineHeight: '1.2' }],
+        'responsive-4xl': ['clamp(2rem, 1.5rem + 1.5vw, 3.5rem)', { lineHeight: '1.1' }],
+      },
+      // Responsive spacing
+      spacing: {
+        'responsive-1': 'clamp(0.25rem, 0.125rem + 0.25vw, 0.5rem)',
+        'responsive-2': 'clamp(0.5rem, 0.25rem + 0.5vw, 1rem)',
+        'responsive-4': 'clamp(1rem, 0.5rem + 1vw, 2rem)',
+        'responsive-6': 'clamp(1.5rem, 0.75rem + 1.5vw, 3rem)',
+        'responsive-8': 'clamp(2rem, 1rem + 2vw, 4rem)',
       },
       animation: {
         'glow': 'glow 2s ease-in-out infinite alternate',

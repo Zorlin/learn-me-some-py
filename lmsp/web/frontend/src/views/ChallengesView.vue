@@ -66,13 +66,13 @@ function filterByLevel(level: number | null) {
 </script>
 
 <template>
-  <div class="max-w-4xl mx-auto px-4 py-8">
-    <h1 class="text-3xl font-bold mb-8">
+  <div class="responsive-container-wide py-responsive">
+    <h1 class="text-responsive-title mb-6 3xl:mb-8">
       <span class="text-accent-primary">📚</span> Challenges
     </h1>
 
     <!-- Level Filter -->
-    <div class="flex flex-wrap gap-2 mb-8">
+    <div class="flex flex-wrap gap-responsive mb-6 3xl:mb-8">
       <button
         class="oled-button"
         :class="{ 'border-accent-primary text-accent-primary': selectedLevel === null }"
@@ -109,11 +109,11 @@ function filterByLevel(level: number | null) {
         :key="level"
         class="mb-8"
       >
-        <h2 class="text-xl font-bold mb-4 text-accent-secondary">
+        <h2 class="text-responsive-heading mb-4 text-accent-secondary">
           Level {{ level }}
         </h2>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="responsive-grid">
           <div
             v-for="challenge in groupedByLevel[level]"
             :key="challenge.id"
