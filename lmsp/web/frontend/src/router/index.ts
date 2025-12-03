@@ -31,6 +31,11 @@ const router = createRouter({
       component: () => import('@/views/ProgressView.vue'),
     },
     {
+      path: '/skill-tree',
+      name: 'skill-tree',
+      component: () => import('@/views/SkillTreeView.vue'),
+    },
+    {
       path: '/settings',
       name: 'settings',
       component: () => import('@/views/SettingsView.vue'),
