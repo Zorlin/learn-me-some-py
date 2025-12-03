@@ -39,36 +39,9 @@ def solution(commands):
     pass
 '''
 
-[tests]
-[[tests.case]]
-name = "basic_todo"
-input = ["ADD Buy milk", "ADD Write code", "LIST"]
-expected = ["Added: Buy milk", "Added: Write code", "1. [ ] Buy milk\n2. [ ] Write code"]
-
-[[tests.case]]
-name = "complete_task"
-input = ["ADD Task 1", "ADD Task 2", "COMPLETE 1", "LIST"]
-expected = ["Added: Task 1", "Added: Task 2", "Completed: Task 1", "1. [X] Task 1\n2. [ ] Task 2"]
-
-[[tests.case]]
-name = "invalid_complete"
-input = ["ADD Task 1", "COMPLETE 5"]
-expected = ["Added: Task 1", "Invalid task"]
-
-[[tests.case]]
-name = "pending_count"
-input = ["ADD Task 1", "ADD Task 2", "COMPLETE 1", "PENDING"]
-expected = ["Added: Task 1", "Added: Task 2", "Completed: Task 1", "1"]
-
-[[tests.case]]
-name = "clear_completed"
-input = ["ADD Task 1", "ADD Task 2", "COMPLETE 1", "CLEAR", "LIST"]
-expected = ["Added: Task 1", "Added: Task 2", "Completed: Task 1", "Cleared 1 tasks", "1. [ ] Task 2"]
-
-[[tests.case]]
-name = "empty_list"
-input = ["LIST", "PENDING"]
-expected = ["", "0"]
+[validation]
+type = "pytest"
+test_file = "test_todo_manager.py"
 
 [hints]
 level_1 = "Store tasks as a list of dictionaries: {'task': 'Buy milk', 'done': False}"

@@ -31,31 +31,9 @@ def solution(commands):
     pass
 '''
 
-[tests]
-[[tests.case]]
-name = "basic_operations"
-input = ["ADD milk", "ADD eggs", "CHECK milk", "CHECK bread", "COUNT"]
-expected = ["Added milk", "Added eggs", "yes", "no", "2"]
-
-[[tests.case]]
-name = "remove_items"
-input = ["ADD milk", "ADD eggs", "REMOVE milk", "CHECK milk", "COUNT"]
-expected = ["Added milk", "Added eggs", "Removed milk", "no", "1"]
-
-[[tests.case]]
-name = "remove_nonexistent"
-input = ["ADD milk", "REMOVE eggs"]
-expected = ["Added milk", "Item not found"]
-
-[[tests.case]]
-name = "list_items"
-input = ["ADD milk", "ADD eggs", "ADD bread", "LIST"]
-expected = ["Added milk", "Added eggs", "Added bread", "milk,eggs,bread"]
-
-[[tests.case]]
-name = "empty_list"
-input = ["COUNT", "LIST"]
-expected = ["0", ""]
+[validation]
+type = "pytest"
+test_file = "test_shopping_list.py"
 
 [hints]
 level_1 = "Use a list to store your shopping items"

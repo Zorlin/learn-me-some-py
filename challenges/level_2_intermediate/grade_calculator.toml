@@ -39,39 +39,9 @@ def solution(commands):
     pass
 '''
 
-[tests]
-[[tests.case]]
-name = "basic_grading"
-input = ["ADD homework 20 85", "ADD homework 20 90", "AVERAGE homework"]
-expected = ["Added homework: 85", "Added homework: 90", "87.5"]
-
-[[tests.case]]
-name = "multiple_categories"
-input = ["ADD homework 30 80", "ADD exam 70 90", "AVERAGE homework", "AVERAGE exam"]
-expected = ["Added homework: 80", "Added exam: 90", "80.0", "90.0"]
-
-[[tests.case]]
-name = "final_grade_calculation"
-input = ["ADD homework 40 80", "ADD exam 60 90", "FINAL"]
-expected = ["Added homework: 80", "Added exam: 90", "86.0"]
-
-[[tests.case]]
-name = "letter_grades"
-input = ["ADD test 100 95", "LETTER"]
-expected = ["Added test: 95", "A"]
-
-[[tests.case]]
-name = "complete_workflow"
-input = [
-    "ADD homework 20 85",
-    "ADD homework 20 90",
-    "ADD quiz 30 88",
-    "ADD exam 50 92",
-    "AVERAGE homework",
-    "FINAL",
-    "LETTER"
-]
-expected = ["Added homework: 85", "Added homework: 90", "Added quiz: 88", "Added exam: 92", "87.5", "90.4", "A"]
+[validation]
+type = "pytest"
+test_file = "test_grade_calculator.py"
 
 [hints]
 level_1 = "Use a dictionary to group scores by category: grades = {'homework': [], 'exam': []}"

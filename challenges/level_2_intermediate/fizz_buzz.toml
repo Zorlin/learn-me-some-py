@@ -33,26 +33,9 @@ def solution(n):
     pass
 '''
 
-[tests]
-[[tests.case]]
-name = "fizzbuzz_15"
-input = 15
-expected = ["1", "2", "Fizz", "4", "Buzz", "Fizz", "7", "8", "Fizz", "Buzz", "11", "Fizz", "13", "14", "FizzBuzz"]
-
-[[tests.case]]
-name = "fizzbuzz_5"
-input = 5
-expected = ["1", "2", "Fizz", "4", "Buzz"]
-
-[[tests.case]]
-name = "fizzbuzz_3"
-input = 3
-expected = ["1", "2", "Fizz"]
-
-[[tests.case]]
-name = "fizzbuzz_20"
-input = 20
-expected = ["1", "2", "Fizz", "4", "Buzz", "Fizz", "7", "8", "Fizz", "Buzz", "11", "Fizz", "13", "14", "FizzBuzz", "16", "17", "Fizz", "19", "Buzz"]
+[validation]
+type = "pytest"
+test_file = "test_fizz_buzz.py"
 
 [hints]
 level_1 = "Use the modulo operator %: if i % 3 == 0 means divisible by 3"

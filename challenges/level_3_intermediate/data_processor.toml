@@ -65,7 +65,10 @@ def solution(commands):
     pass
 '''
 
-[tests]
+[validation]
+type = "pytest"
+test_file = "test_data_processor.py"
+
 [[tests.case]]
 name = "basic_pipeline"
 input = ["DATA 1,2,3", "PIPELINE clean,filter,square,sum"]

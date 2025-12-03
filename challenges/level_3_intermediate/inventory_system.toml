@@ -72,7 +72,10 @@ def solution(commands):
     pass
 '''
 
-[tests]
+[validation]
+type = "pytest"
+test_file = "test_inventory_system.py"
+
 [[tests.case]]
 name = "basic_inventory"
 input = ["ADD sword 1 50", "ADD potion 3 10", "TOTAL"]

@@ -28,7 +28,10 @@ def solution(queries):
     pass
 '''
 
-[tests]
+[validation]
+type = "pytest"
+test_file = "test_container_add_exists.py"
+
 [[tests.case]]
 name = "basic"
 input = [["ADD", "1"], ["ADD", "2"], ["EXISTS", "1"], ["EXISTS", "3"]]

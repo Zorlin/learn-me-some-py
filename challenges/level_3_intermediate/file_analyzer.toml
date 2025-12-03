@@ -42,7 +42,10 @@ def solution(file_contents, commands):
     pass
 '''
 
-[tests]
+[validation]
+type = "pytest"
+test_file = "test_file_analyzer.py"
+
 [[tests.case]]
 name = "basic_analysis"
 input.file_contents = "Hello world!\nHello Python.\nWorld of code."

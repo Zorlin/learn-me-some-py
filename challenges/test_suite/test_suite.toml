@@ -62,7 +62,10 @@ def solution(word_stats_impl):
     pass
 '''
 
-[tests]
+[validation]
+type = "pytest"
+test_file = "test_test_suite.py"
+
 [[tests.case]]
 name = "catches_correct_implementation"
 input = "correct"

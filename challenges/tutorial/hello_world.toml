@@ -27,11 +27,9 @@ code = '''
 
 '''
 
-[tests]
-[[tests.case]]
-name = "exact_output"
-input = []
-expected = ["Hello, World!"]
+[validation]
+type = "pytest"
+test_file = "test_hello_world.py"
 
 [hints]
 level_1 = "Use the `print()` function"

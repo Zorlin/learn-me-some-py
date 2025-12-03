@@ -42,7 +42,10 @@ def solution(commands):
     pass
 '''
 
-[tests]
+[validation]
+type = "pytest"
+test_file = "test_error_handler.py"
+
 [[tests.case]]
 name = "basic_math"
 input = ["ADD 5 3", "ADD 10 20", "DIVIDE 10 2"]

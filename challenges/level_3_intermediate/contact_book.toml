@@ -36,46 +36,9 @@ def solution(commands):
     pass
 '''
 
-[tests]
-[[tests.case]]
-name = "basic_contacts"
-input = ["ADD Alice 555-1234 alice@email.com", "FIND Alice", "COUNT"]
-expected = ["Added: Alice", "555-1234,alice@email.com", "1"]
-
-[[tests.case]]
-name = "multiple_contacts"
-input = [
-    "ADD Alice 555-1234 alice@email.com",
-    "ADD Bob 555-5678 bob@email.com",
-    "ADD Charlie 555-9999 charlie@email.com",
-    "COUNT"
-]
-expected = ["Added: Alice", "Added: Bob", "Added: Charlie", "3"]
-
-[[tests.case]]
-name = "find_missing"
-input = ["ADD Alice 555-1234 alice@email.com", "FIND Bob"]
-expected = ["Added: Alice", "Not found"]
-
-[[tests.case]]
-name = "search_contacts"
-input = [
-    "ADD Alice 555-1234 alice@email.com",
-    "ADD Alicia 555-5678 alicia@email.com",
-    "ADD Bob 555-9999 bob@email.com",
-    "SEARCH Ali"
-]
-expected = ["Added: Alice", "Added: Alicia", "Added: Bob", "Alice\nAlicia"]
-
-[[tests.case]]
-name = "delete_contact"
-input = ["ADD Alice 555-1234 alice@email.com", "DELETE Alice", "COUNT", "FIND Alice"]
-expected = ["Added: Alice", "Deleted: Alice", "0", "Not found"]
-
-[[tests.case]]
-name = "empty_search"
-input = ["ADD Alice 555-1234 alice@email.com", "SEARCH xyz"]
-expected = ["Added: Alice", ""]
+[validation]
+type = "pytest"
+test_file = "test_contact_book.py"
 
 [hints]
 level_1 = "Store contacts in a dictionary: contacts = {'Alice': {'phone': '...', 'email': '...'}}"

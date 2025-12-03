@@ -36,24 +36,9 @@ length =
 print()
 '''
 
-[tests]
-[[tests.case]]
-name = "alice"
-input = []
-setup = 'name = "Alice"'
-expected = ["Your name has 5 letters"]
-
-[[tests.case]]
-name = "bob"
-input = []
-setup = 'name = "Bob"'
-expected = ["Your name has 3 letters"]
-
-[[tests.case]]
-name = "wings"
-input = []
-setup = 'name = "Wings"'
-expected = ["Your name has 5 letters"]
+[validation]
+type = "pytest"
+test_file = "test_name_length.py"
 
 [hints]
 level_1 = "Use `len(name)` to get the length"
