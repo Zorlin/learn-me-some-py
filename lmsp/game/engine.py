@@ -489,15 +489,24 @@ class GameEngine:
             self.phase = GamePhase.MENU
             return
 
-        # Create emotional prompt
+        # Create emotional prompt with challenge-specific messaging
         prompt = EmotionalPrompt(
-            question="How did that feel?",
+            question=f"How did the '{self.current_challenge.name}' challenge feel?",
             right_trigger="Satisfying / Fun",
-            left_trigger="Frustrating / Confusing"
+            left_trigger="Frustrating / Confusing",
+            y_button="More details"
         )
 
-        self.console.print("\n[bold]How was that challenge?[/bold]")
-        self.console.print("Rate from 0-10:")
+        # Render the beautiful emotional feedback panel
+        output = self.emotional_feedback_renderer.render_with_animation(
+            prompt,
+            self.emotional_state,
+            title="Challenge Complete!"
+        )
+        self.console.print(output)
+
+        # Gather feedback via keyboard input (future: will be gamepad-driven)
+        self.console.print("\n[bold]Rate from 0-10:[/bold]")
         self.console.print("  Enjoyment (0=frustrated, 10=loved it):")
 
         try:
@@ -515,10 +524,11 @@ class GameEngine:
         except ValueError:
             difficulty = 0.5
 
-        # Record emotional state
-        self.emotional_state.record(EmotionalSample(enjoyment))
+        # Record emotional state with proper EmotionalSample creation
+        self.emotional_state.record(EmotionalDimension.ENJOYMENT, enjoyment, context="challenge_complete")
         if difficulty > 0.7:
-            self.emotional_state.record(EmotionalSample(1.0 - difficulty, dimension="frustration"))
+            frustration = 1.0 - difficulty
+            self.emotional_state.record(EmotionalDimension.FRUSTRATION, frustration, context="challenge_complete")
 
         # Update adaptive engine
         duration = self.session.get_duration().total_seconds()
