@@ -71,6 +71,10 @@ greeting = "Hello, " + name + "!"
 print(greeting)
 '''
 
+[validation]
+type = "pytest"
+test_file = "test_strings.py"
+
 [connections]
 prerequisites = ["variables"]
 enables = ["string_methods", "f_strings", "input_function"]

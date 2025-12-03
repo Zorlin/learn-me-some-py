@@ -99,6 +99,10 @@ celsius = (fahrenheit - 32) * 5/9
 print(f"{fahrenheit}°F is {celsius}°C")
 '''
 
+[validation]
+type = "pytest"
+test_file = "test_type_conversion.py"
+
 [connections]
 prerequisites = ["numbers", "strings", "input_function"]
 enables = ["string_methods"]

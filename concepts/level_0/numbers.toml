@@ -75,6 +75,10 @@ total = price * quantity
 print(total)
 '''
 
+[validation]
+type = "pytest"
+test_file = "test_numbers.py"
+
 [connections]
 prerequisites = ["variables"]
 enables = ["basic_operators", "type_conversion"]

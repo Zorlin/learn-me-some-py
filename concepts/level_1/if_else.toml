@@ -101,6 +101,10 @@ enables = ["if_elif_else", "while_loops_basics", "boolean_logic"]
 used_in = ["guess_my_number"]
 see_also = ["basic_operators", "boolean_logic"]
 
+[validation]
+type = "pytest"
+test_file = "test_if_else.py"
+
 [meta]
 time_to_read = 50
 difficulty = "beginner"
