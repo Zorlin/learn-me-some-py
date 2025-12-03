@@ -1,0 +1,141 @@
+# Level 0: Comments
+# Document your code for yourself and others!
+
+[concept]
+id = "comments"
+name = "Comments: Notes to Yourself"
+level = 0
+prerequisites = []
+
+[description]
+brief = "Add notes in your code that Python ignores"
+detailed = """
+Comments are notes YOU can read, but Python ignores them.
+They explain WHAT you're doing and WHY.
+
+```python
+# This is a comment - Python skips it!
+health = 100  # You can comment after code too
+
+# Comments help you remember what your code does
+# They're like notes in the margins of a book
+```
+
+Use # to start a comment. Everything after # on that line is ignored.
+"""
+
+[syntax]
+single_line = """
+# This is a single-line comment
+"""
+inline = """
+score = 100  # Comments can go after code
+"""
+multiple = """
+# You can have multiple
+# comment lines in a row
+# Just start each with #
+"""
+
+[when_to_comment]
+explain_why = """
+GOOD: Explain WHY you did something
+
+# Give player double points on their birthday
+score = base_score * 2
+"""
+explain_complex = """
+GOOD: Explain complex logic
+
+# Use modulo to alternate between red and blue
+color = "red" if index % 2 == 0 else "blue"
+"""
+temporary_notes = """
+GOOD: Temporary reminders
+
+# TODO: Add sound effects here
+# BUG: This breaks when health is negative
+# FIXME: Optimize this loop later
+"""
+dont_state_obvious = """
+BAD: Don't state the obvious
+
+# Set x to 5
+x = 5  # This comment adds nothing!
+
+BETTER: No comment needed, code is clear
+"""
+
+[gotchas]
+no_multiline_with_hash = """
+Each line needs its own #:
+
+✓ # First line
+  # Second line
+
+✗ # This doesn't
+    continue on the next line
+"""
+strings_vs_comments = """
+Don't confuse strings with comments:
+
+# This is a comment (ignored)
+"This is a string" (not ignored!)
+
+x = "# This looks like a comment but it's a STRING"
+"""
+
+[gamepad_tutorial]
+text = """
+🎮 CONTROLLER MODE:
+- Press Y to insert comment template
+- Press RB for comment suggestions based on code
+- D-pad UP to add TODO comment
+- D-pad DOWN to add FIXME comment
+"""
+
+[best_practices]
+write_for_future_you = """
+Write comments for yourself 6 months from now.
+You WILL forget why you did something!
+"""
+explain_intent = """
+Comments should explain INTENT, not mechanics:
+
+BAD:  # Loop 10 times
+GOOD: # Try 10 times before giving up
+"""
+update_with_code = """
+When you change code, update its comments!
+Outdated comments are worse than no comments.
+"""
+less_is_more = """
+Good names > comments:
+
+BAD:  # player health
+      x = 100
+
+GOOD: player_health = 100
+      # No comment needed!
+"""
+
+[challenges]
+starter = "comments_add_descriptions"
+intermediate = "comments_explain_logic"
+mastery = "comments_document_function"
+
+[fun_factor]
+type = "documentation"
+description = "Your future self will thank you!"
+examples = ["explain tricky math", "mark TODOs", "credit techniques"]
+
+[adaptive]
+weakness_signals = ["no_comments", "obvious_comments", "outdated_comments"]
+strength_indicators = ["explains_why", "clear_intent", "helpful_notes"]
+
+[fun_facts]
+universal = "Almost every programming language uses # or // for comments!"
+ignored = "Python completely ignores comments - they're just for humans"
+history = "Comments are as old as programming itself. Even 1950s code had notes!"
+humor = "Programmers often leave funny comments. It's a tradition!"
+docstrings = "Python has a SPECIAL kind of comment called docstrings (you'll learn later!)"

@@ -1,0 +1,150 @@
+# Challenge: Word Frequency Counter
+# Learn dictionaries through text analysis
+
+[challenge]
+id = "word_counter"
+name = "Word Frequency Counter"
+level = 2
+prerequisites = ["dicts_basics", "for_loops", "string_methods"]
+
+[description]
+brief = "Count how many times each word appears in text"
+detailed = """
+You're building a text analyzer to find the most common words.
+
+Given a list of words, count how many times each word appears.
+Return results as commands:
+- COUNT <word>: Return the count for that word as a string
+- MOST: Return the most frequent word
+- TOTAL: Return total number of unique words
+
+Example:
+Input: ["hello", "world", "hello"]
+Commands: ["COUNT hello", "COUNT world", "MOST", "TOTAL"]
+Output: ["2", "1", "hello", "2"]
+"""
+
+[skeleton]
+code = '''
+def solution(words, commands):
+    # Count how many times each word appears
+    # Process commands to query the counts
+    # Return list of string results
+    pass
+'''
+
+[tests]
+[[tests.case]]
+name = "basic_counting"
+input.words = ["hello", "world", "hello", "python"]
+input.commands = ["COUNT hello", "COUNT world", "COUNT python"]
+expected = ["2", "1", "1"]
+
+[[tests.case]]
+name = "most_frequent"
+input.words = ["cat", "dog", "cat", "cat", "dog"]
+input.commands = ["MOST"]
+expected = ["cat"]
+
+[[tests.case]]
+name = "total_unique"
+input.words = ["apple", "banana", "apple", "cherry"]
+input.commands = ["TOTAL"]
+expected = ["3"]
+
+[[tests.case]]
+name = "word_not_found"
+input.words = ["hello", "world"]
+input.commands = ["COUNT missing"]
+expected = ["0"]
+
+[[tests.case]]
+name = "combined"
+input.words = ["the", "cat", "sat", "on", "the", "mat"]
+input.commands = ["COUNT the", "MOST", "TOTAL"]
+expected = ["2", "the", "5"]
+
+[hints]
+level_1 = "Use a dictionary to store word counts: word_counts = {}"
+level_2 = "Loop through words: for word in words: word_counts[word] = ..."
+level_3 = "Check if word exists in dict before incrementing: if word in word_counts"
+level_4 = """
+Pattern for counting:
+```python
+counts = {}
+for word in words:
+    if word in counts:
+        counts[word] += 1
+    else:
+        counts[word] = 1
+```
+
+Or use .get():
+```python
+counts[word] = counts.get(word, 0) + 1
+```
+"""
+
+[gamepad_hints]
+easy_mode = """
+🎮 WORD COUNTER GUIDE:
+1. Create counts = {} dictionary
+2. Loop through each word
+3. If word exists, add 1. If not, set to 1
+4. For MOST, find word with highest count
+5. For TOTAL, use len(counts)
+"""
+
+[solution]
+# Hidden from player
+code = '''
+def solution(words, commands):
+    # Count word frequencies
+    counts = {}
+    for word in words:
+        counts[word] = counts.get(word, 0) + 1
+
+    # Process commands
+    results = []
+    for command in commands:
+        parts = command.split()
+        action = parts[0]
+
+        if action == "COUNT":
+            word = parts[1]
+            count = counts.get(word, 0)
+            results.append(str(count))
+        elif action == "MOST":
+            if counts:
+                most_common = max(counts, key=counts.get)
+                results.append(most_common)
+            else:
+                results.append("")
+        elif action == "TOTAL":
+            results.append(str(len(counts)))
+
+    return results
+'''
+
+[meta]
+time_limit_seconds = 600
+speed_run_target = 150
+points = 35
+xp_reward = 35
+category = "data_processing"
+next_challenge = "fizz_buzz"
+
+[adaptive]
+fun_factor = "analytical"
+weakness_signals = ["dict_key_error", "forgot_get_default", "max_on_empty_dict"]
+project_themes = ["text_analysis", "search_engine", "chat_analyzer", "log_processor"]
+
+[emotional_checkpoints]
+after_first_test_pass = """
+🎮 Your counting works! Dictionaries are powerful.
+   [RT] if this clicked for you
+"""
+after_completion = """
+🎮 Word counter complete! This is real data science.
+   [RT] Love data  |  [LT] Meh  |  [Y] What's next?
+"""

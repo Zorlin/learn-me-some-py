@@ -1,0 +1,219 @@
+# Meta-Challenge: Build the Fun Detector
+# The system that learns what makes YOU happy!
+
+[challenge]
+id = "meta_build_fun_detector"
+name = "Meta: Build the Fun Detector"
+level = 6
+prerequisites = ["dataclasses", "statistics", "pattern_matching"]
+
+[description]
+brief = "Build the engagement tracker that learns what YOU find fun"
+detailed = """
+Remember how LMSP seemed to know what you enjoyed? How it offered challenges
+that matched your vibe? That was the fun detector. YOU'RE BUILDING IT.
+
+The fun detector analyzes emotional samples to build a profile:
+- Puzzle solver? (Enjoys logic challenges)
+- Speedrunner? (Loves racing against time)
+- Collector? (Achievement hunter)
+- Creator? (Builds projects)
+- Competitor? (Multiplayer mode)
+- Mastery seeker? (Perfection-driven)
+
+Build the AI that learns YOUR dopamine patterns.
+"""
+
+[skeleton]
+code = '''
+from dataclasses import dataclass, field
+from enum import Enum
+
+class FunType(Enum):
+    PUZZLE = "puzzle"
+    SPEEDRUN = "speedrun"
+    COLLECTION = "collection"
+    CREATION = "creation"
+    COMPETITION = "competition"
+    MASTERY = "mastery"
+
+@dataclass
+class EmotionalSample:
+    """One emotional reading."""
+    fun_type: FunType
+    enjoyment: float  # 0.0 to 1.0
+    duration_seconds: float
+
+@dataclass
+class FunProfile:
+    """What this player finds fun."""
+    scores: dict[FunType, float] = field(default_factory=dict)
+
+def analyze_fun_patterns(samples: list[EmotionalSample]) -> FunProfile:
+    """
+    Analyze emotional samples to determine what the player enjoys.
+
+    Weight by: enjoyment * duration
+    (High enjoyment + long session = found their thing)
+
+    Returns FunProfile with scores per fun type.
+    """
+    # Your code here
+    pass
+
+def recommend_challenge_type(profile: FunProfile) -> FunType:
+    """Recommend a challenge type based on fun profile."""
+    # Return the type with highest score
+    pass
+'''
+
+[tests]
+[[tests.case]]
+name = "detect_puzzle_lover"
+input = [
+    [
+        {"fun_type": "puzzle", "enjoyment": 0.9, "duration": 300},
+        {"fun_type": "speedrun", "enjoyment": 0.3, "duration": 60}
+    ]
+]
+expected = {"top_type": "puzzle"}
+
+[[tests.case]]
+name = "detect_speedrunner"
+input = [
+    [
+        {"fun_type": "speedrun", "enjoyment": 0.95, "duration": 180},
+        {"fun_type": "speedrun", "enjoyment": 0.9, "duration": 120},
+        {"fun_type": "puzzle", "enjoyment": 0.5, "duration": 100}
+    ]
+]
+expected = {"top_type": "speedrun"}
+
+[[tests.case]]
+name = "balanced_profile"
+input = [
+    [
+        {"fun_type": "puzzle", "enjoyment": 0.7, "duration": 200},
+        {"fun_type": "creation", "enjoyment": 0.7, "duration": 200}
+    ]
+]
+expected = {"has_multiple_interests": true}
+
+[hints]
+level_1 = "Weight each sample by: enjoyment * (duration / 60)"
+level_2 = "Accumulate weights per fun_type in a dictionary"
+level_3 = "Find the type with max() score"
+level_4 = """
+Pattern:
+```python
+def analyze_fun_patterns(samples: list[EmotionalSample]) -> FunProfile:
+    scores = {}
+
+    for sample in samples:
+        # Weight by enjoyment and time investment
+        weight = sample.enjoyment * (sample.duration_seconds / 60.0)
+
+        fun_type = sample.fun_type
+        if fun_type not in scores:
+            scores[fun_type] = 0.0
+        scores[fun_type] += weight
+
+    return FunProfile(scores=scores)
+
+def recommend_challenge_type(profile: FunProfile) -> FunType:
+    return max(profile.scores.items(), key=lambda x: x[1])[0]
+```
+"""
+
+[gamepad_hints]
+easy_mode = """
+🎮 DOPAMINE TRACKER ACTIVATED!
+You're building the AI that learns what makes players happy.
+This code learned what makes YOU happy.
+"""
+
+[solution]
+code = '''
+from dataclasses import dataclass, field
+from enum import Enum
+
+class FunType(Enum):
+    PUZZLE = "puzzle"
+    SPEEDRUN = "speedrun"
+    COLLECTION = "collection"
+    CREATION = "creation"
+    COMPETITION = "competition"
+    MASTERY = "mastery"
+
+@dataclass
+class EmotionalSample:
+    fun_type: FunType
+    enjoyment: float
+    duration_seconds: float
+
+@dataclass
+class FunProfile:
+    scores: dict[FunType, float] = field(default_factory=dict)
+
+def analyze_fun_patterns(samples: list[EmotionalSample]) -> FunProfile:
+    scores = {}
+
+    for sample in samples:
+        weight = sample.enjoyment * (sample.duration_seconds / 60.0)
+        time_multiplier = min(sample.duration_seconds / 300.0, 2.0)  # Cap at 5 min
+        weight *= time_multiplier
+
+        fun_type = sample.fun_type
+        scores[fun_type] = scores.get(fun_type, 0.0) + weight
+
+    return FunProfile(scores=scores)
+
+def recommend_challenge_type(profile: FunProfile) -> FunType:
+    if not profile.scores:
+        return FunType.PUZZLE  # Default
+    return max(profile.scores.items(), key=lambda x: x[1])[0]
+'''
+
+[meta]
+time_limit_seconds = 600
+speed_run_target = 180
+points = 450
+is_meta_challenge = true
+lmsp_component = "lmsp/adaptive/fun.py"
+teaching_philosophy = """
+Building the fun detector teaches:
+- Pattern recognition in data
+- Weighted scoring algorithms
+- Enums for categorical data
+- Statistical aggregation
+- AI that learns preferences
+
+This is ENGAGEMENT. The system that keeps learning fun.
+
+Traditional education ignores what makes YOU tick.
+LMSP learns it and adapts. You're building that adaptation.
+"""
+
+[adaptive]
+fun_factor = "creation"
+weakness_signals = ["enum_confusion", "weighting_logic_error", "max_key_bug"]
+project_themes = ["recommendation_systems", "user_profiling", "adaptive_UX"]
+
+[emotional_checkpoints]
+after_first_test_pass = """
+🎮 Detecting patterns! The fun profiler is learning preferences.
+   [RT] I love data analysis  |  [LT] Math is hard
+"""
+after_completion = """
+🎯 FUN DETECTOR COMPLETE!
+
+You've built an AI that learns joy.
+
+This code analyzed YOUR emotional patterns, learned what lit up YOUR brain,
+and suggested challenges that matched YOUR dopamine profile.
+
+You've coded the algorithm that kept you engaged.
+
+Meta-question: What's YOUR fun type?
+   [RT] Puzzle solver  |  [LT] Speedrunner  |  [Y] All of them!
+"""

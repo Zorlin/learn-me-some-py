@@ -1,0 +1,93 @@
+# Challenge: Hello World
+# Your very first Python program - the traditional beginning
+
+[challenge]
+id = "hello_world"
+name = "Hello, World!"
+level = 0
+prerequisites = []
+
+[description]
+brief = "Write your first Python program"
+detailed = """
+Welcome to Python! Every programmer's journey starts here.
+
+Your mission: Make Python say "Hello, World!"
+
+This is the traditional first program in any language. It's simple, but it's also
+magic - you're telling a computer to communicate with humans.
+
+Just use the print() function to display the text.
+"""
+
+[skeleton]
+code = '''
+# Write your code below
+# Use print() to display "Hello, World!"
+
+'''
+
+[tests]
+[[tests.case]]
+name = "exact_output"
+input = []
+expected = ["Hello, World!"]
+
+[hints]
+level_1 = "Use the print() function"
+level_2 = "Put text inside quotes: print(\"Hello, World!\")"
+level_3 = "Make sure your spelling and punctuation match exactly!"
+level_4 = """
+The solution is:
+```python
+print("Hello, World!")
+```
+That's it! Just one line.
+"""
+
+[gamepad_hints]
+easy_mode = """
+🎮 CONTROLLER GUIDE:
+1. Press A to start typing
+2. Type: print("Hello, World!")
+3. Press B to run your code
+4. See it work!
+
+First time using a controller to code? You've got this!
+"""
+
+[solution]
+code = '''
+print("Hello, World!")
+'''
+
+[meta]
+time_limit_seconds = 300
+speed_run_target = 30
+points = 50
+next_challenge = "personal_greeting"
+
+[adaptive]
+fun_factor = "achievement_unlock"
+weakness_signals = ["syntax_error", "wrong_quotes", "forgot_print"]
+project_themes = ["cli_tools", "automation", "discord_bots"]
+
+[emotional_checkpoints]
+after_completion = """
+🎉 YOU DID IT! Your first Python program!
+
+You just joined millions of programmers who started exactly where you are.
+Every expert was once a beginner.
+
+How does it feel?
+[RT] Excited! | [LT] Too easy | [Y] Tell me more
+"""
+
+# Self-teaching note:
+#
+# This file demonstrates:
+# - print() function (Level 0)
+# - String literals (Level 0)
+# - The classic "Hello, World!" tradition
+#
+# The learner discovers that programming is about making computers communicate.

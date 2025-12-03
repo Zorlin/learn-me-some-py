@@ -1,0 +1,209 @@
+# Meta-Challenge: Build the Challenge Validation System
+# The system that validates YOUR solutions!
+
+[challenge]
+id = "meta_build_challenge_system"
+name = "Meta: Build Challenge Validation"
+level = 6
+prerequisites = ["functions_advanced", "exec_eval", "testing_basics", "exception_handling"]
+
+[description]
+brief = "Build the system that runs and validates challenge solutions"
+detailed = """
+Every challenge you've completed was validated by the system YOU'RE ABOUT TO BUILD.
+
+When you write a solution and hit "Run", LMSP:
+1. Executes your code in a safe namespace
+2. Runs test cases against your solution
+3. Compares output to expected results
+4. Reports which tests pass/fail
+
+This is the validation engine. Build it.
+
+Implement a challenge validator that:
+- Takes a solution function as a string
+- Executes it safely (using exec())
+- Runs test cases
+- Returns results (pass/fail, output, errors)
+"""
+
+[skeleton]
+code = '''
+from dataclasses import dataclass
+from typing import Any
+
+@dataclass
+class TestResult:
+    """Result of running one test case."""
+    name: str
+    passed: bool
+    expected: Any
+    actual: Any
+    error: str = ""
+
+def validate_solution(solution_code: str, test_cases: list[dict]) -> list[TestResult]:
+    """
+    Validate a solution against test cases.
+
+    Args:
+        solution_code: Python code containing a 'solution' function
+        test_cases: List of {"name": str, "input": any, "expected": any}
+
+    Returns:
+        List of TestResult for each test case
+    """
+    # Your code here
+    pass
+'''
+
+[tests]
+[[tests.case]]
+name = "simple_function"
+input = [
+    "def solution(x): return x * 2",
+    [{"name": "double_5", "input": [5], "expected": 10}]
+]
+expected = {"passed": true}
+
+[[tests.case]]
+name = "multiple_tests"
+input = [
+    "def solution(x): return x + 1",
+    [
+        {"name": "add_one_5", "input": [5], "expected": 6},
+        {"name": "add_one_10", "input": [10], "expected": 11}
+    ]
+]
+expected = {"all_passed": true}
+
+[[tests.case]]
+name = "failing_test"
+input = [
+    "def solution(x): return x * 2",
+    [{"name": "wrong", "input": [5], "expected": 11}]
+]
+expected = {"passed": false}
+
+[hints]
+level_1 = "Use exec() to run the solution code and extract the function"
+level_2 = "Create a namespace dict, exec into it, then get solution = namespace['solution']"
+level_3 = "Call the solution function with test input and compare to expected"
+level_4 = """
+Pattern:
+```python
+namespace = {}
+exec(solution_code, namespace)
+solution_func = namespace['solution']
+
+results = []
+for test in test_cases:
+    try:
+        actual = solution_func(*test['input'])
+        passed = actual == test['expected']
+        results.append(TestResult(
+            name=test['name'],
+            passed=passed,
+            expected=test['expected'],
+            actual=actual
+        ))
+    except Exception as e:
+        results.append(TestResult(
+            name=test['name'],
+            passed=False,
+            expected=test['expected'],
+            actual=None,
+            error=str(e)
+        ))
+return results
+```
+"""
+
+[gamepad_hints]
+easy_mode = """
+🎮 META POWER UNLOCKED!
+You're building the validator that checked ALL your solutions.
+Every "Tests passing: 5/5" message came from code like this.
+"""
+
+[solution]
+code = '''
+from dataclasses import dataclass
+from typing import Any
+
+@dataclass
+class TestResult:
+    name: str
+    passed: bool
+    expected: Any
+    actual: Any
+    error: str = ""
+
+def validate_solution(solution_code: str, test_cases: list[dict]) -> list[TestResult]:
+    namespace = {}
+    exec(solution_code, namespace)
+    solution_func = namespace['solution']
+
+    results = []
+    for test in test_cases:
+        try:
+            actual = solution_func(*test['input'])
+            passed = actual == test['expected']
+            results.append(TestResult(
+                name=test['name'],
+                passed=passed,
+                expected=test['expected'],
+                actual=actual
+            ))
+        except Exception as e:
+            results.append(TestResult(
+                name=test['name'],
+                passed=False,
+                expected=test['expected'],
+                actual=None,
+                error=str(e)
+            ))
+
+    return results
+'''
+
+[meta]
+time_limit_seconds = 600
+speed_run_target = 200
+points = 500
+is_meta_challenge = true
+lmsp_component = "lmsp/python/validator.py"
+teaching_philosophy = """
+Building the challenge validator teaches:
+- Dynamic code execution (exec, eval)
+- Safe namespace isolation
+- Test-driven development patterns
+- Exception handling (catching runtime errors)
+- The validator validates itself (meta-recursion!)
+
+This is the JUDGE. Every solution you wrote was judged by this.
+Now you're building the judge.
+"""
+
+[adaptive]
+fun_factor = "mastery"
+weakness_signals = ["exec_namespace_error", "test_comparison_bug", "exception_not_caught"]
+project_themes = ["testing_frameworks", "code_evaluation", "educational_tools"]
+
+[emotional_checkpoints]
+after_first_test_pass = """
+🎮 Your validator is running code! It can execute and test solutions.
+   [RT] This is powerful  |  [LT] Nervous about exec()
+"""
+after_completion = """
+🔥 THE VALIDATOR HAS BEEN BUILT!
+
+Every test you ran, every "Solution correct!" message,
+every bug you found - all validated by THIS CODE.
+
+You've become the judge. You've built the system that judged you.
+
+Meta-level: Achieved.
+
+How meta does this feel?
+   [RT] Maximum meta  |  [LT] My brain hurts  |  [Y] Explain recursion again
+"""

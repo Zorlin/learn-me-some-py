@@ -1,0 +1,181 @@
+# Level 2: If/Elif/Else
+# Prerequisite for: decision making, game logic, validation
+
+[concept]
+id = "if_elif_else"
+name = "Conditionals: Make Decisions"
+level = 2
+prerequisites = ["boolean_logic", "variables"]
+
+[description]
+brief = "Execute different code based on conditions"
+detailed = """
+Conditionals let your program make decisions - like "if player HP is low, show warning".
+Python uses if, elif (else if), and else.
+
+```python
+hp = 30
+
+if hp > 75:
+    print("Healthy!")
+elif hp > 25:
+    print("Damaged - heal soon")
+else:
+    print("Critical! Heal now!")
+```
+"""
+
+[patterns]
+basic_if = '''
+if condition:
+    # Runs if true
+'''
+if_else = '''
+if condition:
+    # Runs if true
+else:
+    # Runs if false
+'''
+if_elif_else = '''
+if condition1:
+    # First true condition wins
+elif condition2:
+    # Checked only if condition1 is false
+elif condition3:
+    # Checked only if previous are false
+else:
+    # Runs if all conditions are false
+'''
+nested = '''
+if outer_condition:
+    if inner_condition:
+        # Both must be true
+    else:
+        # Outer true, inner false
+else:
+    # Outer false
+'''
+
+[gotchas]
+indentation_matters = """
+Python uses indentation (not braces) for blocks:
+✓ if x > 0:
+      print("positive")  # 4 spaces
+
+✗ if x > 0:
+  print("positive")  # 2 spaces (inconsistent)
+    print("still positive")  # 4 spaces - ERROR!
+"""
+elif_not_else_if = """
+Python uses 'elif', not 'else if':
+✓ elif x > 0:
+✗ else if x > 0:
+"""
+conditions_checked_in_order = """
+Only the FIRST true condition runs:
+x = 50
+if x > 10:
+    print("A")  # This runs
+elif x > 25:
+    print("B")  # Skipped! (even though x > 25)
+elif x > 40:
+    print("C")  # Also skipped
+
+Order matters!
+"""
+
+[comparison_operators]
+equal = "x == y (note: two equals!)"
+not_equal = "x != y"
+less_than = "x < y"
+greater_than = "x > y"
+less_equal = "x <= y"
+greater_equal = "x >= y"
+identity = "x is y (same object)"
+membership = "x in collection"
+
+[gamepad_tutorial]
+text = """
+🎮 EASY MODE:
+- Press Y to add elif branch
+- Press RB to suggest comparison operators
+- D-pad UP/DOWN to see all branches
+- Hold RT to highlight which branch executes
+"""
+
+[challenges]
+starter = "if_check_positive"
+intermediate = "if_grade_calculator"
+mastery = "if_rpg_damage_system"
+
+[fun_factor]
+type = "control_flow"
+description = "Like choosing different actions based on player state"
+examples = ["damage calculations", "level requirements", "item effects", "AI decisions"]
+
+[adaptive]
+weakness_signals = ["using_single_equals", "wrong_operator", "unreachable_branches"]
+strength_indicators = ["proper_elif_order", "logical_operators", "clean_nesting"]
+
+[examples]
+basic = '''
+# Simple health check
+hp = 45
+
+if hp > 50:
+    print("💚 Healthy")
+else:
+    print("❤️ Low health")
+
+# Check item requirements
+player_level = 10
+item_level = 15
+
+if player_level >= item_level:
+    print("You can equip this item!")
+else:
+    print(f"Need level {item_level}")
+'''
+
+advanced = '''
+# Damage calculation with multiple factors
+def calculate_damage(attack, defense, is_critical, has_buff):
+    damage = attack - defense
+
+    if damage < 0:
+        damage = 0
+
+    if is_critical:
+        damage *= 2
+        print("💥 Critical hit!")
+
+    if has_buff:
+        damage = int(damage * 1.5)
+        print("⚡ Buffed!")
+
+    return damage
+
+# Nested conditions for complex logic
+player_gold = 150
+item_price = 100
+inventory_space = 0
+
+if player_gold >= item_price:
+    if inventory_space > 0:
+        print("Purchase successful!")
+        player_gold -= item_price
+    else:
+        print("Inventory full!")
+else:
+    print(f"Need {item_price - player_gold} more gold")
+'''
+
+[common_mistakes]
+mistake_1 = "Using = (assignment) instead of == (comparison): if x = 5"
+mistake_2 = "Forgetting colons: if x > 5 (missing :)"
+mistake_3 = "Not indenting the code block after if/elif/else"
+
+[fun_facts]
+fact_1 = "Python's if syntax is inspired by ABC, a teaching language from the 1980s"
+fact_2 = "You can use ternary: result = 'yes' if x > 0 else 'no'"
+fact_3 = "Python is one of few languages where 'else' can be used with loops!"

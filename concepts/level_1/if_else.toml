@@ -1,0 +1,89 @@
+# Level 1: If/Else
+# Prerequisite for: if_elif_else, boolean_logic
+
+[concept]
+id = "if_else_basics"
+name = "If/Else: Making Decisions"
+level = 1
+prerequisites = ["types_basics", "boolean_logic"]
+unlocks = ["if_elif_else", "while_loops"]
+
+[description]
+brief = "Make your code choose between two paths"
+detailed = """
+Sometimes code needs to make decisions. If/else is like a fork in the road.
+
+```python
+age = 18
+if age >= 18:
+    print("You can vote!")
+else:
+    print("Not old enough yet")
+```
+
+The code takes ONE path, never both.
+"""
+
+[examples]
+basic = """
+# Simple decision
+is_raining = True
+if is_raining:
+    print("Bring an umbrella")
+else:
+    print("Enjoy the sunshine")
+"""
+
+advanced = """
+# Nested decisions
+has_key = True
+door_locked = False
+
+if has_key:
+    if door_locked:
+        print("Unlocking door...")
+    else:
+        print("Door already unlocked")
+    print("Opening door")
+else:
+    print("Need to find the key")
+"""
+
+[syntax]
+condition = "if condition: (must end with colon)"
+indentation = "Code inside if/else MUST be indented (4 spaces)"
+else_optional = "else: is optional - you can have just if"
+
+[common_mistakes]
+missing_colon = "if x > 5  # Missing colon! Should be: if x > 5:"
+no_indentation = "Code after if must be indented or Python won't know it's part of the if"
+assignment_vs_comparison = "if x = 5: is WRONG. Use if x == 5: (double equals for comparison)"
+empty_block = "Can't leave if/else empty. Use 'pass' as placeholder if needed"
+
+[fun_facts]
+pass_keyword = "Use 'pass' when you want an empty if block: if x: pass"
+truthiness = "Python treats empty things as False: empty list [], empty string '', 0"
+ternary = "One-line if: result = 'yes' if condition else 'no'"
+
+[gamepad_tutorial]
+text = """
+🎮 DECISION MAKER:
+- Press A to create if statement
+- Press B to add else block
+- D-pad UP/DOWN to navigate between branches
+- RT (analog) to toggle between True/False for testing
+"""
+
+[challenges]
+starter = "if_else_basic_check"
+intermediate = "if_else_nested"
+mastery = "if_else_game_logic"
+
+[fun_factor]
+type = "branching"
+description = "Choose your own adventure - code edition"
+examples = ["password checker", "age gatekeeper", "game decision tree"]
+
+[adaptive]
+weakness_signals = ["indentation_error", "missing_colon", "assignment_in_condition"]
+strength_indicators = ["clean_nesting", "appropriate_conditions", "proper_indentation"]

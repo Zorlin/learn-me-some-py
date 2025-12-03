@@ -1,0 +1,296 @@
+# Challenge: Configuration File Parser
+# Parse nested structures with validation and error handling
+
+[challenge]
+id = "config_parser"
+name = "Build a Config Parser"
+level = 4
+prerequisites = ["dictionaries_advanced", "string_manipulation", "error_handling", "recursion_basics"]
+
+[description]
+brief = "Parse a custom config format into nested dictionaries with validation"
+detailed = """
+You're building a configuration parser for an application.
+
+INPUT: Multi-line string in custom format:
+```
+[database]
+host = localhost
+port = 5432
+
+[server]
+host = 0.0.0.0
+port = 8080
+debug = true
+
+[server.ssl]
+enabled = true
+cert = /path/to/cert
+```
+
+RULES:
+1. [section] starts a new section (creates dict key)
+2. [section.subsection] creates nested dict
+3. key = value pairs go under current section
+4. Values: numbers (int/float), "true"/"false" (bool), or strings
+5. Empty lines and leading/trailing whitespace are ignored
+6. Invalid syntax returns {"error": "description"}
+
+OUTPUT: Nested dictionary:
+```python
+{
+    "database": {"host": "localhost", "port": 5432},
+    "server": {
+        "host": "0.0.0.0",
+        "port": 8080,
+        "debug": True,
+        "ssl": {"enabled": True, "cert": "/path/to/cert"}
+    }
+}
+```
+
+This is how tools like TOML, INI, and config parsers work.
+"""
+
+[skeleton]
+code = '''
+def solution(config_text):
+    """
+    Parse custom config format into nested dictionary.
+
+    Args:
+        config_text: str - multi-line config string
+
+    Returns:
+        dict - parsed configuration
+        OR {"error": "description"} if invalid syntax
+    """
+    # Your code here
+    pass
+'''
+
+[tests]
+[[tests.case]]
+name = "simple_flat"
+input = """
+[app]
+name = myapp
+version = 1.0
+"""
+expected = {"app": {"name": "myapp", "version": "1.0"}}
+
+[[tests.case]]
+name = "type_conversion"
+input = """
+[settings]
+count = 42
+ratio = 3.14
+enabled = true
+disabled = false
+"""
+expected = {"settings": {"count": 42, "ratio": 3.14, "enabled": true, "disabled": false}}
+
+[[tests.case]]
+name = "nested_sections"
+input = """
+[server]
+host = localhost
+
+[server.ssl]
+enabled = true
+port = 443
+
+[database]
+url = postgres://localhost
+"""
+expected = {
+    "server": {
+        "host": "localhost",
+        "ssl": {"enabled": true, "port": 443}
+    },
+    "database": {"url": "postgres://localhost"}
+}
+
+[[tests.case]]
+name = "missing_section"
+input = "key = value"
+expected = {"error": "key before section"}
+
+[[tests.case]]
+name = "invalid_line"
+input = """
+[app]
+this is not valid syntax
+"""
+expected = {"error": "invalid line: this is not valid syntax"}
+
+[[tests.case]]
+name = "realistic_config"
+input = """
+[database]
+host = db.example.com
+port = 5432
+name = production
+
+[redis]
+host = cache.example.com
+port = 6379
+timeout = 5.0
+
+[server]
+host = 0.0.0.0
+port = 8080
+workers = 4
+
+[server.logging]
+level = info
+file = /var/log/app.log
+"""
+expected = {
+    "database": {"host": "db.example.com", "port": 5432, "name": "production"},
+    "redis": {"host": "cache.example.com", "port": 6379, "timeout": 5.0},
+    "server": {
+        "host": "0.0.0.0",
+        "port": 8080,
+        "workers": 4,
+        "logging": {"level": "info", "file": "/var/log/app.log"}
+    }
+}
+
+[hints]
+level_1 = "Split by lines, track current section as you parse"
+level_2 = "For nested sections like [a.b.c], navigate to nested dicts"
+level_3 = "Type conversion: try int(), try float(), check 'true'/'false', else string"
+level_4 = """
+Parser Pattern:
+```python
+config = {}
+current_section = None
+
+for line in config_text.strip().split('\\n'):
+    line = line.strip()
+    if not line:
+        continue
+
+    if line.startswith('[') and line.endswith(']'):
+        # Parse section name (handle nested sections)
+        section_path = line[1:-1].split('.')
+        # Navigate to nested dict, creating as needed
+        current_section = config
+        for part in section_path:
+            if part not in current_section:
+                current_section[part] = {}
+            current_section = current_section[part]
+    elif '=' in line:
+        # Parse key = value
+        key, value = line.split('=', 1)
+        key = key.strip()
+        value = value.strip()
+        # Type conversion logic
+        current_section[key] = convert_value(value)
+```
+"""
+
+[gamepad_hints]
+easy_mode = """
+🎮 CONFIG PARSER MODE:
+1. Press A to see line-by-line parsing visualization
+2. Press X to step through section navigation
+3. Press Y to see type conversion logic
+4. Hold RT when confused to see full pattern
+"""
+
+[solution]
+code = '''
+def solution(config_text):
+    def convert_value(value):
+        # Try int
+        try:
+            return int(value)
+        except ValueError:
+            pass
+
+        # Try float
+        try:
+            return float(value)
+        except ValueError:
+            pass
+
+        # Check boolean
+        if value == "true":
+            return True
+        if value == "false":
+            return False
+
+        # Default to string
+        return value
+
+    config = {}
+    current_section = None
+
+    for line_num, line in enumerate(config_text.strip().split('\\n'), 1):
+        line = line.strip()
+        if not line:
+            continue
+
+        # Section header
+        if line.startswith('[') and line.endswith(']'):
+            section_path = line[1:-1].split('.')
+            current_section = config
+            for part in section_path:
+                if part not in current_section:
+                    current_section[part] = {}
+                current_section = current_section[part]
+
+        # Key-value pair
+        elif '=' in line:
+            if current_section is None:
+                return {"error": "key before section"}
+
+            key, value = line.split('=', 1)
+            key = key.strip()
+            value = value.strip()
+            current_section[key] = convert_value(value)
+
+        # Invalid line
+        else:
+            return {"error": f"invalid line: {line}"}
+
+    return config
+'''
+
+[meta]
+time_limit_seconds = 900   # 15 minutes
+speed_run_target = 240     # 4 minutes
+points = 150
+next_challenge = "json_validator"
+
+[adaptive]
+fun_factor = "builder"
+weakness_signals = ["type_conversion_bugs", "nested_section_errors", "missing_error_handling"]
+project_themes = ["config_management", "toml_parser", "settings_loader", "environment_config"]
+
+[emotional_checkpoints]
+after_first_test_pass = """
+🎮 Simple parsing works! Nice structure.
+   [RT] if you're feeling good about this
+"""
+after_nested_pass = """
+🎮 Nested sections working! That's the tricky part.
+   How's the recursion treating you?
+   [RT] Making sense  |  [LT] Still fuzzy
+"""
+after_completion = """
+🎮 PARSER COMPLETE!
+
+You just built the core of configuration systems like:
+- TOML parsers
+- INI file readers
+- Environment config loaders
+- Application settings systems
+
+Real developers use this pattern CONSTANTLY.
+
+How satisfying was that?
+[RT] Very rewarding  |  [LT] Brain hurts  |  [Y] Want to build more parsers
+"""

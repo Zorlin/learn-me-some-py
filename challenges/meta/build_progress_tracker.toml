@@ -1,0 +1,207 @@
+# Meta-Challenge: Build the Progress Tracker
+# XP, mastery levels, skill trees - you're building the RPG progression!
+
+[challenge]
+id = "meta_build_progress_tracker"
+name = "Meta: Build Progress Tracking"
+level = 6
+prerequisites = ["dataclasses", "json_serialization", "datetime_handling"]
+
+[description]
+brief = "Build the XP and mastery system that tracks player progress"
+detailed = """
+Every XP point you earned. Every mastery level you gained. Every skill you unlocked.
+All tracked by the system YOU'RE BUILDING NOW.
+
+The progress tracker maintains:
+- Mastery levels (0-4) per concept
+- Total XP earned
+- Challenges completed
+- Skills unlocked
+- Persistence (save/load)
+
+Build the progress tracking system that powers LMSP progression.
+"""
+
+[skeleton]
+code = '''
+from dataclasses import dataclass, field
+import json
+from pathlib import Path
+
+@dataclass
+class PlayerProgress:
+    """Player progression through LMSP curriculum."""
+    player_id: str
+    total_xp: int = 0
+    mastery_levels: dict[str, int] = field(default_factory=dict)  # concept -> 0-4
+    challenges_completed: list[str] = field(default_factory=list)
+
+    def earn_xp(self, amount: int):
+        """Award XP to the player."""
+        pass
+
+    def complete_challenge(self, challenge_id: str, concept: str, xp_reward: int):
+        """
+        Record challenge completion.
+        - Add to completed list
+        - Award XP
+        - Increase mastery level for concept
+        """
+        pass
+
+    def get_mastery(self, concept: str) -> int:
+        """Get mastery level (0-4) for a concept."""
+        pass
+
+    def save(self, path: Path):
+        """Save progress to JSON file."""
+        pass
+
+    @classmethod
+    def load(cls, path: Path) -> "PlayerProgress":
+        """Load progress from JSON file."""
+        pass
+'''
+
+[tests]
+[[tests.case]]
+name = "earn_xp"
+input = ["player1", 100]
+expected = {"total_xp": 100}
+
+[[tests.case]]
+name = "complete_challenge_increases_mastery"
+input = ["lists_basics", "lists", 50]
+expected = {"mastery_increased": true, "xp_earned": 50}
+
+[[tests.case]]
+name = "mastery_caps_at_4"
+input = [
+    ["challenge1", "concept1", 100],
+    ["challenge2", "concept1", 100],
+    ["challenge3", "concept1", 100],
+    ["challenge4", "concept1", 100],
+    ["challenge5", "concept1", 100]
+]
+expected = {"max_mastery": 4}
+
+[hints]
+level_1 = "Store mastery levels in a dict mapping concept -> int (0-4)"
+level_2 = "Track completed challenges in a list to avoid duplicates"
+level_3 = "Use json.dumps() and json.loads() for save/load"
+level_4 = """
+Pattern:
+```python
+def complete_challenge(self, challenge_id: str, concept: str, xp_reward: int):
+    if challenge_id not in self.challenges_completed:
+        self.challenges_completed.append(challenge_id)
+        self.earn_xp(xp_reward)
+
+        # Increase mastery (cap at 4)
+        current = self.mastery_levels.get(concept, 0)
+        self.mastery_levels[concept] = min(4, current + 1)
+
+def save(self, path: Path):
+    data = {
+        "player_id": self.player_id,
+        "total_xp": self.total_xp,
+        "mastery_levels": self.mastery_levels,
+        "challenges_completed": self.challenges_completed
+    }
+    path.write_text(json.dumps(data, indent=2))
+```
+"""
+
+[gamepad_hints]
+easy_mode = """
+🎮 RPG MECHANICS UNLOCKED!
+You're building the progression system.
+Every level up, every mastery gain - tracked by THIS.
+"""
+
+[solution]
+code = '''
+from dataclasses import dataclass, field
+import json
+from pathlib import Path
+
+@dataclass
+class PlayerProgress:
+    player_id: str
+    total_xp: int = 0
+    mastery_levels: dict[str, int] = field(default_factory=dict)
+    challenges_completed: list[str] = field(default_factory=list)
+
+    def earn_xp(self, amount: int):
+        self.total_xp += amount
+
+    def complete_challenge(self, challenge_id: str, concept: str, xp_reward: int):
+        if challenge_id not in self.challenges_completed:
+            self.challenges_completed.append(challenge_id)
+            self.earn_xp(xp_reward)
+
+            current = self.mastery_levels.get(concept, 0)
+            self.mastery_levels[concept] = min(4, current + 1)
+
+    def get_mastery(self, concept: str) -> int:
+        return self.mastery_levels.get(concept, 0)
+
+    def save(self, path: Path):
+        data = {
+            "player_id": self.player_id,
+            "total_xp": self.total_xp,
+            "mastery_levels": self.mastery_levels,
+            "challenges_completed": self.challenges_completed
+        }
+        path.write_text(json.dumps(data, indent=2))
+
+    @classmethod
+    def load(cls, path: Path) -> "PlayerProgress":
+        data = json.loads(path.read_text())
+        return cls(**data)
+'''
+
+[meta]
+time_limit_seconds = 600
+speed_run_target = 180
+points = 400
+is_meta_challenge = true
+lmsp_component = "lmsp/progression/xp.py"
+teaching_philosophy = """
+Building progress tracking teaches:
+- State management (tracking mutable state)
+- Data persistence (save/load patterns)
+- Dataclasses with mutable defaults (default_factory!)
+- JSON serialization for simple persistence
+- Gamification mechanics
+
+Every XP notification, every "Mastery increased!" message,
+every skill unlock - powered by this code.
+
+You're building the dopamine loop that kept you engaged.
+"""
+
+[adaptive]
+fun_factor = "collection"
+weakness_signals = ["mutable_default_bug", "json_serialization_error", "mastery_overflow"]
+project_themes = ["game_progression", "user_state", "achievement_systems"]
+
+[emotional_checkpoints]
+after_first_test_pass = """
+🎮 XP system online! Players can earn points and track mastery.
+   [RT] Building progression feels good  |  [LT] JSON is tricky
+"""
+after_completion = """
+🎮 PROGRESSION SYSTEM COMPLETE!
+
+Level up! XP: +500
+Mastery gained in: Meta-Programming
+
+You've built the system that tracks your progress.
+This code tracked ITSELF being built.
+
+Recursive achievement unlocked.
+
+   [RT] I love RPG mechanics  |  [LT] Need more XP  |  [Y] Show my stats
+"""

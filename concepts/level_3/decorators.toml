@@ -1,0 +1,272 @@
+# Level 3: Decorators
+# Prerequisite for: advanced patterns, metaprogramming
+
+[concept]
+id = "decorators"
+name = "Decorators: Modify Functions Magically"
+level = 3
+category = "advanced"
+prerequisites = ["functions"]
+unlocks = ["dataclasses", "property", "advanced_oop"]
+
+[description]
+brief = "Wrap functions to add extra behavior without changing their code"
+detailed = """
+Decorators let you modify how functions work by wrapping them.
+It's like adding mods to a game - the original is still there,
+but with extra features.
+
+```python
+@timer
+def slow_calculation():
+    # Some heavy computation
+    pass
+
+# Same as:
+# slow_calculation = timer(slow_calculation)
+```
+
+Decorators let you:
+- Add logging to functions
+- Measure performance
+- Cache results
+- Validate inputs
+- Register functions
+"""
+
+[syntax]
+basic = """
+@decorator_name
+def function():
+    pass
+"""
+
+with_args = """
+@decorator_with_args(arg1, arg2)
+def function():
+    pass
+"""
+
+multiple = """
+@decorator1
+@decorator2
+def function():
+    pass
+"""
+
+manual = """
+# Same as @decorator
+def function():
+    pass
+function = decorator(function)
+"""
+
+[examples]
+basic = """
+def debug(func):
+    '''Print when function is called'''
+    def wrapper(*args, **kwargs):
+        print(f"Calling {func.__name__}")
+        result = func(*args, **kwargs)
+        print(f"{func.__name__} returned {result}")
+        return result
+    return wrapper
+
+@debug
+def add(a, b):
+    return a + b
+
+add(2, 3)
+# Output:
+# Calling add
+# add returned 5
+"""
+
+advanced = """
+import time
+
+def timer(func):
+    '''Measure function execution time'''
+    def wrapper(*args, **kwargs):
+        start = time.time()
+        result = func(*args, **kwargs)
+        elapsed = time.time() - start
+        print(f"{func.__name__} took {elapsed:.4f}s")
+        return result
+    return wrapper
+
+@timer
+def generate_world():
+    time.sleep(0.1)  # Simulate work
+    return "World generated"
+
+world = generate_world()
+# Output: generate_world took 0.1002s
+"""
+
+real_world = """
+# Game event system using decorators
+class EventSystem:
+    def __init__(self):
+        self.handlers = {}
+
+    def on(self, event_name):
+        '''Decorator to register event handlers'''
+        def decorator(func):
+            if event_name not in self.handlers:
+                self.handlers[event_name] = []
+            self.handlers[event_name].append(func)
+            return func
+        return decorator
+
+    def trigger(self, event_name, *args, **kwargs):
+        '''Trigger all handlers for an event'''
+        if event_name in self.handlers:
+            for handler in self.handlers[event_name]:
+                handler(*args, **kwargs)
+
+events = EventSystem()
+
+@events.on('player_died')
+def show_game_over(player):
+    print(f"GAME OVER - {player.name}")
+
+@events.on('player_died')
+def save_score(player):
+    print(f"Final score: {player.score}")
+
+# Trigger event
+events.trigger('player_died', player=Player("Hero", 0))
+"""
+
+[common_decorators]
+staticmethod = "@staticmethod - Method doesn't need self"
+classmethod = "@classmethod - Method gets class, not instance"
+property = "@property - Make method look like attribute"
+dataclass = "@dataclass - Auto-generate __init__ and __repr__"
+lru_cache = "@lru_cache - Cache function results"
+
+[common_mistakes]
+forgetting_return = """
+# WRONG: Doesn't return wrapper
+def broken(func):
+    def wrapper():
+        print("Before")
+        func()
+    # Missing return!
+
+# RIGHT: Return the wrapper
+def works(func):
+    def wrapper():
+        print("Before")
+        func()
+    return wrapper
+"""
+
+losing_metadata = """
+# WRONG: Wrapper loses original function info
+def timer(func):
+    def wrapper(*args, **kwargs):
+        return func(*args, **kwargs)
+    return wrapper
+
+# RIGHT: Preserve metadata with functools
+from functools import wraps
+
+def timer(func):
+    @wraps(func)  # Preserves func's name, docstring, etc.
+    def wrapper(*args, **kwargs):
+        return func(*args, **kwargs)
+    return wrapper
+"""
+
+args_kwargs = """
+# WRONG: Decorator doesn't handle arguments
+def debug(func):
+    def wrapper():  # No args!
+        return func()
+
+# RIGHT: Use *args, **kwargs
+def debug(func):
+    def wrapper(*args, **kwargs):
+        return func(*args, **kwargs)
+    return wrapper
+"""
+
+[decorator_patterns]
+simple = """
+def decorator(func):
+    def wrapper(*args, **kwargs):
+        # Do something before
+        result = func(*args, **kwargs)
+        # Do something after
+        return result
+    return wrapper
+"""
+
+with_arguments = """
+def repeat(times):
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            for _ in range(times):
+                func(*args, **kwargs)
+        return wrapper
+    return decorator
+
+@repeat(3)
+def greet():
+    print("Hello!")
+"""
+
+class_decorator = """
+class Counter:
+    def __init__(self, func):
+        self.func = func
+        self.count = 0
+
+    def __call__(self, *args, **kwargs):
+        self.count += 1
+        print(f"Call {self.count} to {self.func.__name__}")
+        return self.func(*args, **kwargs)
+
+@Counter
+def say_hello():
+    print("Hello!")
+"""
+
+[gotchas]
+order_matters = "Decorators are applied bottom-up: @a @b @c def f() → a(b(c(f)))"
+metadata_loss = "Use @wraps from functools to preserve function metadata"
+closure = "Wrapper has access to decorator's variables (closure)"
+performance = "Each decorator call adds overhead"
+
+[gamepad_tutorial]
+text = """
+🎮 DECORATOR MODE:
+- Press Y to add decorator
+- Press A to create custom decorator
+- Press X to remove decorator
+- RB suggests decorators based on context
+- LB shows common decorators
+- Hold RT to see decorator effect
+"""
+
+[challenges]
+starter = "decorators_simple_logger"
+intermediate = "decorators_timer"
+mastery = "decorators_event_system"
+
+[fun_facts]
+syntactic_sugar = "@decorator is syntactic sugar for: func = decorator(func)"
+builtin_decorators = "Python has built-in decorators: @staticmethod, @property, @dataclass"
+stacking = "You can stack decorators - they apply from bottom to top"
+classes_too = "Decorators work on classes too, not just functions!"
+
+[fun_factor]
+type = "metaprogramming"
+description = "Add superpowers to your functions"
+examples = ["@cache for speed", "@validate for safety", "@timer for profiling"]
+
+[adaptive]
+weakness_signals = ["missing_return", "lost_metadata", "arg_handling_errors"]
+strength_indicators = ["proper_wraps", "clean_decorators", "good_use_cases"]

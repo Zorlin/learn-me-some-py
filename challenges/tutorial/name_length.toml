@@ -1,0 +1,130 @@
+# Challenge: Name Length
+# Discover built-in functions
+
+[challenge]
+id = "name_length"
+name = "Name Length"
+level = 1
+prerequisites = ["temperature_converter"]
+
+[description]
+brief = "Find the length of your name"
+detailed = """
+Python has superpowers built in - they're called "functions".
+
+You've used print() and round(). Now meet len()!
+
+len() tells you how many characters are in a string.
+
+Your mission:
+1. Create a variable 'name' with any name
+2. Find its length using len()
+3. Print: "Your name has X letters"
+
+Replace X with the actual length!
+"""
+
+[skeleton]
+code = '''
+# Set your name
+name = "Alice"
+
+# Find the length
+length =
+
+# Print the result
+print()
+'''
+
+[tests]
+[[tests.case]]
+name = "alice"
+input = []
+setup = 'name = "Alice"'
+expected = ["Your name has 5 letters"]
+
+[[tests.case]]
+name = "bob"
+input = []
+setup = 'name = "Bob"'
+expected = ["Your name has 3 letters"]
+
+[[tests.case]]
+name = "wings"
+input = []
+setup = 'name = "Wings"'
+expected = ["Your name has 5 letters"]
+
+[hints]
+level_1 = "Use len(name) to get the length"
+level_2 = "Store it: length = len(name)"
+level_3 = "Print with f-string: print(f\"Your name has {length} letters\")"
+level_4 = """
+Complete solution:
+```python
+name = "Alice"
+length = len(name)
+print(f"Your name has {length} letters")
+```
+
+len() works on any string - it counts the characters!
+"""
+
+[gamepad_hints]
+easy_mode = """
+🎮 CONTROLLER GUIDE:
+1. Set name = "Alice"
+2. Get length: length = len(name)
+3. Print: f"Your name has {length} letters"
+
+len() is a superpower - it counts ANYTHING!
+"""
+
+[solution]
+code = '''
+name = "Alice"
+length = len(name)
+print(f"Your name has {length} letters")
+'''
+
+[meta]
+time_limit_seconds = 300
+speed_run_target = 45
+points = 100
+next_challenge = "favorite_things"
+
+[adaptive]
+fun_factor = "discovery"
+weakness_signals = ["forgot_len", "wrong_format_string", "hardcoded_number"]
+project_themes = ["text_analysis", "password_validators", "tweet_counters", "form_validation"]
+
+[emotional_checkpoints]
+after_first_test_pass = """
+📏 Length detected! len() is working!
+   [RT] for that discovery high
+"""
+after_completion = """
+🔧 Function unlocked: len()
+
+Python has HUNDREDS of built-in functions.
+Each one is a tool in your toolbox.
+
+You just learned how to:
+- Call functions
+- Pass them arguments
+- Use their results
+
+Every expert function user started here.
+
+[RT] I love built-ins! | [LT] Show me more | [Y] What other functions exist?
+"""
+
+# Self-teaching note:
+#
+# This file demonstrates:
+# - Built-in functions (Level 1)
+# - len() function specifically (Level 1)
+# - Function arguments and return values (Level 1)
+# - f-strings with variables (Level 1)
+#
+# The learner discovers that Python gives them ready-made tools.

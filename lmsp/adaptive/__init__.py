@@ -10,16 +10,10 @@ The brain that learns YOUR brain.
 - Project-driven: Generate curriculum from your goals
 """
 
-from lmsp.adaptive.engine import AdaptiveEngine
-from lmsp.adaptive.spaced import SpacedRepetitionScheduler
-from lmsp.adaptive.fun import FunTracker
-from lmsp.adaptive.weakness import WeaknessDetector
-from lmsp.adaptive.project import ProjectCurriculumGenerator
+from lmsp.adaptive.engine import AdaptiveEngine, LearnerProfile, AdaptiveRecommendation
 
 __all__ = [
     "AdaptiveEngine",
-    "SpacedRepetitionScheduler",
-    "FunTracker",
-    "WeaknessDetector",
-    "ProjectCurriculumGenerator",
+    "LearnerProfile",
+    "AdaptiveRecommendation",
 ]

@@ -1,0 +1,149 @@
+# Level 2: For Loops
+# Prerequisite for: list comprehensions, iteration patterns, algorithms
+
+[concept]
+id = "for_loops"
+name = "For Loops: Do Something For Each Item"
+level = 2
+prerequisites = ["lists_basics"]
+
+[description]
+brief = "Repeat code for every item in a collection"
+detailed = """
+A for loop lets you do something with every item in a list, string, or other collection.
+Think "for each item in my backpack, print its name".
+
+```python
+items = ["sword", "shield", "potion"]
+for item in items:
+    print(f"You have: {item}")
+
+# Output:
+# You have: sword
+# You have: shield
+# You have: potion
+```
+"""
+
+[patterns]
+basic_iteration = '''
+for item in collection:
+    # Do something with item
+'''
+with_range = '''
+for i in range(10):      # 0 to 9
+    print(i)
+
+for i in range(5, 10):   # 5 to 9
+    print(i)
+
+for i in range(0, 10, 2): # 0, 2, 4, 6, 8
+    print(i)
+'''
+with_enumerate = '''
+items = ["sword", "bow", "staff"]
+for index, item in enumerate(items):
+    print(f"{index}: {item}")
+# Output:
+# 0: sword
+# 1: bow
+# 2: staff
+'''
+with_dict = '''
+player = {"name": "Kira", "hp": 100, "level": 5}
+
+# Loop over keys
+for key in player:
+    print(key, player[key])
+
+# Loop over key-value pairs
+for key, value in player.items():
+    print(f"{key}: {value}")
+'''
+
+[gotchas]
+modifying_while_iterating = """
+DON'T modify a list while looping over it:
+items = [1, 2, 3, 4]
+for item in items:
+    if item % 2 == 0:
+        items.remove(item)  # DANGER! Skips items
+
+DO: Create a new list or iterate over a copy:
+items = [1, 2, 3, 4]
+items = [x for x in items if x % 2 != 0]  # Better!
+"""
+range_confusion = """
+range(10) goes from 0 to 9, NOT 1 to 10!
+range(1, 11) gives you 1 to 10
+"""
+loop_variable_scope = """
+The loop variable persists after the loop:
+for i in range(3):
+    pass
+print(i)  # 2 (last value)
+"""
+
+[gamepad_tutorial]
+text = """
+🎮 EASY MODE:
+- Press Y to start a for loop on highlighted collection
+- Press RB to add enumerate() or .items()
+- D-pad DOWN to see iteration step-by-step
+- Hold RT for "fast iteration" visualization
+"""
+
+[challenges]
+starter = "for_print_list"
+intermediate = "for_sum_numbers"
+mastery = "for_nested_grid"
+
+[fun_factor]
+type = "control_flow"
+description = "Like processing every enemy on screen or every item in inventory"
+examples = ["damage all enemies", "heal all party members", "render game objects"]
+
+[adaptive]
+weakness_signals = ["modifying_while_iterating", "range_off_by_one", "nested_loop_confusion"]
+strength_indicators = ["enumerate_usage", "proper_range", "clean_iteration"]
+
+[examples]
+basic = '''
+# Deal damage to all enemies
+enemies = ["goblin", "orc", "troll"]
+for enemy in enemies:
+    print(f"Attacking {enemy}!")
+    # damage_enemy(enemy)
+'''
+
+advanced = '''
+# Count item quantities in inventory
+inventory = ["potion", "sword", "potion", "shield", "potion"]
+counts = {}
+for item in inventory:
+    counts[item] = counts.get(item, 0) + 1
+
+print(counts)  # {'potion': 3, 'sword': 1, 'shield': 1}
+
+# 2D grid iteration (nested loops)
+grid = [
+    [".", ".", "X"],
+    [".", "X", "."],
+    ["X", ".", "."]
+]
+
+for row_idx, row in enumerate(grid):
+    for col_idx, cell in enumerate(row):
+        if cell == "X":
+            print(f"Enemy at ({row_idx}, {col_idx})")
+'''
+
+[common_mistakes]
+mistake_1 = "Modifying a list while iterating over it - causes skipped items"
+mistake_2 = "Using range(10) and expecting it to include 10"
+mistake_3 = "Not using enumerate() when you need both index and item"
+
+[fun_facts]
+fact_1 = "Python's for loops work on ANY iterable - lists, strings, files, ranges, etc!"
+fact_2 = "The 'for' name comes from FORTRAN's 'DO 10 I = 1, 100' loops from the 1950s"
+fact_3 = "You can loop backwards: for i in range(10, 0, -1)"

@@ -1,0 +1,114 @@
+# Level 0: Numbers
+# Python can do math!
+
+[concept]
+id = "numbers"
+name = "Numbers: Integers and Floats"
+level = 0
+prerequisites = ["variables"]
+
+[description]
+brief = "Work with whole numbers (int) and decimal numbers (float)"
+detailed = """
+Python has two main types of numbers:
+
+**Integers (int)** - Whole numbers
+```python
+lives = 3
+score = 1000
+level = 1
+```
+
+**Floats (float)** - Numbers with decimal points
+```python
+health = 95.5
+speed = 2.3
+temperature = -40.0
+```
+
+Both work with math operations!
+"""
+
+[types]
+integers = """
+Whole numbers: ..., -2, -1, 0, 1, 2, 3, ...
+
+count = 10
+age = 25
+year = 2024
+"""
+floats = """
+Decimal numbers: 3.14, -0.5, 100.0
+
+pi = 3.14159
+half = 0.5
+money = 19.99
+"""
+
+[operations]
+basic_math = '''
+x = 10
+y = 3
+
+addition = x + y      # 13
+subtraction = x - y   # 7
+multiplication = x * y # 30
+division = x / y      # 3.333... (always float!)
+'''
+
+[gotchas]
+division_always_float = """
+Division ALWAYS returns a float, even if it divides evenly:
+
+print(10 / 2)   # 5.0 (not 5!)
+print(7 / 2)    # 3.5
+
+This is different from some other languages!
+"""
+integer_vs_float = """
+Adding int + float gives you float:
+
+x = 5        # int
+y = 2.5      # float
+z = x + y    # 7.5 (float!)
+
+Python automatically converts when needed.
+"""
+float_precision = """
+Floats are approximate (computer limitation):
+
+print(0.1 + 0.2)  # 0.30000000000000004
+
+This is true in ALL programming languages! It's how computers work.
+For money, use integers (cents) or specialized libraries.
+"""
+
+[gamepad_tutorial]
+text = """
+🎮 CONTROLLER MODE:
+- Press A to insert number literal
+- Press Y to create math expression template
+- Press RB for math operator suggestions
+- D-pad UP/DOWN to increment/decrement numbers
+"""
+
+[challenges]
+starter = "numbers_basic_arithmetic"
+intermediate = "numbers_calculate_average"
+mastery = "numbers_game_score_system"
+
+[fun_factor]
+type = "math"
+description = "The foundation of game logic, scoring, and simulations"
+examples = ["health points", "damage calculation", "score tracking", "timers"]
+
+[adaptive]
+weakness_signals = ["type_error_with_string", "division_confusion", "float_precision_bug"]
+strength_indicators = ["correct_operators", "appropriate_types", "good_math_logic"]
+
+[fun_facts]
+unlimited = "Python integers can be INFINITELY large! No overflow!"
+division = "Python 3 fixed division. In Python 2, 7/2 was 3. Now it's 3.5!"
+computers = "Computers store floats in binary, which is why 0.1 + 0.2 isn't exactly 0.3"
+negative = "Negative numbers work perfectly: -5 + 3 = -2"
+types = "Python has MORE number types (Decimal, Fraction, complex) for special needs!"

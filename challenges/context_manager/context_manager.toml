@@ -1,0 +1,271 @@
+# Challenge: Custom Context Manager
+# Build reusable context managers with __enter__ and __exit__
+
+[challenge]
+id = "context_manager"
+name = "Build Context Managers"
+level = 5
+prerequisites = ["classes_advanced", "error_handling", "with_statement", "exceptions"]
+
+[description]
+brief = "Create context managers for resource management using __enter__ and __exit__"
+detailed = """
+You're building robust resource management systems.
+
+Context managers ensure cleanup happens even when errors occur.
+The pattern: setup → use → cleanup (ALWAYS runs, even on exception)
+
+CREATE: A `Timer` context manager that:
+1. Records start time on entry
+2. Tracks whether code block succeeded or raised exception
+3. Records end time on exit
+4. Returns timing and status info
+
+EXAMPLE USAGE:
+```python
+with Timer() as timer:
+    # do work
+    pass
+
+print(timer.elapsed)  # Time taken
+print(timer.success)  # True if no exception, False if exception
+```
+
+INPUT: Dictionary describing scenario:
+```python
+{
+    "will_raise": False,  # Whether code block raises exception
+    "duration": 0.1       # Simulated execution time
+}
+```
+
+OUTPUT:
+```python
+{
+    "elapsed": 0.1,       # Actual time taken (approx)
+    "success": True,      # False if exception occurred
+    "exception": None     # Exception type if raised, None otherwise
+}
+```
+
+BONUS: Implement `@contextmanager` decorator version too!
+
+This is how `open()`, database connections, locks, and transactions work.
+"""
+
+[skeleton]
+code = '''
+import time
+
+class Timer:
+    """Context manager for timing and tracking code execution."""
+
+    def __init__(self):
+        self.start_time = None
+        self.end_time = None
+        self.elapsed = None
+        self.success = None
+        self.exception = None
+
+    def __enter__(self):
+        # Your code here
+        pass
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        # Your code here
+        # Return False to propagate exception, True to suppress
+        pass
+
+def solution(scenario):
+    """
+    Test Timer context manager.
+
+    Args:
+        scenario: dict with will_raise and duration
+
+    Returns:
+        dict with elapsed, success, exception
+    """
+    # Your code here
+    pass
+'''
+
+[tests]
+[[tests.case]]
+name = "successful_execution"
+input = {"will_raise": false, "duration": 0.05}
+expected = {"success": true, "exception": null}
+expected_elapsed_min = 0.04
+expected_elapsed_max = 0.10
+
+[[tests.case]]
+name = "exception_caught"
+input = {"will_raise": true, "duration": 0.02}
+expected = {"success": false, "exception": "ValueError"}
+expected_elapsed_min = 0.01
+expected_elapsed_max = 0.10
+
+[[tests.case]]
+name = "zero_duration"
+input = {"will_raise": false, "duration": 0.0}
+expected = {"success": true, "exception": null}
+
+[[tests.case]]
+name = "long_duration_success"
+input = {"will_raise": false, "duration": 0.1}
+expected = {"success": true, "exception": null}
+expected_elapsed_min = 0.08
+
+[[tests.case]]
+name = "long_duration_failure"
+input = {"will_raise": true, "duration": 0.1}
+expected = {"success": false, "exception": "ValueError"}
+expected_elapsed_min = 0.08
+
+[hints]
+level_1 = "__enter__ runs before the with block, __exit__ runs after (even on exception)"
+level_2 = "__exit__ receives (exc_type, exc_val, exc_tb) - None if no exception"
+level_3 = "Return False from __exit__ to re-raise exception, True to suppress"
+level_4 = """
+Context Manager Pattern:
+```python
+class Timer:
+    def __init__(self):
+        self.start_time = None
+        self.end_time = None
+        self.elapsed = None
+        self.success = None
+        self.exception = None
+
+    def __enter__(self):
+        self.start_time = time.time()
+        return self  # Returned to 'as' variable
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.end_time = time.time()
+        self.elapsed = self.end_time - self.start_time
+
+        if exc_type is None:
+            # No exception
+            self.success = True
+            self.exception = None
+        else:
+            # Exception occurred
+            self.success = False
+            self.exception = exc_type.__name__
+
+        # Return False to propagate exception
+        return False
+
+# Usage:
+with Timer() as timer:
+    time.sleep(0.1)
+    # maybe raise exception
+
+print(timer.elapsed, timer.success)
+```
+
+Key insight: __exit__ ALWAYS runs, making cleanup guaranteed.
+"""
+
+[gamepad_hints]
+easy_mode = """
+🎮 CONTEXT MANAGER MODE:
+1. Press A to visualize __enter__/__exit__ flow
+2. Press X to see exception handling path
+3. Press Y to step through timing logic
+4. Hold RT for full pattern
+"""
+
+[solution]
+code = '''
+import time
+
+class Timer:
+    def __init__(self):
+        self.start_time = None
+        self.end_time = None
+        self.elapsed = None
+        self.success = None
+        self.exception = None
+
+    def __enter__(self):
+        self.start_time = time.time()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.end_time = time.time()
+        self.elapsed = self.end_time - self.start_time
+
+        if exc_type is None:
+            self.success = True
+            self.exception = None
+        else:
+            self.success = False
+            self.exception = exc_type.__name__
+
+        # Don't suppress exception (return False)
+        return False
+
+def solution(scenario):
+    will_raise = scenario["will_raise"]
+    duration = scenario["duration"]
+
+    try:
+        with Timer() as timer:
+            time.sleep(duration)
+            if will_raise:
+                raise ValueError("Test exception")
+
+        return {
+            "elapsed": timer.elapsed,
+            "success": timer.success,
+            "exception": timer.exception
+        }
+    except ValueError:
+        return {
+            "elapsed": timer.elapsed,
+            "success": timer.success,
+            "exception": timer.exception
+        }
+'''
+
+[meta]
+time_limit_seconds = 900   # 15 minutes
+speed_run_target = 300     # 5 minutes
+points = 180
+next_challenge = "async_context_manager"
+
+[adaptive]
+fun_factor = "power_unlock"
+weakness_signals = ["exit_signature_wrong", "exception_handling_bugs", "cleanup_not_guaranteed"]
+project_themes = ["resource_management", "file_handling", "database_connections", "locks", "transactions"]
+
+[emotional_checkpoints]
+after_first_test_pass = """
+🎮 Context manager working! Cleanup is guaranteed.
+   [RT] if the pattern is clicking
+"""
+after_exception_pass = """
+🎮 Exception handling solid! Cleanup runs even on errors.
+   How's __exit__ feeling?
+   [RT] Makes sense  |  [LT] Still fuzzy on exception args
+"""
+after_completion = """
+🎮 CONTEXT MANAGER MASTERY!
+
+You just learned the pattern behind:
+- open() file handling
+- Database connections and transactions
+- Threading locks
+- Temporary file management
+- Resource acquisition (RAII pattern)
+
+with statements are Python's way of saying:
+"Clean up after yourself, ALWAYS, even when things go wrong."
+
+This is professional resource management.
+
+How empowering was that?
+[RT] I write safer code now  |  [LT] Need more practice  |  [Y] Show me async context managers
+"""

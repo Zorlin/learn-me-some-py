@@ -16,8 +16,8 @@ Built in Python, teaching Python, BY building itself.
 __version__ = "0.1.0"
 __author__ = "Wings"
 
-from lmsp.game import Game
-from lmsp.input import InputManager
-from lmsp.adaptive import AdaptiveEngine
+# Import only modules that exist
+from lmsp.adaptive.engine import AdaptiveEngine, LearnerProfile
+from lmsp.input.emotional import EmotionalState, EmotionalDimension
 
-__all__ = ["Game", "InputManager", "AdaptiveEngine"]
+__all__ = ["AdaptiveEngine", "LearnerProfile", "EmotionalState", "EmotionalDimension"]

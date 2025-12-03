@@ -1,0 +1,68 @@
+# Level 0: The print() Function
+# The first thing every Python programmer learns!
+
+[concept]
+id = "print_function"
+name = "print(): Say Hello to Python"
+level = 0
+prerequisites = []
+
+[description]
+brief = "Make Python talk to you!"
+detailed = """
+print() is your first superpower. It displays text on the screen.
+
+```python
+print("Hello, World!")    # Output: Hello, World!
+print("I'm learning!")    # Output: I'm learning!
+print(42)                 # Output: 42
+```
+
+You can print text (strings), numbers, or anything Python knows about.
+"""
+
+[syntax]
+basic = 'print("your message")'
+multiple = 'print("Hello", "there")  # Prints: Hello there'
+empty = 'print()  # Just prints a blank line'
+
+[gotchas]
+quotes = """
+Strings need quotes! Either "double" or 'single' quotes work.
+
+✓ print("Hello")     # Correct
+✗ print(Hello)       # Error! Python looks for a variable named Hello
+"""
+parentheses = """
+Don't forget the parentheses! In Python 3, print is a function.
+
+✓ print("Hi")        # Correct
+✗ print "Hi"         # Error! This was Python 2 syntax
+"""
+
+[gamepad_tutorial]
+text = """
+🎮 CONTROLLER MODE:
+- Press A on "print" to auto-complete print()
+- Press Y to insert a string template: print("___")
+- Press RB for print() variations
+"""
+
+[challenges]
+starter = "print_hello_world"
+intermediate = "print_three_lines"
+mastery = "print_formatted_greeting"
+
+[fun_factor]
+type = "output"
+description = "Your voice in the code! See results instantly."
+examples = ["game messages", "debug info", "story text"]
+
+[adaptive]
+weakness_signals = ["missing_quotes", "missing_parentheses", "syntax_error"]
+strength_indicators = ["clean_syntax", "creative_messages"]
+
+[fun_facts]
+history = '"Hello, World!" has been the first program for generations of programmers.'
+power = "print() can display anything Python can represent - text, numbers, even complex data!"
+tradition = "Every programming language has a way to output text. You just learned Python's!"

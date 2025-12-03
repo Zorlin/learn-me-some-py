@@ -1,0 +1,99 @@
+# Level 0: Variables
+# Store and name your data!
+
+[concept]
+id = "variables"
+name = "Variables: Naming Your Data"
+level = 0
+prerequisites = ["print_function"]
+
+[description]
+brief = "Give your data a name so you can use it again"
+detailed = """
+A variable is like a labeled box. You put something in it, and you can
+use that label to get it back later.
+
+```python
+health = 100        # Create a variable named 'health'
+name = "Player"     # Variables can hold text too
+print(health)       # Output: 100
+print(name)         # Output: Player
+```
+
+Variables remember things for you!
+"""
+
+[syntax]
+assignment = 'variable_name = value'
+examples = '''
+score = 0
+player_name = "Archer"
+is_alive = True
+level = 1
+'''
+
+[naming_rules]
+allowed = """
+✓ snake_case_names (recommended in Python!)
+✓ camelCaseNames (works but not Pythonic)
+✓ names_with_123_numbers (but not at the start!)
+✓ _leading_underscore (advanced, but valid)
+"""
+forbidden = """
+✗ 123_starts_with_number  # Must start with letter or _
+✗ my-variable             # No hyphens! Use underscores
+✗ my variable             # No spaces! Use underscores
+✗ print                   # Don't override built-in names
+"""
+
+[gotchas]
+case_sensitive = """
+Python is case-sensitive! These are THREE different variables:
+
+health = 100
+Health = 200
+HEALTH = 300
+"""
+reassignment = """
+Variables can change:
+
+lives = 3
+lives = lives - 1  # Now lives is 2
+lives = 10         # Now lives is 10 (old value gone)
+"""
+no_declaration = """
+Python doesn't need 'var' or 'let' - just assign!
+
+✓ x = 5              # Correct in Python
+✗ var x = 5          # Wrong! That's JavaScript
+✗ int x = 5          # Wrong! That's Java/C
+"""
+
+[gamepad_tutorial]
+text = """
+🎮 CONTROLLER MODE:
+- Press A on a variable name to auto-complete it
+- Press Y to create a new variable with template
+- D-pad UP to see all variables in scope
+- Press RB to suggest a good variable name
+"""
+
+[challenges]
+starter = "variables_store_name"
+intermediate = "variables_swap_values"
+mastery = "variables_game_stats"
+
+[fun_factor]
+type = "storage"
+description = "Like saving your game progress - store what matters!"
+examples = ["player stats", "inventory count", "game settings"]
+
+[adaptive]
+weakness_signals = ["invalid_name", "typo_in_variable", "wrong_case"]
+strength_indicators = ["descriptive_names", "consistent_style", "good_snake_case"]
+
+[fun_facts]
+etymology = "The word 'variable' means 'able to change' - because it can!"
+memory = "Variables are how computers remember things while your program runs."
+python_style = "Python loves snake_case names. health_points, not healthPoints!"
+power = "You can change a variable whenever you want. It's your data - you're in control!"

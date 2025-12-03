@@ -1,0 +1,367 @@
+# Level 6: Metaclasses
+# Classes that create classes - the deep magic
+
+[concept]
+id = "metaclasses"
+name = "Metaclasses: Classes for Classes"
+level = 6
+category = "meta_programming"
+prerequisites = ["classes", "inheritance", "decorators", "dunder_methods", "type_function"]
+unlocks = ["orm_design", "plugin_systems", "framework_internals"]
+
+[description]
+brief = "Control how classes themselves are created"
+detailed = """
+A metaclass is a class factory - it creates classes the way classes create objects.
+If classes are cookie cutters, metaclasses are the machines that make cookie cutters.
+
+```python
+# Every class is an instance of a metaclass
+class Dog:
+    pass
+
+print(type(Dog))  # <class 'type'>
+print(type(type)) # <class 'type'>  # type is its own metaclass!
+
+# Custom metaclass
+class SingletonMeta(type):
+    _instances = {}
+
+    def __call__(cls, *args, **kwargs):
+        if cls not in cls._instances:
+            cls._instances[cls] = super().__call__(*args, **kwargs)
+        return cls._instances[cls]
+
+class Database(metaclass=SingletonMeta):
+    def __init__(self):
+        print("Connecting to database...")
+
+db1 = Database()  # Connecting to database...
+db2 = Database()  # (nothing printed)
+print(db1 is db2)  # True - same instance!
+```
+
+Metaclasses let you:
+- Modify class attributes at creation time
+- Validate class definitions
+- Register classes automatically
+- Implement design patterns at the language level
+"""
+
+[key_concepts]
+type_is_a_metaclass = """
+`type` is the default metaclass for all classes:
+
+```python
+# These are equivalent:
+class Foo:
+    pass
+
+Foo = type('Foo', (), {})
+
+# type(name, bases, dict) creates a class
+Dog = type('Dog', (object,), {'bark': lambda self: 'Woof!'})
+spot = Dog()
+spot.bark()  # 'Woof!'
+```
+"""
+
+metaclass_parameter = """
+Use `metaclass=` to specify a custom metaclass:
+
+```python
+class MyMeta(type):
+    def __new__(mcs, name, bases, attrs):
+        # Modify the class before it's created
+        attrs['added_by_meta'] = True
+        return super().__new__(mcs, name, bases, attrs)
+
+class MyClass(metaclass=MyMeta):
+    pass
+
+print(MyClass.added_by_meta)  # True
+```
+"""
+
+new_vs_init = """
+Metaclasses use `__new__` (not `__init__`) to create classes:
+
+```python
+class Meta(type):
+    def __new__(mcs, name, bases, attrs):
+        # Called to CREATE the class
+        print(f"Creating class {name}")
+        return super().__new__(mcs, name, bases, attrs)
+
+    def __init__(cls, name, bases, attrs):
+        # Called to INITIALIZE the class
+        print(f"Initializing class {name}")
+        super().__init__(name, bases, attrs)
+
+class Foo(metaclass=Meta):
+    pass
+# Output:
+# Creating class Foo
+# Initializing class Foo
+```
+"""
+
+[patterns]
+singleton = """
+Ensure only one instance of a class exists:
+
+```python
+class Singleton(type):
+    _instances = {}
+
+    def __call__(cls, *args, **kwargs):
+        if cls not in cls._instances:
+            cls._instances[cls] = super().__call__(*args, **kwargs)
+        return cls._instances[cls]
+
+class Config(metaclass=Singleton):
+    pass
+```
+"""
+
+auto_registration = """
+Automatically register classes in a registry:
+
+```python
+class PluginMeta(type):
+    plugins = {}
+
+    def __new__(mcs, name, bases, attrs):
+        cls = super().__new__(mcs, name, bases, attrs)
+        if name != 'Plugin':  # Don't register base class
+            mcs.plugins[name] = cls
+        return cls
+
+class Plugin(metaclass=PluginMeta):
+    pass
+
+class SpellCheck(Plugin):
+    pass
+
+class Grammar(Plugin):
+    pass
+
+print(PluginMeta.plugins)  # {'SpellCheck': ..., 'Grammar': ...}
+```
+"""
+
+attribute_validation = """
+Validate class definitions at creation time:
+
+```python
+class ValidatedMeta(type):
+    def __new__(mcs, name, bases, attrs):
+        # Ensure all methods have docstrings
+        for key, value in attrs.items():
+            if callable(value) and not key.startswith('_'):
+                if not value.__doc__:
+                    raise TypeError(f"{name}.{key} missing docstring")
+        return super().__new__(mcs, name, bases, attrs)
+
+class API(metaclass=ValidatedMeta):
+    def get_user(self):  # TypeError: API.get_user missing docstring
+        pass
+```
+"""
+
+[common_mistakes]
+when_not_needed = """
+Don't use metaclasses when decorators or class decorators will work:
+
+OVERKILL (metaclass):
+```python
+class LogMeta(type):
+    def __new__(mcs, name, bases, attrs):
+        for key, val in attrs.items():
+            if callable(val):
+                attrs[key] = log_decorator(val)
+        return super().__new__(mcs, name, bases, attrs)
+```
+
+BETTER (class decorator):
+```python
+def log_all_methods(cls):
+    for key, val in vars(cls).items():
+        if callable(val):
+            setattr(cls, key, log_decorator(val))
+    return cls
+
+@log_all_methods
+class MyClass:
+    pass
+```
+"""
+
+forgetting_super = """
+WRONG:
+```python
+class MyMeta(type):
+    def __new__(mcs, name, bases, attrs):
+        attrs['foo'] = 'bar'
+        return type.__new__(mcs, name, bases, attrs)  # Bypasses other metaclasses!
+```
+
+RIGHT:
+```python
+class MyMeta(type):
+    def __new__(mcs, name, bases, attrs):
+        attrs['foo'] = 'bar'
+        return super().__new__(mcs, name, bases, attrs)  # Cooperates with inheritance
+```
+"""
+
+metaclass_conflicts = """
+Multiple inheritance with different metaclasses causes conflicts:
+
+```python
+class Meta1(type):
+    pass
+
+class Meta2(type):
+    pass
+
+class A(metaclass=Meta1):
+    pass
+
+class B(metaclass=Meta2):
+    pass
+
+class C(A, B):  # TypeError: metaclass conflict!
+    pass
+```
+
+Solution: Create a metaclass that inherits from both.
+"""
+
+[when_to_use]
+perfect_for = [
+    "ORMs (like Django's Model system)",
+    "Plugin architectures",
+    "Enforcing API contracts",
+    "Automatic registration systems",
+    "Framework internals",
+]
+
+avoid_for = [
+    "Simple class customization (use decorators)",
+    "Instance behavior (use __init__/__new__)",
+    "Anything that doesn't need class-level magic",
+]
+
+[gotchas]
+execution_order = """
+Metaclass __new__ runs BEFORE the class body:
+
+```python
+class Meta(type):
+    def __new__(mcs, name, bases, attrs):
+        print(f"Attrs: {list(attrs.keys())}")
+        return super().__new__(mcs, name, bases, attrs)
+
+class Foo(metaclass=Meta):
+    print("This runs FIRST")
+    x = 1
+    print("This runs SECOND")
+# Output:
+# This runs FIRST
+# This runs SECOND
+# Attrs: ['__module__', '__qualname__', 'x']
+```
+"""
+
+mcs_vs_cls = """
+Convention: `mcs` for metaclass, `cls` for class:
+
+```python
+class Meta(type):
+    def __new__(mcs, name, bases, attrs):
+        # mcs is the metaclass (Meta)
+        cls = super().__new__(mcs, name, bases, attrs)
+        # cls is the newly created class
+        return cls
+```
+"""
+
+[gamepad_tutorial]
+text = """
+🎮 METACLASS CHALLENGE MODE:
+- RT: Visualize class creation pipeline
+- LT: Show metaclass hierarchy
+- Y: Insert __new__ hook with template
+- A: Step through class creation
+- D-pad UP: Show what metaclass created this class
+"""
+
+[challenges]
+starter = "metaclass_simple_singleton"
+intermediate = "metaclass_auto_register_plugins"
+mastery = "metaclass_orm_field_validation"
+expert = "metaclass_build_lmsp_concept_system"
+
+[fun_factor]
+type = "meta_programming"
+description = "Changing how Python itself works"
+examples = [
+    "Build your own ORM like Django",
+    "Create a plugin system that auto-discovers plugins",
+    "Enforce coding standards at the language level",
+]
+
+[adaptive]
+weakness_signals = [
+    "using_metaclass_when_decorator_would_work",
+    "forgetting_super_call",
+    "modifying_wrong_phase",
+    "metaclass_conflict_errors",
+]
+strength_indicators = [
+    "understanding_when_to_use",
+    "proper_inheritance_cooperation",
+    "clean_separation_of_concerns",
+]
+
+[fun_facts]
+tim_peters_quote = """
+"Metaclasses are deeper magic than 99% of users should ever worry about.
+If you wonder whether you need them, you don't (the people who actually
+need them know with certainty that they need them, and don't need an
+explanation about why)."
+- Tim Peters, Python core developer
+"""
+
+django_uses_them = """
+Django's ORM uses metaclasses to turn class definitions into database tables:
+
+```python
+class User(models.Model):  # Model has a metaclass
+    name = models.CharField(max_length=100)
+    email = models.EmailField()
+
+# The metaclass turns field definitions into SQL!
+```
+"""
+
+type_is_special = """
+`type` is the only class that is its own metaclass:
+```python
+type(type) is type  # True - mind bending!
+```
+
+This makes `type` the root of Python's class system.
+"""
+
+[real_world]
+django_orm = "Model fields and database mapping"
+sqlalchemy = "Table definitions and ORM magic"
+pytest = "Test discovery and fixture injection"
+abc = "Abstract base classes (abc.ABCMeta)"
+
+[see_also]
+concepts = ["classes", "inheritance", "decorators", "dunder_methods"]
+advanced = ["descriptors", "abstract_base_classes", "__init_subclass__"]
+alternatives = ["class_decorators", "__init_subclass__"]

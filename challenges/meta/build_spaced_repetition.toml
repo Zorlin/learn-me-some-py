@@ -1,0 +1,218 @@
+# Meta-Challenge: Build Spaced Repetition Scheduler
+# The Anki-style system that helps you remember!
+
+[challenge]
+id = "meta_build_spaced_repetition"
+name = "Meta: Build Spaced Repetition"
+level = 6
+prerequisites = ["datetime_handling", "timedelta_math", "dataclasses"]
+
+[description]
+brief = "Build the Anki-style scheduler that spaces out reviews for optimal retention"
+detailed = """
+Remember how concepts magically reappeared just as you were about to forget them?
+That was spaced repetition. YOU'RE BUILDING IT NOW.
+
+Spaced repetition intervals:
+- First review: 1 hour after learning
+- Second review: 1 day later
+- Third review: 3 days later
+- Fourth review: 7 days later
+- Subsequent: Double the interval each time
+
+Build the scheduler that decides when concepts should be reviewed.
+
+This is the memory engine. The reason you REMEMBER what you learned.
+"""
+
+[skeleton]
+code = '''
+from datetime import datetime, timedelta
+from dataclasses import dataclass
+
+@dataclass
+class SpacedCard:
+    """A concept tracked by spaced repetition."""
+    concept_id: str
+    last_reviewed: datetime
+    interval: timedelta
+    review_count: int = 0
+
+def schedule_review(card: SpacedCard, success: bool) -> SpacedCard:
+    """
+    Update the card based on review success.
+
+    If success:
+        - Increase interval (1h -> 1d -> 3d -> 7d -> 14d...)
+        - Update last_reviewed to now
+        - Increment review_count
+
+    If failed:
+        - Reset interval to 1 hour
+        - Update last_reviewed to now
+        - Keep review_count same
+
+    Returns updated card.
+    """
+    # Your code here
+    pass
+
+def is_due_for_review(card: SpacedCard, now: datetime) -> bool:
+    """Check if enough time has passed since last review."""
+    # Your code here
+    pass
+'''
+
+[tests]
+[[tests.case]]
+name = "first_review_success"
+input = [{"concept_id": "lists", "interval_hours": 1, "success": true}]
+expected = {"new_interval_hours": 24}  # 1 hour -> 1 day
+
+[[tests.case]]
+name = "second_review_success"
+input = [{"concept_id": "lists", "interval_hours": 24, "success": true}]
+expected = {"new_interval_hours": 72}  # 1 day -> 3 days
+
+[[tests.case]]
+name = "review_failure_resets"
+input = [{"concept_id": "comprehensions", "interval_hours": 168, "success": false}]
+expected = {"new_interval_hours": 1}  # Reset to 1 hour
+
+[[tests.case]]
+name = "due_check"
+input = [{"last_reviewed_hours_ago": 25, "interval_hours": 24}]
+expected = {"is_due": true}
+
+[hints]
+level_1 = "Use timedelta to represent time intervals (timedelta(hours=1), timedelta(days=1))"
+level_2 = "Double the interval on success: new_interval = old_interval * 2"
+level_3 = "Check if due: (now - last_reviewed) >= interval"
+level_4 = """
+Pattern:
+```python
+def schedule_review(card: SpacedCard, success: bool) -> SpacedCard:
+    now = datetime.now()
+
+    if success:
+        # Progression: 1h -> 1d -> 3d -> 7d -> 14d...
+        if card.interval.total_seconds() < 3600:  # < 1 hour
+            new_interval = timedelta(days=1)
+        elif card.interval.days < 2:  # 1 day
+            new_interval = timedelta(days=3)
+        elif card.interval.days < 4:  # 3 days
+            new_interval = timedelta(days=7)
+        else:
+            new_interval = card.interval * 2
+
+        return SpacedCard(
+            concept_id=card.concept_id,
+            last_reviewed=now,
+            interval=new_interval,
+            review_count=card.review_count + 1
+        )
+    else:
+        # Reset on failure
+        return SpacedCard(
+            concept_id=card.concept_id,
+            last_reviewed=now,
+            interval=timedelta(hours=1),
+            review_count=card.review_count
+        )
+```
+"""
+
+[gamepad_hints]
+easy_mode = """
+🎮 MEMORY SYSTEM ACTIVATED!
+You're building the scheduler that keeps concepts fresh.
+This is why you remember Python months later.
+"""
+
+[solution]
+code = '''
+from datetime import datetime, timedelta
+from dataclasses import dataclass
+
+@dataclass
+class SpacedCard:
+    concept_id: str
+    last_reviewed: datetime
+    interval: timedelta
+    review_count: int = 0
+
+def schedule_review(card: SpacedCard, success: bool) -> SpacedCard:
+    now = datetime.now()
+
+    if success:
+        # Progression: 1h -> 1d -> 3d -> 7d -> 14d -> 28d...
+        if card.interval.total_seconds() < 3600:
+            new_interval = timedelta(days=1)
+        elif card.interval.days < 2:
+            new_interval = timedelta(days=3)
+        elif card.interval.days < 4:
+            new_interval = timedelta(days=7)
+        else:
+            new_interval = card.interval * 2
+
+        return SpacedCard(
+            concept_id=card.concept_id,
+            last_reviewed=now,
+            interval=new_interval,
+            review_count=card.review_count + 1
+        )
+    else:
+        return SpacedCard(
+            concept_id=card.concept_id,
+            last_reviewed=now,
+            interval=timedelta(hours=1),
+            review_count=card.review_count
+        )
+
+def is_due_for_review(card: SpacedCard, now: datetime) -> bool:
+    return (now - card.last_reviewed) >= card.interval
+'''
+
+[meta]
+time_limit_seconds = 600
+speed_run_target = 200
+points = 450
+is_meta_challenge = true
+lmsp_component = "lmsp/adaptive/spaced.py"
+teaching_philosophy = """
+Building spaced repetition teaches:
+- datetime and timedelta arithmetic
+- Exponential backoff patterns
+- Memory retention science
+- State machines (review states)
+- The algorithm that prevents forgetting
+
+This is MEMORY. The reason you remember what you learned.
+
+Spaced repetition is backed by cognitive science - reviewing just before
+you forget maximizes retention. You're implementing the science.
+"""
+
+[adaptive]
+fun_factor = "mastery"
+weakness_signals = ["timedelta_confusion", "interval_progression_bug", "datetime_comparison"]
+project_themes = ["flashcard_apps", "memory_systems", "learning_platforms"]
+
+[emotional_checkpoints]
+after_first_test_pass = """
+🎮 Scheduling reviews! The memory engine is working.
+   [RT] Time math is fun  |  [LT] datetime is confusing
+"""
+after_completion = """
+🧠 MEMORY SYSTEM ONLINE!
+
+You've built the algorithm that helps humans remember.
+
+Every concept that stuck in your brain longer than a day?
+This code. Spaced repetition. Cognitive science in Python.
+
+You're implementing how the brain learns.
+
+How does it feel to code memory itself?
+   [RT] Powerful beyond words  |  [LT] I'll forget this  |  [Y] Schedule my review!
+"""

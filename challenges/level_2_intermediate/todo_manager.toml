@@ -1,0 +1,168 @@
+# Challenge: TODO List Manager
+# Master list operations with a practical app
+
+[challenge]
+id = "todo_manager"
+name = "TODO List Manager"
+level = 2
+prerequisites = ["lists_basics", "string_methods", "for_loops"]
+
+[description]
+brief = "Build a TODO app with add, complete, and list features"
+detailed = """
+You're building a task management app!
+
+Commands:
+- ADD <task>: Add a task. Return "Added: <task>"
+- COMPLETE <number>: Mark task N as done. Return "Completed: <task>" or "Invalid task"
+- LIST: Return all tasks in format "1. [ ] task" or "1. [X] task"
+- PENDING: Return count of incomplete tasks as string
+- CLEAR: Remove all completed tasks. Return "Cleared N tasks"
+
+Tasks are numbered starting from 1.
+Completed tasks show [X], incomplete show [ ].
+
+Example:
+ADD Buy milk -> "Added: Buy milk"
+ADD Write code -> "Added: Write code"
+LIST -> "1. [ ] Buy milk\n2. [ ] Write code"
+COMPLETE 1 -> "Completed: Buy milk"
+LIST -> "1. [X] Buy milk\n2. [ ] Write code"
+"""
+
+[skeleton]
+code = '''
+def solution(commands):
+    # Build a TODO list manager
+    # Track tasks and their completion status
+    # Return appropriate responses
+    pass
+'''
+
+[tests]
+[[tests.case]]
+name = "basic_todo"
+input = ["ADD Buy milk", "ADD Write code", "LIST"]
+expected = ["Added: Buy milk", "Added: Write code", "1. [ ] Buy milk\n2. [ ] Write code"]
+
+[[tests.case]]
+name = "complete_task"
+input = ["ADD Task 1", "ADD Task 2", "COMPLETE 1", "LIST"]
+expected = ["Added: Task 1", "Added: Task 2", "Completed: Task 1", "1. [X] Task 1\n2. [ ] Task 2"]
+
+[[tests.case]]
+name = "invalid_complete"
+input = ["ADD Task 1", "COMPLETE 5"]
+expected = ["Added: Task 1", "Invalid task"]
+
+[[tests.case]]
+name = "pending_count"
+input = ["ADD Task 1", "ADD Task 2", "COMPLETE 1", "PENDING"]
+expected = ["Added: Task 1", "Added: Task 2", "Completed: Task 1", "1"]
+
+[[tests.case]]
+name = "clear_completed"
+input = ["ADD Task 1", "ADD Task 2", "COMPLETE 1", "CLEAR", "LIST"]
+expected = ["Added: Task 1", "Added: Task 2", "Completed: Task 1", "Cleared 1 tasks", "1. [ ] Task 2"]
+
+[[tests.case]]
+name = "empty_list"
+input = ["LIST", "PENDING"]
+expected = ["", "0"]
+
+[hints]
+level_1 = "Store tasks as a list of dictionaries: {'task': 'Buy milk', 'done': False}"
+level_2 = "For LIST, use enumerate() to get task numbers: for i, task in enumerate(tasks, 1)"
+level_3 = "Join multiple lines with \\n: '\\n'.join(lines)"
+level_4 = """
+Pattern:
+```python
+tasks = []
+for command in commands:
+    if command.startswith("ADD "):
+        task_name = command[4:]  # Everything after "ADD "
+        tasks.append({'task': task_name, 'done': False})
+    elif command.startswith("COMPLETE "):
+        num = int(command.split()[1])
+        if 1 <= num <= len(tasks):
+            tasks[num-1]['done'] = True
+```
+"""
+
+[gamepad_hints]
+easy_mode = """
+🎮 TODO MANAGER:
+1. Create tasks = [] to store task dictionaries
+2. Each task: {'task': 'name', 'done': False}
+3. For LIST, loop with enumerate(tasks, 1)
+4. Format: f"{i}. [{'X' if done else ' '}] {task}"
+5. For CLEAR, filter out done tasks
+"""
+
+[solution]
+# Hidden from player
+code = '''
+def solution(commands):
+    tasks = []
+    results = []
+
+    for command in commands:
+        if command.startswith("ADD "):
+            task_name = command[4:]
+            tasks.append({'task': task_name, 'done': False})
+            results.append(f"Added: {task_name}")
+
+        elif command.startswith("COMPLETE "):
+            num = int(command.split()[1])
+            if 1 <= num <= len(tasks):
+                task_name = tasks[num-1]['task']
+                tasks[num-1]['done'] = True
+                results.append(f"Completed: {task_name}")
+            else:
+                results.append("Invalid task")
+
+        elif command == "LIST":
+            if not tasks:
+                results.append("")
+            else:
+                lines = []
+                for i, task in enumerate(tasks, 1):
+                    status = "X" if task['done'] else " "
+                    lines.append(f"{i}. [{status}] {task['task']}")
+                results.append("\n".join(lines))
+
+        elif command == "PENDING":
+            pending = sum(1 for t in tasks if not t['done'])
+            results.append(str(pending))
+
+        elif command == "CLEAR":
+            before = len(tasks)
+            tasks = [t for t in tasks if not t['done']]
+            cleared = before - len(tasks)
+            results.append(f"Cleared {cleared} tasks")
+
+    return results
+'''
+
+[meta]
+time_limit_seconds = 900
+speed_run_target = 240
+points = 45
+xp_reward = 45
+category = "practical"
+next_challenge = "grade_calculator"
+
+[adaptive]
+fun_factor = "practical"
+weakness_signals = ["index_off_by_one", "string_slicing_confusion", "list_comprehension_needed"]
+project_themes = ["task_manager", "project_tracker", "habit_tracker", "checklist"]
+
+[emotional_checkpoints]
+after_first_test_pass = """
+🎮 Your TODO app is working! This is real software.
+   [RT] to celebrate
+"""
+after_completion = """
+🎮 TODO manager complete! You built an app people use daily.
+   [RT] Proud of this  |  [LT] Too long  |  [Y] Show me more features
+"""

@@ -1,0 +1,279 @@
+# Meta-Challenge: Build Screenshot + Wireframe System
+# Capture context, not just pixels!
+
+[challenge]
+id = "meta_build_screenshot_system"
+name = "Meta: Build Introspection Screenshots"
+level = 6
+prerequisites = ["dataclasses", "json_serialization", "ast_parsing"]
+
+[description]
+brief = "Build the screenshot system that captures FULL CONTEXT, not just pixels"
+detailed = """
+Remember typing `/screenshot` and getting not just an image, but a WIREFRAME?
+The full mental model - code, cursor position, test state, emotional state?
+
+The screenshot system captures:
+- Visual screenshot (what you see)
+- Code state (what you wrote)
+- AST (structure of code)
+- Cursor position
+- Tests passing/failing
+- Emotional state
+- Session context
+
+Build the introspection system that gave LMSP X-ray vision into your learning.
+"""
+
+[skeleton]
+code = '''
+from dataclasses import dataclass
+import ast
+from datetime import datetime
+
+@dataclass
+class Wireframe:
+    """The mental model behind a screenshot."""
+    code: str
+    ast_dump: str
+    cursor_line: int
+    cursor_col: int
+    tests_passing: int
+    tests_total: int
+    current_challenge: str
+    session_duration_seconds: float
+
+@dataclass
+class Screenshot:
+    """A screenshot with full context."""
+    timestamp: datetime
+    wireframe: Wireframe
+    player_emotion: str  # "flow", "frustrated", "confused", "engaged"
+
+def capture_wireframe(
+    code: str,
+    cursor_line: int,
+    cursor_col: int,
+    tests_passing: int,
+    tests_total: int,
+    challenge_id: str,
+    session_duration: float
+) -> Wireframe:
+    """
+    Capture the mental wireframe.
+
+    Parse the code's AST for structure.
+    Return Wireframe with all context.
+    """
+    # Your code here
+    pass
+
+def take_screenshot(
+    code: str,
+    cursor_line: int,
+    cursor_col: int,
+    tests_passing: int,
+    tests_total: int,
+    challenge_id: str,
+    session_duration: float,
+    emotion: str
+) -> Screenshot:
+    """
+    Take a screenshot with full context.
+
+    Returns Screenshot with wireframe and metadata.
+    """
+    # Your code here
+    pass
+'''
+
+[tests]
+[[tests.case]]
+name = "capture_simple_code"
+input = [
+    "def hello(): return 'world'",
+    1, 0, 1, 1, "test_challenge", 60.0
+]
+expected = {"has_ast": True, "cursor_line": 1}
+
+[[tests.case]]
+name = "invalid_syntax_ast"
+input = [
+    "def incomplete(",
+    1, 15, 0, 1, "syntax_challenge", 30.0
+]
+expected = {"ast_dump": "SyntaxError"}
+
+[[tests.case]]
+name = "full_screenshot"
+input = [
+    "def solution(x): return x * 2",
+    1, 10, 3, 5, "doubler", 120.0, "flow"
+]
+expected = {"emotion": "flow", "has_wireframe": True}
+
+[hints]
+level_1 = "Use ast.parse() to get the AST, then ast.dump() to stringify it"
+level_2 = "Wrap ast.parse() in try/except to handle syntax errors"
+level_3 = "Create Wireframe dataclass with all captured values"
+level_4 = """
+Pattern:
+```python
+def capture_wireframe(
+    code: str,
+    cursor_line: int,
+    cursor_col: int,
+    tests_passing: int,
+    tests_total: int,
+    challenge_id: str,
+    session_duration: float
+) -> Wireframe:
+    try:
+        tree = ast.parse(code)
+        ast_dump = ast.dump(tree)
+    except SyntaxError:
+        ast_dump = "SyntaxError"
+
+    return Wireframe(
+        code=code,
+        ast_dump=ast_dump,
+        cursor_line=cursor_line,
+        cursor_col=cursor_col,
+        tests_passing=tests_passing,
+        tests_total=tests_total,
+        current_challenge=challenge_id,
+        session_duration_seconds=session_duration
+    )
+
+def take_screenshot(...) -> Screenshot:
+    wireframe = capture_wireframe(...)
+    return Screenshot(
+        timestamp=datetime.now(),
+        wireframe=wireframe,
+        player_emotion=emotion
+    )
+```
+"""
+
+[gamepad_hints]
+easy_mode = """
+🎮 INTROSPECTION MODE!
+You're building X-ray vision for code.
+Not just pixels - FULL CONTEXT.
+"""
+
+[solution]
+code = '''
+from dataclasses import dataclass
+import ast
+from datetime import datetime
+
+@dataclass
+class Wireframe:
+    code: str
+    ast_dump: str
+    cursor_line: int
+    cursor_col: int
+    tests_passing: int
+    tests_total: int
+    current_challenge: str
+    session_duration_seconds: float
+
+@dataclass
+class Screenshot:
+    timestamp: datetime
+    wireframe: Wireframe
+    player_emotion: str
+
+def capture_wireframe(
+    code: str,
+    cursor_line: int,
+    cursor_col: int,
+    tests_passing: int,
+    tests_total: int,
+    challenge_id: str,
+    session_duration: float
+) -> Wireframe:
+    try:
+        tree = ast.parse(code)
+        ast_dump = ast.dump(tree, indent=2)
+    except SyntaxError as e:
+        ast_dump = f"SyntaxError: {e}"
+
+    return Wireframe(
+        code=code,
+        ast_dump=ast_dump,
+        cursor_line=cursor_line,
+        cursor_col=cursor_col,
+        tests_passing=tests_passing,
+        tests_total=tests_total,
+        current_challenge=challenge_id,
+        session_duration_seconds=session_duration
+    )
+
+def take_screenshot(
+    code: str,
+    cursor_line: int,
+    cursor_col: int,
+    tests_passing: int,
+    tests_total: int,
+    challenge_id: str,
+    session_duration: float,
+    emotion: str
+) -> Screenshot:
+    wireframe = capture_wireframe(
+        code, cursor_line, cursor_col,
+        tests_passing, tests_total,
+        challenge_id, session_duration
+    )
+
+    return Screenshot(
+        timestamp=datetime.now(),
+        wireframe=wireframe,
+        player_emotion=emotion
+    )
+'''
+
+[meta]
+time_limit_seconds = 600
+speed_run_target = 200
+points = 500
+is_meta_challenge = true
+lmsp_component = "lmsp/introspection/screenshot.py"
+teaching_philosophy = """
+Building screenshot introspection teaches:
+- AST parsing (understanding code structure)
+- Structured context capture
+- Dataclasses for complex state
+- Exception handling (syntax errors)
+- The difference between PIXELS and MEANING
+
+This is INTROSPECTION. Not just what you see - what it MEANS.
+
+Traditional screenshots: pixels. LMSP screenshots: context.
+You're building tools that see through the surface.
+"""
+
+[adaptive]
+fun_factor = "mastery"
+weakness_signals = ["ast_parse_error", "wireframe_incomplete", "datetime_handling"]
+project_themes = ["debugging_tools", "context_capture", "developer_tools"]
+
+[emotional_checkpoints]
+after_first_test_pass = """
+🎮 Capturing wireframes! The introspection system sees structure.
+   [RT] AST is powerful  |  [LT] Parsing is complex
+"""
+after_completion = """
+📸 INTROSPECTION ONLINE!
+
+You've built X-ray vision for code.
+
+Every `/screenshot` you took captured not just pixels, but MEANING.
+Code structure, cursor position, test state, emotion - ALL OF IT.
+
+You've built tools that see what matters.
+
+Meta-question: What's the wireframe of THIS moment?
+   [RT] Mind = Blown  |  [LT] I need to screenshot this  |  [Y] /screenshot
+"""

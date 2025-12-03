@@ -1,0 +1,126 @@
+# Challenge: Temperature Converter
+# Build something actually useful!
+
+[challenge]
+id = "temperature_converter"
+name = "Temperature Converter"
+level = 1
+prerequisites = ["simple_math"]
+
+[description]
+brief = "Convert Fahrenheit to Celsius"
+detailed = """
+Let's build something USEFUL - a temperature converter!
+
+The formula: Celsius = (Fahrenheit - 32) × 5/9
+
+Your mission:
+1. Create a variable 'fahrenheit' and set it to 98.6
+2. Convert it to Celsius using the formula
+3. Print the Celsius temperature (rounded to 1 decimal place)
+
+Tip: Use round(number, 1) to round to 1 decimal place!
+"""
+
+[skeleton]
+code = '''
+# Set the Fahrenheit temperature
+fahrenheit = 98.6
+
+# Convert to Celsius
+celsius =
+
+# Print the result
+print()
+'''
+
+[tests]
+[[tests.case]]
+name = "body_temperature"
+input = []
+setup = 'fahrenheit = 98.6'
+expected = ["37.0"]
+
+[[tests.case]]
+name = "freezing"
+input = []
+setup = 'fahrenheit = 32'
+expected = ["0.0"]
+
+[[tests.case]]
+name = "boiling"
+input = []
+setup = 'fahrenheit = 212'
+expected = ["100.0"]
+
+[hints]
+level_1 = "The formula is: (fahrenheit - 32) * 5 / 9"
+level_2 = "Use parentheses to control order: (fahrenheit - 32) * 5 / 9"
+level_3 = "Round it: celsius = round((fahrenheit - 32) * 5 / 9, 1)"
+level_4 = """
+Complete solution:
+```python
+fahrenheit = 98.6
+celsius = round((fahrenheit - 32) * 5 / 9, 1)
+print(celsius)
+```
+
+Order of operations matters!
+Parentheses ensure we subtract BEFORE multiplying.
+"""
+
+[gamepad_hints]
+easy_mode = """
+🎮 CONTROLLER GUIDE:
+1. Start: fahrenheit = 98.6
+2. Calculate: (fahrenheit - 32) * 5 / 9
+3. Wrap in round(): round(calculation, 1)
+4. Print it!
+
+You're building a real converter!
+"""
+
+[solution]
+code = '''
+fahrenheit = 98.6
+celsius = round((fahrenheit - 32) * 5 / 9, 1)
+print(celsius)
+'''
+
+[meta]
+time_limit_seconds = 400
+speed_run_target = 60
+points = 100
+next_challenge = "name_length"
+
+[adaptive]
+fun_factor = "practical_utility"
+weakness_signals = ["order_of_operations", "forgot_round", "wrong_formula"]
+project_themes = ["unit_converters", "science_apps", "cooking_apps", "weather_tools"]
+
+[emotional_checkpoints]
+after_first_test_pass = """
+🌡️ It works! You just built a temperature converter!
+   [RT] to celebrate your first utility
+"""
+after_completion = """
+🎓 YOU BUILT SOMETHING REAL!
+
+Not just toy examples - actual useful code.
+This converter could go in a real app.
+
+Real developers start here, then build empires.
+
+How's it feel to build real tools?
+[RT] Powerful! | [LT] Want bigger challenges | [Y] What else can I build?
+"""
+
+# Self-teaching note:
+#
+# This file demonstrates:
+# - Order of operations (Level 1)
+# - Parentheses for grouping (Level 1)
+# - The round() function (Level 1)
+# - Building practical utilities (professional mindset)
+#
+# The learner discovers that programming solves real problems.

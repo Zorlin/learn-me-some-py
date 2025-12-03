@@ -1,0 +1,265 @@
+# Meta-Challenge: Build Emotional Feedback System
+# The analog input that reads your feelings!
+
+[challenge]
+id = "meta_build_emotional_feedback"
+name = "Meta: Build Emotional Input"
+level = 6
+prerequisites = ["dataclasses", "enums", "analog_input"]
+
+[description]
+brief = "Build the trigger-based emotional input system"
+detailed = """
+Remember answering "How are you feeling?" by pulling controller triggers?
+Not clicking "happy" or "sad" - EXPRESSING on a gradient?
+
+The emotional feedback system:
+- RT (Right Trigger): Happiness/enjoyment (0.0 to 1.0)
+- LT (Left Trigger): Frustration (0.0 to 1.0)
+- Y button: Complex response (open text input)
+- A button: Confirm
+
+Build the analog emotional input that made LMSP understand YOUR feelings.
+
+This is GRANULARITY. Not binary. SPECTRUM.
+"""
+
+[skeleton]
+code = '''
+from dataclasses import dataclass
+from enum import Enum
+
+class EmotionalDimension(Enum):
+    ENJOYMENT = "enjoyment"
+    FRUSTRATION = "frustration"
+
+@dataclass
+class EmotionalResponse:
+    """A captured emotional response."""
+    dimension: EmotionalDimension
+    value: float  # 0.0 to 1.0
+    is_complex: bool = False
+    text: str = ""
+
+class EmotionalPrompt:
+    """
+    Prompt for analog emotional feedback.
+
+    "Pull the right trigger to show how much you enjoyed that."
+    """
+
+    def __init__(self, question: str):
+        self.question = question
+        self._rt_value = 0.0
+        self._lt_value = 0.0
+        self._confirmed = False
+        self._complex = False
+
+    def update(self, rt: float, lt: float, y_pressed: bool, a_pressed: bool):
+        """Update from controller input."""
+        # Your code here - update internal state
+        pass
+
+    def get_response(self) -> EmotionalResponse:
+        """
+        Get the emotional response.
+
+        If RT > LT: Return ENJOYMENT with RT value
+        If LT > RT: Return FRUSTRATION with LT value
+        If complex: Mark as complex response
+        """
+        # Your code here
+        pass
+
+    def render(self) -> str:
+        """
+        Render visual representation.
+
+        Returns string like:
+        "How are you feeling?
+
+          [RT ████████░░] Happy
+          [LT ██░░░░░░░░] Frustrated
+
+          Press A to confirm"
+        """
+        # Your code here
+        pass
+'''
+
+[tests]
+[[tests.case]]
+name = "rt_enjoyment"
+input = [{"rt": 0.8, "lt": 0.2, "a_pressed": True}]
+expected = {"dimension": "enjoyment", "value": 0.8}
+
+[[tests.case]]
+name = "lt_frustration"
+input = [{"rt": 0.3, "lt": 0.7, "a_pressed": True}]
+expected = {"dimension": "frustration", "value": 0.7}
+
+[[tests.case]]
+name = "complex_response"
+input = [{"rt": 0.5, "lt": 0.5, "y_pressed": True}]
+expected = {"is_complex": True}
+
+[[tests.case]]
+name = "render_shows_bars"
+input = [{"rt": 0.6, "lt": 0.3}]
+expected = {"has_rt_bar": True, "has_lt_bar": True}
+
+[hints]
+level_1 = "Store RT/LT values as floats between 0.0 and 1.0"
+level_2 = "Compare RT vs LT to determine which emotion is dominant"
+level_3 = "Render bars using '█' character: '█' * int(value * 10)"
+level_4 = """
+Pattern:
+```python
+def update(self, rt: float, lt: float, y_pressed: bool, a_pressed: bool):
+    self._rt_value = rt
+    self._lt_value = lt
+
+    if y_pressed:
+        self._complex = True
+
+    if a_pressed and (rt > 0.1 or lt > 0.1):
+        self._confirmed = True
+
+def get_response(self) -> EmotionalResponse:
+    if self._complex:
+        return EmotionalResponse(
+            dimension=EmotionalDimension.ENJOYMENT,
+            value=0.5,
+            is_complex=True
+        )
+
+    if self._rt_value > self._lt_value:
+        return EmotionalResponse(
+            dimension=EmotionalDimension.ENJOYMENT,
+            value=self._rt_value
+        )
+    else:
+        return EmotionalResponse(
+            dimension=EmotionalDimension.FRUSTRATION,
+            value=self._lt_value
+        )
+```
+"""
+
+[gamepad_hints]
+easy_mode = """
+🎮 EMOTIONAL INPUT SYSTEM!
+You're building the system that read YOUR feelings.
+Pull the triggers now - feel the analog granularity.
+"""
+
+[solution]
+code = '''
+from dataclasses import dataclass
+from enum import Enum
+
+class EmotionalDimension(Enum):
+    ENJOYMENT = "enjoyment"
+    FRUSTRATION = "frustration"
+
+@dataclass
+class EmotionalResponse:
+    dimension: EmotionalDimension
+    value: float
+    is_complex: bool = False
+    text: str = ""
+
+class EmotionalPrompt:
+    def __init__(self, question: str):
+        self.question = question
+        self._rt_value = 0.0
+        self._lt_value = 0.0
+        self._confirmed = False
+        self._complex = False
+
+    def update(self, rt: float, lt: float, y_pressed: bool, a_pressed: bool):
+        self._rt_value = max(0.0, min(1.0, rt))
+        self._lt_value = max(0.0, min(1.0, lt))
+
+        if y_pressed:
+            self._complex = True
+
+        if a_pressed and (rt > 0.1 or lt > 0.1):
+            self._confirmed = True
+
+    def get_response(self) -> EmotionalResponse:
+        if self._complex:
+            return EmotionalResponse(
+                dimension=EmotionalDimension.ENJOYMENT,
+                value=0.5,
+                is_complex=True
+            )
+
+        if self._rt_value > self._lt_value:
+            return EmotionalResponse(
+                dimension=EmotionalDimension.ENJOYMENT,
+                value=self._rt_value
+            )
+        else:
+            return EmotionalResponse(
+                dimension=EmotionalDimension.FRUSTRATION,
+                value=self._lt_value
+            )
+
+    def render(self) -> str:
+        rt_bar = "█" * int(self._rt_value * 10)
+        lt_bar = "█" * int(self._lt_value * 10)
+
+        return f"""{self.question}
+
+  [RT {rt_bar:10}] Happy
+  [LT {lt_bar:10}] Frustrated
+
+  Press A to confirm"""
+'''
+
+[meta]
+time_limit_seconds = 600
+speed_run_target = 180
+points = 450
+is_meta_challenge = true
+lmsp_component = "lmsp/input/emotional.py"
+teaching_philosophy = """
+Building emotional input teaches:
+- Analog input processing (gradients not binary)
+- Dataclasses for structured responses
+- Enums for categories
+- Visual rendering (progress bars)
+- The power of granular feedback
+
+This is EXPRESSION. Not "happy or sad". DEGREES of emotion.
+
+Traditional surveys: checkboxes. LMSP: analog gradients.
+You're building emotional granularity into educational tools.
+"""
+
+[adaptive]
+fun_factor = "creation"
+weakness_signals = ["trigger_value_clamping", "dimension_selection_bug", "render_formatting"]
+project_themes = ["emotional_ai", "analog_input", "ux_innovation"]
+
+[emotional_checkpoints]
+after_first_test_pass = """
+🎮 Capturing emotions! The trigger input is working.
+   [RT] I feel understood  |  [LT] Still abstract
+"""
+after_completion = """
+💚 EMOTIONAL INPUT ONLINE!
+
+You've built a system that reads feelings through controller triggers.
+
+Every time LMSP asked "How was that?" and you FELT your response?
+This code. Analog. Granular. Expressive.
+
+Traditional education: ignore feelings. LMSP: feelings ARE the signal.
+
+You've built emotional intelligence into Python.
+
+How does that feel?
+   [RT ████████░░]  |  [LT ░░░░░░░░░░]  |  [Y] I have complex feelings about this
+"""

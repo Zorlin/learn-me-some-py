@@ -1,0 +1,188 @@
+# Level 2: Boolean Logic
+# Prerequisite for: conditionals, filtering, validation
+
+[concept]
+id = "boolean_logic"
+name = "Boolean Logic: True, False, and Combinations"
+level = 2
+prerequisites = ["variables", "if_elif_else"]
+
+[description]
+brief = "Combine conditions with and, or, not"
+detailed = """
+Boolean logic lets you combine multiple conditions. Essential for game logic
+like "if player has key AND door is locked" or "if HP low OR mana low".
+
+```python
+has_key = True
+door_locked = True
+
+if has_key and door_locked:
+    print("You can unlock the door!")
+
+hp = 30
+mana = 10
+
+if hp < 50 or mana < 20:
+    print("⚠️ Resources low!")
+```
+"""
+
+[operators]
+and = "Both must be true: (x > 0 and x < 10)"
+or = "At least one must be true: (x < 0 or x > 10)"
+not = "Reverses truth value: not is_dead"
+
+[truth_tables]
+and_table = """
+True  and True  → True
+True  and False → False
+False and True  → False
+False and False → False
+"""
+or_table = """
+True  or True  → True
+True  or False → True
+False or True  → True
+False or False → False
+"""
+not_table = """
+not True  → False
+not False → True
+"""
+
+[gotchas]
+short_circuit = """
+Python uses short-circuit evaluation:
+- 'and' stops at first False
+- 'or' stops at first True
+
+x = 0
+if x != 0 and 10 / x > 5:  # Safe! 10/x never runs
+    print("big")
+
+This matters for performance and avoiding errors!
+"""
+operator_precedence = """
+Operators have precedence (like math):
+1. not (highest)
+2. and
+3. or (lowest)
+
+not True or False  →  (not True) or False  →  False or False  →  False
+
+Use parentheses for clarity:
+(not (True or False))  →  not True  →  False
+"""
+truthy_and_falsy = """
+Many values act as True/False:
+Falsy: False, None, 0, 0.0, "", [], {}, set()
+Truthy: Everything else!
+
+if my_list:  # True if list has items
+    print("List is not empty")
+
+if not my_string:  # True if string is empty
+    print("String is empty")
+"""
+
+[gamepad_tutorial]
+text = """
+🎮 EASY MODE:
+- Press Y to add logical operator
+- Press RB to suggest condition combinations
+- D-pad to show truth table
+- Hold RT to see short-circuit demo
+"""
+
+[challenges]
+starter = "bool_simple_and_or"
+intermediate = "bool_complex_conditions"
+mastery = "bool_guard_clauses"
+
+[fun_factor]
+type = "logic"
+description = "Like checking multiple requirements for actions or items"
+examples = ["unlock doors", "equip items", "cast spells", "access areas"]
+
+[adaptive]
+weakness_signals = ["precedence_confusion", "not_overuse", "complex_nesting"]
+strength_indicators = ["clean_conditions", "guard_clauses", "de_morgans_law"]
+
+[examples]
+basic = '''
+# Check player can attack
+has_weapon = True
+has_ammo = True
+in_range = True
+
+if has_weapon and has_ammo and in_range:
+    print("🗡️ Attack!")
+
+# Check for any healing item
+has_potion = False
+has_food = True
+has_spell = False
+
+if has_potion or has_food or has_spell:
+    print("💚 Can heal")
+
+# Invert a condition
+is_dead = False
+if not is_dead:
+    print("Player is alive")
+'''
+
+advanced = '''
+# Complex RPG requirements
+player_level = 15
+has_quest = True
+area_unlocked = False
+party_size = 3
+
+# Multiple AND conditions
+can_enter_dungeon = (
+    player_level >= 10 and
+    has_quest and
+    party_size >= 2
+)
+
+if can_enter_dungeon:
+    print("Entering dungeon!")
+
+# Combining AND and OR
+hp = 25
+max_hp = 100
+has_regen = True
+in_combat = False
+
+should_heal = (
+    (hp < max_hp * 0.5 and not in_combat) or
+    (hp < max_hp * 0.2) or  # Critical! Heal even in combat
+    (has_regen and not in_combat)
+)
+
+if should_heal:
+    print("Healing...")
+
+# De Morgan's Law in action
+# not (A or B) == (not A) and (not B)
+# not (A and B) == (not A) or (not B)
+
+is_enemy_alive = True
+is_in_range = False
+
+# These are equivalent:
+cannot_attack = not (is_enemy_alive and is_in_range)
+cannot_attack = (not is_enemy_alive) or (not is_in_range)
+'''
+
+[common_mistakes]
+mistake_1 = "Confusion with operator precedence: not x and y vs not (x and y)"
+mistake_2 = "Overly complex nested conditions - use guard clauses instead"
+mistake_3 = "Not using parentheses for clarity in complex expressions"
+
+[fun_facts]
+fact_1 = "Boolean logic is named after George Boole (1815-1864), a mathematician"
+fact_2 = "All modern computers are built on Boolean algebra (AND, OR, NOT gates)"
+fact_3 = "Python's 'and' and 'or' return values, not just True/False: 0 or 5 → 5"

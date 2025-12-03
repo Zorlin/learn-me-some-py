@@ -1,0 +1,211 @@
+# Challenge: Write Your Own Test Suite
+# Test-driven development with pytest patterns
+
+[challenge]
+id = "test_suite"
+name = "Build a Test Suite"
+level = 4
+prerequisites = ["functions_advanced", "error_handling", "imports_basics", "assertions"]
+
+[description]
+brief = "Write comprehensive pytest tests for a given function implementation"
+detailed = """
+You're writing tests for a string utility function library.
+
+GIVEN: A function `word_stats(text)` that returns:
+```python
+{
+    "word_count": int,
+    "char_count": int,  # excluding spaces
+    "avg_word_length": float,  # rounded to 2 decimals
+    "longest_word": str
+}
+```
+
+YOUR TASK: Write a test function that validates this implementation.
+
+Test function signature:
+```python
+def test_word_stats(word_stats_impl):
+    # Your tests here
+    # Raise AssertionError if any test fails
+    pass
+```
+
+Your tests should verify:
+1. Basic functionality (normal input)
+2. Edge cases (empty string, single word, etc.)
+3. Multiple words with varying lengths
+4. Handling of punctuation (words only, no punctuation in count)
+5. Proper rounding of averages
+
+The grader will run your test function against:
+- A correct implementation (should pass)
+- Several buggy implementations (should fail with clear assertion errors)
+
+This is TDD in reverse - you're the quality gatekeeper.
+"""
+
+[skeleton]
+code = '''
+def solution(word_stats_impl):
+    """
+    Test the word_stats implementation.
+
+    Args:
+        word_stats_impl: function to test
+
+    Raises:
+        AssertionError: if any test fails (with descriptive message)
+    """
+    # Your tests here
+    pass
+'''
+
+[tests]
+[[tests.case]]
+name = "catches_correct_implementation"
+input = "correct"
+expected = "PASS"
+description = "Your tests should pass for correct implementation"
+
+[[tests.case]]
+name = "catches_wrong_word_count"
+input = "buggy_word_count"
+expected = "FAIL"
+description = "Should catch incorrect word counting"
+
+[[tests.case]]
+name = "catches_wrong_char_count"
+input = "buggy_char_count"
+expected = "FAIL"
+description = "Should catch incorrect character counting"
+
+[[tests.case]]
+name = "catches_wrong_average"
+input = "buggy_average"
+expected = "FAIL"
+description = "Should catch incorrect average calculation"
+
+[[tests.case]]
+name = "catches_edge_case_bugs"
+input = "buggy_edge_cases"
+expected = "FAIL"
+description = "Should catch bugs in edge case handling"
+
+[hints]
+level_1 = "Test the obvious cases first: normal input, then edge cases"
+level_2 = "Use assert with clear messages: assert result == expected, f'Expected {expected}, got {result}'"
+level_3 = "Edge cases to test: empty string, single word, all same length, very long words"
+level_4 = """
+Test Pattern:
+```python
+def solution(word_stats_impl):
+    # Test 1: Basic case
+    result = word_stats_impl("hello world")
+    assert result["word_count"] == 2, "Basic word count failed"
+    assert result["char_count"] == 10, "Basic char count failed"
+
+    # Test 2: Empty string
+    result = word_stats_impl("")
+    assert result["word_count"] == 0, "Empty string word count"
+
+    # Test 3: Single word
+    result = word_stats_impl("hello")
+    assert result["longest_word"] == "hello", "Single word case"
+
+    # Test 4: Average rounding
+    result = word_stats_impl("a bb ccc")
+    expected_avg = round((1 + 2 + 3) / 3, 2)
+    assert result["avg_word_length"] == expected_avg, "Average rounding"
+
+    # More tests...
+```
+"""
+
+[gamepad_hints]
+easy_mode = """
+🎮 TEST WRITING MODE:
+1. Press A to see the correct implementation
+2. Press X to see buggy implementations
+3. Press Y to get test case ideas
+4. Hold RT for test pattern examples
+"""
+
+[solution]
+code = '''
+def solution(word_stats_impl):
+    # Test 1: Basic functionality
+    result = word_stats_impl("hello world")
+    assert result["word_count"] == 2, f"Expected 2 words, got {result['word_count']}"
+    assert result["char_count"] == 10, f"Expected 10 chars, got {result['char_count']}"
+    assert result["avg_word_length"] == 5.0, f"Expected avg 5.0, got {result['avg_word_length']}"
+    assert result["longest_word"] == "hello", f"Expected 'hello', got {result['longest_word']}"
+
+    # Test 2: Empty string
+    result = word_stats_impl("")
+    assert result["word_count"] == 0, "Empty string should have 0 words"
+    assert result["char_count"] == 0, "Empty string should have 0 chars"
+    assert result["avg_word_length"] == 0.0, "Empty string avg should be 0"
+    assert result["longest_word"] == "", "Empty string longest should be empty"
+
+    # Test 3: Single word
+    result = word_stats_impl("testing")
+    assert result["word_count"] == 1, "Single word count"
+    assert result["char_count"] == 7, "Single word chars"
+    assert result["avg_word_length"] == 7.0, "Single word avg"
+    assert result["longest_word"] == "testing", "Single word longest"
+
+    # Test 4: Multiple words, varying lengths
+    result = word_stats_impl("I am testing code")
+    assert result["word_count"] == 4, "Four words"
+    assert result["char_count"] == 13, "13 chars (excluding spaces)"
+    expected_avg = round((1 + 2 + 7 + 4) / 4, 2)
+    assert result["avg_word_length"] == expected_avg, f"Expected avg {expected_avg}"
+    assert result["longest_word"] == "testing", "Longest is 'testing'"
+
+    # Test 5: Rounding precision
+    result = word_stats_impl("a bb ccc")
+    expected_avg = round((1 + 2 + 3) / 3, 2)
+    assert result["avg_word_length"] == expected_avg, f"Rounding to 2 decimals: {expected_avg}"
+
+    # Test 6: Ties in longest word (first occurrence)
+    result = word_stats_impl("word test data")
+    assert result["longest_word"] == "word", "First longest word when tie"
+
+    # Test 7: Whitespace handling
+    result = word_stats_impl("  hello   world  ")
+    assert result["word_count"] == 2, "Multiple spaces between words"
+    assert result["char_count"] == 10, "Spaces not counted in chars"
+'''
+
+[meta]
+time_limit_seconds = 900   # 15 minutes
+speed_run_target = 300     # 5 minutes
+points = 150
+next_challenge = "property_testing"
+
+[adaptive]
+fun_factor = "puzzle"
+weakness_signals = ["missing_edge_cases", "unclear_assertions", "incomplete_coverage"]
+project_themes = ["testing", "tdd", "quality_assurance", "pytest", "unit_tests"]
+
+[emotional_checkpoints]
+after_first_test_pass = """
+🎮 Your tests caught the buggy implementation!
+   [RT] to celebrate finding bugs
+"""
+after_completion = """
+🎮 TEST SUITE MASTERY!
+
+You just learned Test-Driven Development by writing tests that:
+- Verify correct behavior
+- Catch bugs before they ship
+- Document expected functionality
+- Give confidence to refactor
+
+This is how professional developers ensure quality.
+
+How empowering was that?
+[RT] Love finding bugs  |  [LT] Prefer writing features  |  [Y] Want to test everything now
+"""

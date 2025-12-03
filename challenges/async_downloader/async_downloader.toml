@@ -1,0 +1,238 @@
+# Challenge: Async File Downloader
+# Master async/await and concurrent I/O operations
+
+[challenge]
+id = "async_downloader"
+name = "Build an Async Downloader"
+level = 5
+prerequisites = ["async_basics", "await_syntax", "functions_advanced", "error_handling"]
+
+[description]
+brief = "Download multiple files concurrently using async/await"
+detailed = """
+You're building a concurrent file downloader.
+
+SCENARIO: Download multiple files, each taking different amounts of time.
+Some downloads may fail.
+
+INPUT: List of download tasks:
+```python
+[
+    {"url": "file1.txt", "duration": 0.1, "will_fail": False},
+    {"url": "file2.txt", "duration": 0.2, "will_fail": True},
+    {"url": "file3.txt", "duration": 0.15, "will_fail": False}
+]
+```
+
+Your async downloader should:
+1. Start all downloads concurrently (not sequentially!)
+2. Wait for all to complete (or fail)
+3. Return results for each:
+   - Success: {"url": "file1.txt", "status": "success"}
+   - Failure: {"url": "file2.txt", "status": "failed"}
+
+OUTPUT: List of results in ORIGINAL order (same order as input)
+
+KEY REQUIREMENT: Downloads must run CONCURRENTLY.
+- Sequential downloads taking [0.1, 0.2, 0.15] seconds = 0.45 total
+- Concurrent downloads = 0.2 seconds (longest one)
+
+Your solution is tested for both correctness AND concurrency.
+
+This is how modern web scrapers, API clients, and download managers work.
+"""
+
+[skeleton]
+code = '''
+import asyncio
+
+async def download_file(url, duration, will_fail):
+    """
+    Simulate downloading a file.
+
+    Args:
+        url: str - file identifier
+        duration: float - download time in seconds
+        will_fail: bool - whether download fails
+
+    Returns:
+        dict: {"url": url, "status": "success" or "failed"}
+    """
+    # Your code here
+    pass
+
+async def solution(tasks):
+    """
+    Download all files concurrently.
+
+    Args:
+        tasks: list of dicts with url, duration, will_fail
+
+    Returns:
+        list of result dicts in original order
+    """
+    # Your code here
+    pass
+'''
+
+[tests]
+[[tests.case]]
+name = "all_succeed"
+input = [
+    {"url": "a.txt", "duration": 0.01, "will_fail": false},
+    {"url": "b.txt", "duration": 0.01, "will_fail": false},
+    {"url": "c.txt", "duration": 0.01, "will_fail": false}
+]
+expected = [
+    {"url": "a.txt", "status": "success"},
+    {"url": "b.txt", "status": "success"},
+    {"url": "c.txt", "status": "success"}
+]
+max_duration = 0.05  # Must be concurrent, not sequential
+
+[[tests.case]]
+name = "some_fail"
+input = [
+    {"url": "x.txt", "duration": 0.01, "will_fail": false},
+    {"url": "y.txt", "duration": 0.01, "will_fail": true},
+    {"url": "z.txt", "duration": 0.01, "will_fail": false}
+]
+expected = [
+    {"url": "x.txt", "status": "success"},
+    {"url": "y.txt", "status": "failed"},
+    {"url": "z.txt", "status": "success"}
+]
+
+[[tests.case]]
+name = "concurrent_not_sequential"
+input = [
+    {"url": "1.txt", "duration": 0.05, "will_fail": false},
+    {"url": "2.txt", "duration": 0.05, "will_fail": false},
+    {"url": "3.txt", "duration": 0.05, "will_fail": false}
+]
+expected = [
+    {"url": "1.txt", "status": "success"},
+    {"url": "2.txt", "status": "success"},
+    {"url": "3.txt", "status": "success"}
+]
+max_duration = 0.08  # If sequential: 0.15s. If concurrent: 0.05s
+
+[[tests.case]]
+name = "single_file"
+input = [{"url": "solo.txt", "duration": 0.01, "will_fail": false}]
+expected = [{"url": "solo.txt", "status": "success"}]
+
+[[tests.case]]
+name = "all_fail"
+input = [
+    {"url": "bad1.txt", "duration": 0.01, "will_fail": true},
+    {"url": "bad2.txt", "duration": 0.01, "will_fail": true}
+]
+expected = [
+    {"url": "bad1.txt", "status": "failed"},
+    {"url": "bad2.txt", "status": "failed"}
+]
+
+[hints]
+level_1 = "Use asyncio.gather() to run multiple coroutines concurrently"
+level_2 = "asyncio.sleep() simulates I/O wait time (like network download)"
+level_3 = "Use try/except inside download_file to catch failures and return status"
+level_4 = """
+Async Pattern:
+```python
+async def download_file(url, duration, will_fail):
+    try:
+        await asyncio.sleep(duration)  # Simulate download time
+        if will_fail:
+            raise Exception("Download failed")
+        return {"url": url, "status": "success"}
+    except Exception:
+        return {"url": url, "status": "failed"}
+
+async def solution(tasks):
+    # Create list of coroutines
+    downloads = [
+        download_file(t["url"], t["duration"], t["will_fail"])
+        for t in tasks
+    ]
+
+    # Run all concurrently
+    results = await asyncio.gather(*downloads)
+
+    return results
+```
+
+Key insight: asyncio.gather() runs coroutines concurrently, not sequentially.
+"""
+
+[gamepad_hints]
+easy_mode = """
+🎮 ASYNC/AWAIT MODE:
+1. Press A to visualize concurrent execution timeline
+2. Press X to see sequential vs concurrent comparison
+3. Press Y to step through asyncio.gather() behavior
+4. Hold RT for full async pattern
+"""
+
+[solution]
+code = '''
+import asyncio
+
+async def download_file(url, duration, will_fail):
+    try:
+        await asyncio.sleep(duration)
+        if will_fail:
+            raise Exception("Download failed")
+        return {"url": url, "status": "success"}
+    except Exception:
+        return {"url": url, "status": "failed"}
+
+async def solution(tasks):
+    downloads = [
+        download_file(t["url"], t["duration"], t["will_fail"])
+        for t in tasks
+    ]
+    results = await asyncio.gather(*downloads)
+    return results
+'''
+
+[meta]
+time_limit_seconds = 1200  # 20 minutes
+speed_run_target = 300     # 5 minutes for async veterans
+points = 200
+next_challenge = "async_rate_limiter"
+
+[adaptive]
+fun_factor = "power_unlock"
+weakness_signals = ["sequential_not_concurrent", "missing_await", "gather_misuse"]
+project_themes = ["web_scraping", "api_client", "download_manager", "concurrent_io"]
+
+[emotional_checkpoints]
+after_first_test_pass = """
+🎮 Async basics working! Files are downloading.
+   [RT] if async/await is making sense
+"""
+after_concurrent_pass = """
+🎮 TRUE CONCURRENCY ACHIEVED!
+
+Your downloads are running in parallel, not sequence.
+This is the power of async.
+
+How mind-blowing is that?
+[RT] I see the light  |  [LT] Still processing  |  [Y] Need to see it again
+"""
+after_completion = """
+🎮 ASYNC MASTERY UNLOCKED!
+
+You just learned the pattern behind:
+- Web scrapers (download 100 pages at once)
+- API clients (batch requests concurrently)
+- Database query pooling
+- Modern Python web frameworks (FastAPI, aiohttp)
+
+Sequential I/O is SLOW. Async I/O is FAST.
+You now wield this power.
+
+How epic was this realization?
+[RT] Everything makes sense now  |  [LT] Need more practice  |  [Y] Show me async databases
+"""

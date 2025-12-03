@@ -1,0 +1,241 @@
+# Challenge: Inventory Management System
+# Multiple classes working together
+
+[challenge]
+id = "inventory_system"
+name = "Inventory Management System"
+level = 3
+prerequisites = ["class_basics", "init_method", "methods"]
+
+[description]
+brief = "Build an inventory system with Item and Inventory classes"
+detailed = """
+You're building a game inventory system!
+
+Create two classes:
+
+Item:
+- __init__(name, quantity, value): Store name, quantity, value
+- get_total_value(): Return quantity * value
+
+Inventory:
+- __init__(): Initialize empty items list
+- add_item(name, quantity, value): Create Item and add to list
+- remove_item(name): Remove item by name, return True/False
+- get_total_value(): Sum total value of all items
+- list_items(): Return list of item names
+
+Commands:
+"ADD sword 1 50" -> add item -> "Added: sword"
+"ADD potion 3 10" -> add item -> "Added: potion"
+"TOTAL" -> get total value -> "80"
+"LIST" -> list items -> "sword,potion"
+"REMOVE potion" -> remove item -> "Removed: potion"
+"""
+
+[skeleton]
+code = '''
+class Item:
+    def __init__(self, name, quantity, value):
+        # Initialize item with name, quantity, value
+        pass
+
+    def get_total_value(self):
+        # Return quantity * value
+        pass
+
+class Inventory:
+    def __init__(self):
+        # Initialize empty items list
+        pass
+
+    def add_item(self, name, quantity, value):
+        # Create Item and add to items list
+        pass
+
+    def remove_item(self, name):
+        # Remove item by name, return True if found
+        pass
+
+    def get_total_value(self):
+        # Sum total value of all items
+        pass
+
+    def list_items(self):
+        # Return list of item names
+        pass
+
+def solution(commands):
+    inventory = Inventory()
+    results = []
+    # Process commands
+    pass
+'''
+
+[tests]
+[[tests.case]]
+name = "basic_inventory"
+input = ["ADD sword 1 50", "ADD potion 3 10", "TOTAL"]
+expected = ["Added: sword", "Added: potion", "80"]
+
+[[tests.case]]
+name = "list_items"
+input = ["ADD sword 1 50", "ADD shield 1 30", "ADD potion 5 10", "LIST"]
+expected = ["Added: sword", "Added: shield", "Added: potion", "sword,shield,potion"]
+
+[[tests.case]]
+name = "remove_item"
+input = ["ADD sword 1 50", "ADD potion 3 10", "REMOVE potion", "TOTAL", "LIST"]
+expected = ["Added: sword", "Added: potion", "Removed: potion", "50", "sword"]
+
+[[tests.case]]
+name = "remove_missing"
+input = ["ADD sword 1 50", "REMOVE missing"]
+expected = ["Added: sword", "Not found"]
+
+[[tests.case]]
+name = "complex_inventory"
+input = [
+    "ADD sword 2 50",
+    "ADD potion 10 5",
+    "ADD armor 1 100",
+    "TOTAL",
+    "LIST",
+    "REMOVE potion",
+    "TOTAL"
+]
+expected = ["Added: sword", "Added: potion", "Added: armor", "250", "sword,potion,armor", "Removed: potion", "200"]
+
+[[tests.case]]
+name = "empty_inventory"
+input = ["TOTAL", "LIST"]
+expected = ["0", ""]
+
+[hints]
+level_1 = "Item stores name, quantity, value as self.name, self.quantity, self.value"
+level_2 = "Inventory stores a list: self.items = []"
+level_3 = "To remove, loop through items and find matching name"
+level_4 = """
+Pattern:
+```python
+class Item:
+    def __init__(self, name, quantity, value):
+        self.name = name
+        self.quantity = quantity
+        self.value = value
+
+    def get_total_value(self):
+        return self.quantity * self.value
+
+class Inventory:
+    def __init__(self):
+        self.items = []
+
+    def add_item(self, name, quantity, value):
+        item = Item(name, quantity, value)
+        self.items.append(item)
+
+    def get_total_value(self):
+        return sum(item.get_total_value() for item in self.items)
+```
+"""
+
+[gamepad_hints]
+easy_mode = """
+🎮 INVENTORY SYSTEM:
+1. Item class stores name, quantity, value
+2. Item.get_total_value() returns quantity * value
+3. Inventory class stores items = []
+4. add_item creates new Item and appends
+5. get_total_value sums all item.get_total_value()
+6. list_items returns [item.name for item in items]
+"""
+
+[solution]
+# Hidden from player
+code = '''
+class Item:
+    def __init__(self, name, quantity, value):
+        self.name = name
+        self.quantity = quantity
+        self.value = value
+
+    def get_total_value(self):
+        return self.quantity * self.value
+
+class Inventory:
+    def __init__(self):
+        self.items = []
+
+    def add_item(self, name, quantity, value):
+        item = Item(name, quantity, value)
+        self.items.append(item)
+
+    def remove_item(self, name):
+        for item in self.items:
+            if item.name == name:
+                self.items.remove(item)
+                return True
+        return False
+
+    def get_total_value(self):
+        return sum(item.get_total_value() for item in self.items)
+
+    def list_items(self):
+        return [item.name for item in self.items]
+
+def solution(commands):
+    inventory = Inventory()
+    results = []
+
+    for command in commands:
+        parts = command.split()
+        action = parts[0]
+
+        if action == "ADD":
+            name = parts[1]
+            quantity = int(parts[2])
+            value = int(parts[3])
+            inventory.add_item(name, quantity, value)
+            results.append(f"Added: {name}")
+
+        elif action == "REMOVE":
+            name = parts[1]
+            if inventory.remove_item(name):
+                results.append(f"Removed: {name}")
+            else:
+                results.append("Not found")
+
+        elif action == "TOTAL":
+            total = inventory.get_total_value()
+            results.append(str(total))
+
+        elif action == "LIST":
+            items = inventory.list_items()
+            results.append(",".join(items))
+
+    return results
+'''
+
+[meta]
+time_limit_seconds = 1200
+speed_run_target = 480
+points = 50
+xp_reward = 50
+category = "oop"
+next_challenge = "data_processor"
+
+[adaptive]
+fun_factor = "systems"
+weakness_signals = ["class_interaction_confusion", "list_comprehension_needed", "remove_in_loop"]
+project_themes = ["rpg_inventory", "store_system", "warehouse", "asset_tracker"]
+
+[emotional_checkpoints]
+after_first_test_pass = """
+🎮 Your inventory system works! Classes talking to classes.
+   [RT] to show excitement
+"""
+after_completion = """
+🎮 Inventory system complete! You're building real game systems.
+   [RT] Game dev rocks  |  [LT] Too much code  |  [Y] What's next?
+"""

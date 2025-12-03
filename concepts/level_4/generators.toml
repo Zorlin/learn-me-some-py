@@ -1,0 +1,225 @@
+# Level 4: Generators
+# Prerequisite for: memory-efficient iteration, pipelines
+
+[concept]
+id = "generators"
+name = "Generators: Lazy Evaluation"
+level = 4
+category = "advanced_iteration"
+prerequisites = ["functions", "loops", "iterators"]
+unlocks = ["memory_efficiency", "pipelines", "coroutines"]
+
+[description]
+brief = "Create iterators that generate values on-demand instead of storing them all"
+detailed = """
+Generators create values one at a time, only when needed.
+It's like a vending machine - items are dispensed one by one,
+not all dumped out at once.
+
+```python
+def countdown(n):
+    while n > 0:
+        yield n
+        n -= 1
+
+for num in countdown(5):
+    print(num)  # 5, 4, 3, 2, 1
+```
+
+Generators let you:
+- Process huge datasets without loading all into memory
+- Create infinite sequences
+- Build data pipelines
+- Write cleaner iteration code
+"""
+
+[syntax]
+basic = """
+def generator_function():
+    yield value1
+    yield value2
+    yield value3
+"""
+
+with_loop = """
+def infinite_numbers():
+    n = 0
+    while True:
+        yield n
+        n += 1
+"""
+
+generator_expression = """
+# Generator expression (like list comprehension)
+squares = (x**2 for x in range(10))
+"""
+
+send_values = """
+def accumulator():
+    total = 0
+    while True:
+        value = yield total
+        total += value
+"""
+
+[examples]
+basic = """
+def fibonacci():
+    '''Infinite Fibonacci sequence'''
+    a, b = 0, 1
+    while True:
+        yield a
+        a, b = b, a + b
+
+# Take first 10 numbers
+fib = fibonacci()
+for _ in range(10):
+    print(next(fib))  # 0, 1, 1, 2, 3, 5, 8, 13, 21, 34
+"""
+
+advanced = """
+def read_large_file(filename):
+    '''Read file line-by-line without loading all into memory'''
+    with open(filename) as f:
+        for line in f:
+            # Process line
+            yield line.strip()
+
+# Memory efficient - only one line in memory at a time
+for line in read_large_file('huge_log.txt'):
+    if 'ERROR' in line:
+        print(line)
+"""
+
+real_world = """
+class WaveSpawner:
+    '''Generate enemy waves with increasing difficulty'''
+
+    def __init__(self, base_enemies=3):
+        self.base_enemies = base_enemies
+
+    def waves(self):
+        '''Infinite wave generator'''
+        wave_num = 1
+        while True:
+            enemy_count = self.base_enemies + (wave_num - 1) * 2
+            enemy_hp = 50 * wave_num
+            yield {
+                'wave': wave_num,
+                'enemies': enemy_count,
+                'hp': enemy_hp
+            }
+            wave_num += 1
+
+spawner = WaveSpawner()
+wave_gen = spawner.waves()
+
+# Spawn first 5 waves
+for _ in range(5):
+    wave = next(wave_gen)
+    print(f"Wave {wave['wave']}: {wave['enemies']} enemies @ {wave['hp']} HP")
+"""
+
+[generator_expressions]
+basic = """
+# List comprehension (all in memory)
+squares = [x**2 for x in range(1000000)]  # Uses lots of memory!
+
+# Generator expression (lazy)
+squares = (x**2 for x in range(1000000))  # Almost no memory!
+"""
+
+usage = """
+# Generator expressions work with any iterable function
+total = sum(x**2 for x in range(100))
+max_val = max(x for x in range(100) if x % 2 == 0)
+"""
+
+[common_mistakes]
+returning_list = """
+# WRONG: Returns all values (not a generator)
+def not_a_generator(n):
+    results = []
+    for i in range(n):
+        results.append(i)
+    return results  # Returns list
+
+# RIGHT: Yields values one at a time
+def is_a_generator(n):
+    for i in range(n):
+        yield i  # Generator!
+"""
+
+consuming_twice = """
+# WRONG: Generator exhausted after first use
+gen = (x for x in range(5))
+list(gen)  # [0, 1, 2, 3, 4]
+list(gen)  # [] - generator exhausted!
+
+# RIGHT: Create new generator each time
+def make_gen():
+    return (x for x in range(5))
+
+list(make_gen())  # [0, 1, 2, 3, 4]
+list(make_gen())  # [0, 1, 2, 3, 4] - fresh generator
+"""
+
+mixing_yield_return = """
+# CAREFUL: return in generator
+def tricky():
+    yield 1
+    yield 2
+    return  # Stops generator (raises StopIteration)
+    yield 3  # Never reached
+
+list(tricky())  # [1, 2]
+"""
+
+[yield_patterns]
+simple = "yield value - Produce value and pause"
+yield_from = "yield from iterable - Delegate to another generator"
+bidirectional = "value = yield - Receive value via send()"
+return_value = "return value - Set StopIteration value"
+
+[generator_methods]
+next = "next(gen) - Get next value"
+send = "gen.send(value) - Send value to generator"
+throw = "gen.throw(exc) - Raise exception in generator"
+close = "gen.close() - Stop generator"
+
+[gotchas]
+single_use = "Generators are exhausted after iteration - create new ones"
+state = "Generators maintain state between yields"
+exceptions = "Exceptions in generators stop iteration"
+memory = "Generators save memory but add overhead per item"
+
+[gamepad_tutorial]
+text = """
+🎮 GENERATOR MODE:
+- Press Y to convert loop to generator
+- Press A to create generator expression
+- Press X to add yield statement
+- RB suggests when to use generators
+- LB shows generator state
+- Hold RT to see memory comparison
+"""
+
+[challenges]
+starter = "generators_simple_countdown"
+intermediate = "generators_fibonacci"
+mastery = "generators_wave_spawner"
+
+[fun_facts]
+lazy_evaluation = "Generators are 'lazy' - they only compute when asked"
+infinite = "Generators can represent infinite sequences"
+pipelines = "Chain generators for data processing pipelines"
+memory_win = "Generator of 1M items uses ~200 bytes, list uses ~8MB!"
+
+[fun_factor]
+type = "efficiency"
+description = "Handle infinite sequences and huge data"
+examples = ["Wave spawner", "Procedural generation", "Log processing"]
+
+[adaptive]
+weakness_signals = ["return_instead_yield", "exhausted_generators", "unnecessary_lists"]
+strength_indicators = ["proper_lazy_eval", "memory_efficient", "clean_pipelines"]

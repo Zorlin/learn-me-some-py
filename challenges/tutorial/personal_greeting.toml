@@ -1,0 +1,121 @@
+# Challenge: Personal Greeting
+# Learn to store and use data with variables
+
+[challenge]
+id = "personal_greeting"
+name = "Personal Greeting"
+level = 0
+prerequisites = ["hello_world"]
+
+[description]
+brief = "Create a personalized greeting using a variable"
+detailed = """
+Now let's make it personal!
+
+Instead of greeting the whole world, let's greet YOU specifically.
+
+You'll learn about VARIABLES - named containers that hold data.
+Think of them like labeled boxes where you can store information.
+
+Create a variable called 'name', put your name in it, then print a greeting.
+"""
+
+[skeleton]
+code = '''
+# Store your name in a variable
+name =
+
+# Print a greeting using your name
+print()
+'''
+
+[tests]
+[[tests.case]]
+name = "alice"
+input = []
+setup = 'name = "Alice"'
+expected = ["Hello, Alice!"]
+
+[[tests.case]]
+name = "bob"
+input = []
+setup = 'name = "Bob"'
+expected = ["Hello, Bob!"]
+
+[[tests.case]]
+name = "wings"
+input = []
+setup = 'name = "Wings"'
+expected = ["Hello, Wings!"]
+
+[hints]
+level_1 = "First create a variable: name = \"YourName\""
+level_2 = "Then print it: print(\"Hello, \" + name + \"!\")"
+level_3 = "You can also use an f-string: print(f\"Hello, {name}!\")"
+level_4 = """
+Two ways to solve this:
+
+Method 1 (concatenation):
+```python
+name = "Alice"
+print("Hello, " + name + "!")
+```
+
+Method 2 (f-string - cooler!):
+```python
+name = "Alice"
+print(f"Hello, {name}!")
+```
+"""
+
+[gamepad_hints]
+easy_mode = """
+🎮 CONTROLLER GUIDE:
+1. Create your variable: name = "YourName"
+2. Press RB for the + symbol to join text
+3. Print: "Hello, " + name + "!"
+
+Pro tip: The + symbol glues text together!
+"""
+
+[solution]
+code = '''
+name = "Alice"
+print(f"Hello, {name}!")
+'''
+
+[meta]
+time_limit_seconds = 300
+speed_run_target = 45
+points = 75
+next_challenge = "simple_math"
+
+[adaptive]
+fun_factor = "personalization"
+weakness_signals = ["forgot_quotes", "concatenation_error", "variable_not_defined"]
+project_themes = ["user_interfaces", "chat_bots", "personalized_apps"]
+
+[emotional_checkpoints]
+after_first_test_pass = """
+🎮 Nice! Your variable is working!
+   [RT] if that click felt good
+"""
+after_completion = """
+✨ Variables unlocked! You can now store and reuse data.
+
+This is HUGE. Variables are the foundation of all programming.
+You just leveled up.
+
+How's it feeling?
+[RT] I get it! | [LT] Still confused | [Y] Show me more
+"""
+
+# Self-teaching note:
+#
+# This file demonstrates:
+# - Variables (Level 0)
+# - Assignment with = operator (Level 0)
+# - String concatenation or f-strings (Level 0-1)
+# - Personalization creates engagement
+#
+# The learner discovers that programs can remember things.

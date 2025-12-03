@@ -1,0 +1,126 @@
+# Challenge: FizzBuzz
+# The classic coding interview problem
+
+[challenge]
+id = "fizz_buzz"
+name = "FizzBuzz"
+level = 2
+prerequisites = ["for_loops", "if_else", "modulo_operator"]
+
+[description]
+brief = "Generate FizzBuzz sequence up to N"
+detailed = """
+You're implementing the classic FizzBuzz game!
+
+Rules:
+- For numbers 1 to N:
+  - If divisible by 3: return "Fizz"
+  - If divisible by 5: return "Buzz"
+  - If divisible by both 3 and 5: return "FizzBuzz"
+  - Otherwise: return the number as a string
+
+Return a list of all results from 1 to N.
+
+Example: N=15
+Output: ["1", "2", "Fizz", "4", "Buzz", "Fizz", "7", "8", "Fizz", "Buzz", "11", "Fizz", "13", "14", "FizzBuzz"]
+"""
+
+[skeleton]
+code = '''
+def solution(n):
+    # Generate FizzBuzz from 1 to n
+    # Return list of strings
+    pass
+'''
+
+[tests]
+[[tests.case]]
+name = "fizzbuzz_15"
+input = 15
+expected = ["1", "2", "Fizz", "4", "Buzz", "Fizz", "7", "8", "Fizz", "Buzz", "11", "Fizz", "13", "14", "FizzBuzz"]
+
+[[tests.case]]
+name = "fizzbuzz_5"
+input = 5
+expected = ["1", "2", "Fizz", "4", "Buzz"]
+
+[[tests.case]]
+name = "fizzbuzz_3"
+input = 3
+expected = ["1", "2", "Fizz"]
+
+[[tests.case]]
+name = "fizzbuzz_20"
+input = 20
+expected = ["1", "2", "Fizz", "4", "Buzz", "Fizz", "7", "8", "Fizz", "Buzz", "11", "Fizz", "13", "14", "FizzBuzz", "16", "17", "Fizz", "19", "Buzz"]
+
+[hints]
+level_1 = "Use the modulo operator %: if i % 3 == 0 means divisible by 3"
+level_2 = "Check divisible by BOTH 3 and 5 FIRST (FizzBuzz)"
+level_3 = "Loop from 1 to n: for i in range(1, n+1)"
+level_4 = """
+Pattern:
+```python
+result = []
+for i in range(1, n+1):
+    if i % 3 == 0 and i % 5 == 0:
+        result.append("FizzBuzz")
+    elif i % 3 == 0:
+        result.append("Fizz")
+    elif i % 5 == 0:
+        result.append("Buzz")
+    else:
+        result.append(str(i))
+```
+"""
+
+[gamepad_hints]
+easy_mode = """
+🎮 FIZZBUZZ STRATEGY:
+1. Create result = [] list
+2. Loop from 1 to n (use range)
+3. Check if i % 15 == 0 first (both 3 and 5)
+4. Then check i % 3 == 0
+5. Then check i % 5 == 0
+6. Else add the number itself
+"""
+
+[solution]
+# Hidden from player
+code = '''
+def solution(n):
+    result = []
+    for i in range(1, n + 1):
+        if i % 15 == 0:  # Divisible by both 3 and 5
+            result.append("FizzBuzz")
+        elif i % 3 == 0:
+            result.append("Fizz")
+        elif i % 5 == 0:
+            result.append("Buzz")
+        else:
+            result.append(str(i))
+    return result
+'''
+
+[meta]
+time_limit_seconds = 300
+speed_run_target = 90
+points = 25
+xp_reward = 25
+category = "classic"
+next_challenge = "password_validator"
+
+[adaptive]
+fun_factor = "puzzle"
+weakness_signals = ["wrong_order_checks", "forgot_both_condition", "range_off_by_one"]
+project_themes = ["game_logic", "pattern_generator", "sequence_analyzer"]
+
+[emotional_checkpoints]
+after_first_test_pass = """
+🎮 FizzBuzz works! This is a famous problem.
+   [RT] to celebrate
+"""
+after_completion = """
+🎮 You just solved FizzBuzz! Put this on your resume.
+   [RT] Proud  |  [LT] Too easy  |  [Y] What's the big deal?
+"""

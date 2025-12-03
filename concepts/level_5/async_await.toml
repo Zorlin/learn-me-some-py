@@ -1,0 +1,284 @@
+# Level 5: Async/Await
+# The art of doing multiple things without blocking
+
+[concept]
+id = "async_await"
+name = "Async/Await: Cooperative Multitasking"
+level = 5
+category = "concurrency"
+prerequisites = ["functions", "decorators", "exceptions", "context_managers", "generators"]
+unlocks = ["asyncio_patterns", "concurrent_programming", "web_frameworks_async"]
+
+[description]
+brief = "Write code that can pause and resume, letting other tasks run"
+detailed = """
+Async/await lets you write concurrent code that LOOKS synchronous but can
+pause at `await` points to let other tasks run. Think of it like a cooperative
+video game where players take turns.
+
+```python
+import asyncio
+
+async def fetch_data(url):
+    print(f"Starting {url}")
+    await asyncio.sleep(1)  # Pause here, let others run
+    print(f"Done {url}")
+    return f"Data from {url}"
+
+async def main():
+    # These run concurrently, not in sequence!
+    results = await asyncio.gather(
+        fetch_data("api.com/users"),
+        fetch_data("api.com/posts"),
+        fetch_data("api.com/comments"),
+    )
+    print(results)
+
+# Run the async code
+asyncio.run(main())
+```
+
+This is NOT threading (parallel) - it's cooperative multitasking (concurrent).
+Perfect for I/O-bound operations: network, file I/O, database queries.
+"""
+
+[key_concepts]
+async_function = """
+An `async def` function returns a coroutine object, not a result.
+You must `await` it to actually run it.
+
+```python
+async def greet():
+    return "Hello"
+
+# Wrong: Returns a coroutine object
+result = greet()  # <coroutine object>
+
+# Right: Awaits the coroutine
+result = await greet()  # "Hello"
+```
+"""
+
+await_keyword = """
+`await` pauses the current coroutine and waits for an awaitable to complete.
+Only works inside `async def` functions.
+
+```python
+async def slow_operation():
+    await asyncio.sleep(1)  # Pause for 1 second
+    return "Done"
+```
+"""
+
+event_loop = """
+The event loop manages all async tasks. It switches between tasks at `await` points.
+
+```python
+# asyncio.run() creates an event loop, runs your coroutine, closes loop
+asyncio.run(main())
+
+# Lower-level control:
+loop = asyncio.get_event_loop()
+loop.run_until_complete(main())
+loop.close()
+```
+"""
+
+[patterns]
+gather = """
+Run multiple coroutines concurrently and collect results:
+
+```python
+results = await asyncio.gather(
+    task1(),
+    task2(),
+    task3(),
+)
+# All three run at once, results is [result1, result2, result3]
+```
+"""
+
+create_task = """
+Start a task in the background:
+
+```python
+task = asyncio.create_task(long_operation())
+# Do other things...
+result = await task  # Wait for it to finish
+```
+"""
+
+async_context_manager = """
+Async version of `with`:
+
+```python
+async with aiohttp.ClientSession() as session:
+    async with session.get(url) as response:
+        return await response.text()
+```
+"""
+
+[common_mistakes]
+forgetting_await = """
+WRONG:
+```python
+async def main():
+    result = fetch_data()  # Returns coroutine, doesn't run!
+```
+
+RIGHT:
+```python
+async def main():
+    result = await fetch_data()  # Actually runs and gets result
+```
+
+Symptom: "RuntimeWarning: coroutine was never awaited"
+"""
+
+blocking_in_async = """
+WRONG:
+```python
+async def bad():
+    time.sleep(1)  # Blocks entire event loop!
+```
+
+RIGHT:
+```python
+async def good():
+    await asyncio.sleep(1)  # Yields control to event loop
+```
+
+Rule: Never use blocking operations in async code. Use async alternatives.
+"""
+
+mixing_sync_and_async = """
+You can't `await` in a regular function:
+
+WRONG:
+```python
+def sync_function():
+    result = await async_function()  # SyntaxError!
+```
+
+RIGHT:
+```python
+async def async_function_wrapper():
+    result = await async_function()
+    return result
+```
+
+Or use asyncio.run() from sync code:
+```python
+def sync_function():
+    result = asyncio.run(async_function())
+```
+"""
+
+[when_to_use]
+perfect_for = [
+    "HTTP requests to multiple APIs",
+    "Database queries (with async drivers)",
+    "File I/O (with aiofiles)",
+    "WebSockets",
+    "Any I/O-bound operation",
+]
+
+avoid_for = [
+    "CPU-bound tasks (use multiprocessing instead)",
+    "Simple scripts with one task",
+    "When you have blocking libraries with no async alternatives",
+]
+
+[gotchas]
+cpu_bound = """
+Async doesn't help with CPU-bound tasks!
+
+```python
+# This DOESN'T speed up computation:
+async def compute():
+    return sum(range(1000000))
+
+await asyncio.gather(compute(), compute())  # Not parallel!
+```
+
+Use `multiprocessing` or `concurrent.futures.ProcessPoolExecutor` for CPU-bound work.
+"""
+
+task_cancellation = """
+Tasks can be cancelled, and you need to handle it:
+
+```python
+try:
+    await long_operation()
+except asyncio.CancelledError:
+    # Clean up resources
+    raise  # Re-raise to propagate cancellation
+```
+"""
+
+[gamepad_tutorial]
+text = """
+🎮 ASYNC CHALLENGE MODE:
+- RT (hold): Watch tasks pause/resume in slow-motion
+- LT: Highlight which task is currently running
+- Y: Insert `await asyncio.sleep(0)` (yield point)
+- B: Convert sync code to async (suggests changes)
+- D-pad: Navigate between concurrent tasks
+"""
+
+[challenges]
+starter = "async_basics_sleep"
+intermediate = "async_fetch_multiple_urls"
+mastery = "async_rate_limited_api_client"
+expert = "async_build_lmsp_adaptive_engine"
+
+[fun_factor]
+type = "concurrency"
+description = "Like a chef preparing multiple dishes simultaneously"
+examples = [
+    "Download 100 web pages in 2 seconds",
+    "Query 20 databases at once",
+    "Build a real-time multiplayer game server",
+]
+
+[adaptive]
+weakness_signals = [
+    "forgetting_await",
+    "blocking_in_async",
+    "not_using_gather",
+    "unnecessary_sequential_awaits",
+]
+strength_indicators = [
+    "proper_task_creation",
+    "efficient_concurrent_patterns",
+    "correct_error_handling",
+    "understanding_when_not_to_use_async",
+]
+
+[fun_facts]
+javascript_origins = """
+Python's async/await was inspired by JavaScript's Promises and async/await.
+Both solve the same problem: "callback hell" for asynchronous operations.
+"""
+
+under_the_hood = """
+Async functions are actually generators in disguise! The `await` keyword is
+syntactic sugar for `yield from`. The event loop uses generator protocol to
+pause and resume coroutines.
+"""
+
+gil_still_applies = """
+Python's GIL (Global Interpreter Lock) still applies to async code!
+Async is concurrent (interleaved), not parallel (simultaneous).
+Only one coroutine executes at a time, but they can switch rapidly.
+"""
+
+[real_world]
+fastapi = "FastAPI uses async to handle thousands of requests per second"
+discord_py = "Discord bots use async for real-time message handling"
+scrapy = "Scrapy uses async to crawl websites efficiently"
+
+[see_also]
+concepts = ["generators", "context_managers", "decorators"]
+libraries = ["asyncio", "aiohttp", "aiofiles", "asyncpg"]
+advanced = ["async_generators", "async_context_managers", "event_loops"]

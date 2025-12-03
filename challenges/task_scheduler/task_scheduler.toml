@@ -1,0 +1,201 @@
+# Challenge: Task Scheduler with DAG Dependencies
+# Master directed acyclic graphs and topological sorting
+
+[challenge]
+id = "task_scheduler"
+name = "Build a Task Scheduler"
+level = 4
+prerequisites = ["classes_basics", "dictionaries_advanced", "graphs_intro", "recursion_basics"]
+
+[description]
+brief = "Build a task scheduler that respects dependency graphs and detects cycles"
+detailed = """
+You're building a professional task execution system.
+
+Tasks have dependencies - some must complete before others can start.
+Your scheduler must:
+1. Detect cycles (circular dependencies = impossible to complete)
+2. Return tasks in valid execution order (topological sort)
+3. Handle multiple valid orderings gracefully
+
+INPUT:
+- tasks: dict mapping task_name -> list of dependency names
+  Example: {"deploy": ["build", "test"], "test": ["build"], "build": []}
+
+OUTPUT:
+- If cycle detected: return "CYCLE"
+- If valid: return list of task names in executable order
+  (any valid topological ordering is acceptable)
+
+This is graph theory in action - the foundation of build systems like Make, Bazel, and CI/CD pipelines.
+"""
+
+[skeleton]
+code = '''
+def solution(tasks):
+    """
+    Schedule tasks respecting dependencies.
+
+    Args:
+        tasks: dict[str, list[str]] - task_name -> list of prerequisites
+
+    Returns:
+        "CYCLE" if circular dependency detected
+        list[str] of tasks in valid execution order otherwise
+    """
+    # Your code here
+    pass
+'''
+
+[tests]
+[[tests.case]]
+name = "simple_chain"
+input = {"a": [], "b": ["a"], "c": ["b"]}
+expected = ["a", "b", "c"]
+
+[[tests.case]]
+name = "independent_tasks"
+input = {"x": [], "y": [], "z": []}
+expected_any = [
+    ["x", "y", "z"],
+    ["x", "z", "y"],
+    ["y", "x", "z"],
+    ["y", "z", "x"],
+    ["z", "x", "y"],
+    ["z", "y", "x"]
+]
+
+[[tests.case]]
+name = "diamond_dependency"
+input = {"a": [], "b": ["a"], "c": ["a"], "d": ["b", "c"]}
+expected_any = [
+    ["a", "b", "c", "d"],
+    ["a", "c", "b", "d"]
+]
+
+[[tests.case]]
+name = "simple_cycle"
+input = {"a": ["b"], "b": ["a"]}
+expected = "CYCLE"
+
+[[tests.case]]
+name = "complex_cycle"
+input = {"a": [], "b": ["a"], "c": ["b"], "d": ["c"], "e": ["d", "b"], "b": ["e"]}
+expected = "CYCLE"
+
+[[tests.case]]
+name = "realistic_build"
+input = {
+    "compile": ["parse"],
+    "parse": [],
+    "link": ["compile", "optimize"],
+    "optimize": ["compile"],
+    "package": ["link", "test"],
+    "test": ["compile"]
+}
+expected_any = [
+    ["parse", "compile", "optimize", "test", "link", "package"],
+    ["parse", "compile", "test", "optimize", "link", "package"]
+]
+
+[hints]
+level_1 = "This is Kahn's algorithm or DFS-based topological sort"
+level_2 = "Track in-degree (number of prerequisites) for each task"
+level_3 = "Use a queue for tasks with in-degree 0 (ready to execute)"
+level_4 = """
+Kahn's Algorithm Pattern:
+```python
+# 1. Calculate in-degrees
+in_degree = {task: len(deps) for task, deps in tasks.items()}
+
+# 2. Find tasks with no prerequisites
+queue = [task for task in tasks if in_degree[task] == 0]
+
+# 3. Process queue, reducing in-degrees
+result = []
+while queue:
+    task = queue.pop(0)
+    result.append(task)
+    # For each task that depends on this one:
+    #   Reduce its in-degree
+    #   If in-degree reaches 0, add to queue
+
+# 4. If result length != total tasks: CYCLE detected
+```
+"""
+
+[gamepad_hints]
+easy_mode = """
+🎮 GRAPH ALGORITHM CHALLENGE:
+1. Press A to visualize the dependency graph
+2. Press X to step through topological sort
+3. Press Y to see cycle detection algorithm
+4. Hold RT while stuck to see the full solution pattern
+"""
+
+[solution]
+code = '''
+def solution(tasks):
+    # Build reverse dependency graph (who depends on me)
+    dependents = {task: [] for task in tasks}
+    for task, deps in tasks.items():
+        for dep in deps:
+            if dep in dependents:
+                dependents[dep].append(task)
+
+    # Calculate in-degrees
+    in_degree = {task: len(deps) for task, deps in tasks.items()}
+
+    # Find starting tasks (no prerequisites)
+    queue = [task for task in tasks if in_degree[task] == 0]
+    result = []
+
+    while queue:
+        task = queue.pop(0)
+        result.append(task)
+
+        # Process tasks that depend on this one
+        for dependent in dependents[task]:
+            in_degree[dependent] -= 1
+            if in_degree[dependent] == 0:
+                queue.append(dependent)
+
+    # If we processed all tasks, success. Otherwise, cycle.
+    return result if len(result) == len(tasks) else "CYCLE"
+'''
+
+[meta]
+time_limit_seconds = 1200  # 20 minutes
+speed_run_target = 300     # 5 minutes for experts
+points = 200
+next_challenge = "dependency_resolver"
+
+[adaptive]
+fun_factor = "algorithm"
+weakness_signals = ["cycle_detection_failed", "wrong_ordering", "in_degree_confusion"]
+project_themes = ["build_system", "ci_cd", "makefile", "package_manager", "compilation"]
+
+[emotional_checkpoints]
+after_first_test_pass = """
+🎮 Your scheduler handles simple chains!
+   [RT] to celebrate that breakthrough
+"""
+after_cycle_detection = """
+🎮 Cycle detection working! That's the hard part.
+   How's your brain feeling?
+   [RT] Clear  |  [LT] Fried  |  [Y] Need a break
+"""
+after_completion = """
+🎮 MASTERY UNLOCKED: Graph Algorithms
+
+You just implemented the algorithm behind:
+- Make and build systems
+- Package managers
+- CI/CD pipelines
+- Project scheduling
+
+This is professional-grade computer science.
+
+How epic was that?
+[RT] Incredibly satisfying  |  [LT] Never again  |  [Y] Want more graph challenges
+"""

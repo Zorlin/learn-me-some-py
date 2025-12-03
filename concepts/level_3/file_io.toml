@@ -1,0 +1,222 @@
+# Level 3: File I/O
+# Prerequisite for: save systems, config files, logging
+
+[concept]
+id = "file_io"
+name = "File I/O: Read and Write Files"
+level = 3
+category = "io"
+prerequisites = ["strings", "loops"]
+unlocks = ["save_systems", "config_management", "logging"]
+
+[description]
+brief = "Read data from files and write data to files"
+detailed = """
+File I/O lets you save game state, load configurations, and persist data
+between program runs.
+
+```python
+# Write to file
+with open('save.txt', 'w') as f:
+    f.write('Player HP: 100\n')
+
+# Read from file
+with open('save.txt', 'r') as f:
+    content = f.read()
+    print(content)  # 'Player HP: 100\n'
+```
+
+File I/O lets you:
+- Save game progress
+- Load configuration files
+- Read high scores
+- Write logs
+"""
+
+[syntax]
+write = """
+with open('filename.txt', 'w') as f:
+    f.write('Hello, world!')
+"""
+
+read = """
+with open('filename.txt', 'r') as f:
+    content = f.read()
+"""
+
+append = """
+with open('log.txt', 'a') as f:
+    f.write('New log entry\n')
+"""
+
+read_lines = """
+with open('file.txt', 'r') as f:
+    lines = f.readlines()  # List of lines
+"""
+
+[modes]
+r = "Read mode (default) - file must exist"
+w = "Write mode - creates new file or overwrites existing"
+a = "Append mode - adds to end of file"
+x = "Exclusive create - fails if file exists"
+b = "Binary mode - for non-text files (images, etc.)"
+plus = "+ - Read and write: 'r+', 'w+'"
+
+[examples]
+basic = """
+# Save high score
+with open('highscore.txt', 'w') as f:
+    f.write('1000')
+
+# Load high score
+with open('highscore.txt', 'r') as f:
+    score = int(f.read())
+    print(score)  # 1000
+"""
+
+advanced = """
+import json
+
+# Save game state as JSON
+player_data = {
+    'name': 'Hero',
+    'hp': 100,
+    'inventory': ['sword', 'potion']
+}
+
+with open('save.json', 'w') as f:
+    json.dump(player_data, f, indent=2)
+
+# Load game state
+with open('save.json', 'r') as f:
+    loaded_data = json.load(f)
+    print(loaded_data['name'])  # 'Hero'
+"""
+
+real_world = """
+from pathlib import Path
+import json
+
+class SaveSystem:
+    def __init__(self, save_dir='saves'):
+        self.save_dir = Path(save_dir)
+        self.save_dir.mkdir(exist_ok=True)
+
+    def save_game(self, slot, game_state):
+        '''Save game to specific slot'''
+        save_path = self.save_dir / f'slot_{slot}.json'
+        with save_path.open('w') as f:
+            json.dump(game_state, f, indent=2)
+        return True
+
+    def load_game(self, slot):
+        '''Load game from slot, return None if doesn't exist'''
+        save_path = self.save_dir / f'slot_{slot}.json'
+        if not save_path.exists():
+            return None
+        with save_path.open('r') as f:
+            return json.load(f)
+
+    def list_saves(self):
+        '''Return list of available save slots'''
+        return [int(p.stem.split('_')[1])
+                for p in self.save_dir.glob('slot_*.json')]
+
+saves = SaveSystem()
+saves.save_game(1, {'level': 5, 'hp': 80})
+state = saves.load_game(1)
+"""
+
+[common_mistakes]
+forgetting_close = """
+# WRONG: File not closed (can lose data!)
+f = open('file.txt', 'w')
+f.write('data')
+# File might not be saved!
+
+# RIGHT: Use 'with' to auto-close
+with open('file.txt', 'w') as f:
+    f.write('data')
+# File automatically closed
+"""
+
+wrong_mode = """
+# WRONG: Can't read in write mode
+with open('file.txt', 'w') as f:
+    content = f.read()  # Error!
+
+# RIGHT: Use 'r' for reading
+with open('file.txt', 'r') as f:
+    content = f.read()
+"""
+
+overwriting = """
+# WRONG: 'w' mode destroys existing file
+with open('important.txt', 'w') as f:
+    f.write('Oops, old data gone!')
+
+# RIGHT: Use 'a' to append, or read first
+with open('important.txt', 'a') as f:
+    f.write('New data added\n')
+"""
+
+[pathlib_pattern]
+modern = """
+from pathlib import Path
+
+# Modern approach (preferred)
+save_path = Path('saves') / 'game.json'
+save_path.parent.mkdir(exist_ok=True)  # Create directory
+
+with save_path.open('w') as f:
+    f.write('data')
+
+if save_path.exists():
+    print('File exists!')
+"""
+
+old_style = """
+import os
+
+# Old approach (still works)
+save_dir = os.path.join('saves', 'game.json')
+if not os.path.exists('saves'):
+    os.makedirs('saves')
+"""
+
+[gotchas]
+line_endings = "Windows uses \\r\\n, Unix uses \\n - Python handles this automatically in text mode"
+encoding = "Always specify encoding for non-ASCII: open('file.txt', encoding='utf-8')"
+binary_mode = "Use 'rb'/'wb' for images, videos, etc. (not text)"
+buffering = "Files are buffered - data might not write immediately without close()"
+
+[gamepad_tutorial]
+text = """
+🎮 FILE I/O MODE:
+- Press Y to open file for reading
+- Press A to open file for writing
+- Press X to append to file
+- RB suggests file operations based on context
+- LB shows file content preview
+- Hold LT to see available files
+"""
+
+[challenges]
+starter = "file_io_write_read"
+intermediate = "file_io_save_game"
+mastery = "file_io_multi_slot_saves"
+
+[fun_facts]
+context_manager = "The 'with' statement uses context managers - you can make your own!"
+csv_module = "Python has a csv module for spreadsheet files"
+pickle = "pickle module can save Python objects directly (but use JSON for data)"
+binary_files = "Use 'rb' mode to read images: open('image.png', 'rb')"
+
+[fun_factor]
+type = "persistence"
+description = "Save your game progress!"
+examples = ["Save/load system", "High scores", "Player profiles"]
+
+[adaptive]
+weakness_signals = ["file_not_closed", "wrong_mode", "path_errors"]
+strength_indicators = ["proper_with_usage", "error_handling", "clean_saves"]

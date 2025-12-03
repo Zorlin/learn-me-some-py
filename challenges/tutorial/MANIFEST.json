@@ -1,0 +1,116 @@
+{
+  "manifest_version": "1.0",
+  "created_by": "Agent 5",
+  "created_at": "2025-12-03",
+  "challenge_set": "tutorial",
+  "level_range": [0, 1],
+  "total_challenges": 8,
+  "total_xp": 800,
+  "total_test_cases": 20,
+  "challenges": [
+    {
+      "id": "hello_world",
+      "file": "hello_world.toml",
+      "level": 0,
+      "xp": 50,
+      "prerequisites": [],
+      "concepts": ["print", "strings"],
+      "order": 1
+    },
+    {
+      "id": "personal_greeting",
+      "file": "personal_greeting.toml",
+      "level": 0,
+      "xp": 75,
+      "prerequisites": ["hello_world"],
+      "concepts": ["variables", "assignment", "f-strings", "concatenation"],
+      "order": 2
+    },
+    {
+      "id": "simple_math",
+      "file": "simple_math.toml",
+      "level": 0,
+      "xp": 75,
+      "prerequisites": ["personal_greeting"],
+      "concepts": ["arithmetic", "numbers", "operators"],
+      "order": 3
+    },
+    {
+      "id": "temperature_converter",
+      "file": "temperature_converter.toml",
+      "level": 1,
+      "xp": 100,
+      "prerequisites": ["simple_math"],
+      "concepts": ["order_of_operations", "parentheses", "round_function"],
+      "order": 4
+    },
+    {
+      "id": "name_length",
+      "file": "name_length.toml",
+      "level": 1,
+      "xp": 100,
+      "prerequisites": ["temperature_converter"],
+      "concepts": ["len_function", "built-in_functions", "function_arguments"],
+      "order": 5
+    },
+    {
+      "id": "favorite_things",
+      "file": "favorite_things.toml",
+      "level": 1,
+      "xp": 125,
+      "prerequisites": ["name_length"],
+      "concepts": ["multiple_variables", "type_awareness", "state_management"],
+      "order": 6
+    },
+    {
+      "id": "mad_libs",
+      "file": "mad_libs.toml",
+      "level": 1,
+      "xp": 125,
+      "prerequisites": ["favorite_things"],
+      "concepts": ["string_manipulation", "templates", "creative_coding"],
+      "order": 7
+    },
+    {
+      "id": "guess_my_number",
+      "file": "guess_my_number.toml",
+      "level": 1,
+      "xp": 150,
+      "prerequisites": ["mad_libs"],
+      "concepts": ["input", "type_conversion", "if_else", "comparison", "interactivity"],
+      "order": 8
+    }
+  ],
+  "documentation": [
+    {
+      "file": "README.md",
+      "purpose": "Comprehensive guide to tutorial challenges"
+    },
+    {
+      "file": "QUICK_REFERENCE.md",
+      "purpose": "Quick reference for developers and learners"
+    },
+    {
+      "file": "AGENT_5_SUMMARY.md",
+      "purpose": "Agent 5 completion report"
+    },
+    {
+      "file": "MANIFEST.json",
+      "purpose": "Machine-readable manifest"
+    }
+  ],
+  "features": {
+    "controller_support": true,
+    "emotional_feedback": true,
+    "adaptive_learning": true,
+    "speedrun_mode": true,
+    "progressive_hints": true,
+    "self_teaching": true
+  },
+  "statistics": {
+    "total_lines_toml": 1027,
+    "avg_hints_per_challenge": 4,
+    "avg_tests_per_challenge": 2.5,
+    "avg_xp_per_challenge": 100
+  }
+}

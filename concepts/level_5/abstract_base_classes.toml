@@ -1,0 +1,479 @@
+# Level 5: Abstract Base Classes (ABC)
+# Enforce interfaces and define contracts
+
+[concept]
+id = "abstract_base_classes"
+name = "Abstract Base Classes: Interface Contracts"
+level = 5
+category = "design_patterns"
+prerequisites = ["classes", "inheritance", "exceptions", "decorators"]
+unlocks = ["plugin_systems", "framework_design", "protocols"]
+
+[description]
+brief = "Define required methods that subclasses must implement"
+detailed = """
+Abstract Base Classes (ABCs) let you define interfaces - contracts that say
+"any subclass MUST implement these methods". Python enforces this at
+instantiation time.
+
+```python
+from abc import ABC, abstractmethod
+
+class Weapon(ABC):
+    @abstractmethod
+    def attack(self) -> int:
+        """Return damage dealt. MUST be implemented by subclasses."""
+        pass
+
+    @abstractmethod
+    def durability(self) -> int:
+        """Return remaining uses. MUST be implemented by subclasses."""
+        pass
+
+    def describe(self):
+        """Optional method with default implementation."""
+        return f"A weapon with {self.durability()} durability"
+
+# This will raise TypeError!
+# weapon = Weapon()  # TypeError: Can't instantiate abstract class
+
+class Sword(Weapon):
+    def attack(self) -> int:
+        return 10
+
+    # Missing durability()! This will also fail:
+    # sword = Sword()  # TypeError: Can't instantiate abstract class
+
+class Axe(Weapon):
+    def attack(self) -> int:
+        return 15
+
+    def durability(self) -> int:
+        return 50
+
+axe = Axe()  # Works! All abstract methods implemented
+print(axe.attack())      # 15
+print(axe.describe())    # "A weapon with 50 durability"
+```
+
+ABCs ensure your plugin system or framework has consistent interfaces!
+"""
+
+[key_concepts]
+abc_module = """
+Import from `abc` module:
+
+```python
+from abc import ABC, abstractmethod
+
+class MyInterface(ABC):
+    @abstractmethod
+    def required_method(self):
+        pass
+```
+
+Or use ABCMeta metaclass:
+```python
+from abc import ABCMeta, abstractmethod
+
+class MyInterface(metaclass=ABCMeta):
+    @abstractmethod
+    def required_method(self):
+        pass
+```
+"""
+
+abstractmethod_decorator = """
+Mark methods as abstract with `@abstractmethod`:
+
+```python
+from abc import ABC, abstractmethod
+
+class Shape(ABC):
+    @abstractmethod
+    def area(self) -> float:
+        """Calculate area. Must be implemented."""
+        pass
+
+    @abstractmethod
+    def perimeter(self) -> float:
+        """Calculate perimeter. Must be implemented."""
+        pass
+```
+
+You can have a body, but it won't be called unless super() is used:
+```python
+@abstractmethod
+def area(self) -> float:
+    # This runs ONLY if subclass calls super().area()
+    print("Calculating area...")
+    pass
+```
+"""
+
+multiple_abstract_methods = """
+A class can have multiple abstract methods:
+
+```python
+class DataSource(ABC):
+    @abstractmethod
+    def connect(self):
+        pass
+
+    @abstractmethod
+    def read(self) -> bytes:
+        pass
+
+    @abstractmethod
+    def write(self, data: bytes):
+        pass
+
+    @abstractmethod
+    def close(self):
+        pass
+
+# All four must be implemented to instantiate!
+```
+"""
+
+[patterns]
+plugin_system = """
+Define a plugin interface:
+
+```python
+from abc import ABC, abstractmethod
+
+class Plugin(ABC):
+    @abstractmethod
+    def name(self) -> str:
+        pass
+
+    @abstractmethod
+    def execute(self, input_data):
+        pass
+
+    @abstractmethod
+    def priority(self) -> int:
+        """Higher priority runs first."""
+        pass
+
+class SpellCheck(Plugin):
+    def name(self) -> str:
+        return "Spell Checker"
+
+    def execute(self, text):
+        return text.replace("teh", "the")
+
+    def priority(self) -> int:
+        return 10
+
+# Plugin system guarantees all plugins have these methods
+plugins = [SpellCheck(), GrammarCheck(), StyleCheck()]
+for plugin in sorted(plugins, key=lambda p: p.priority(), reverse=True):
+    text = plugin.execute(text)
+```
+"""
+
+template_method_pattern = """
+Provide default behavior with hooks:
+
+```python
+from abc import ABC, abstractmethod
+
+class GameLevel(ABC):
+    def play(self):
+        """Template method - defines the algorithm."""
+        self.setup()
+        self.main_gameplay()
+        self.teardown()
+
+    @abstractmethod
+    def setup(self):
+        """Subclass defines level setup."""
+        pass
+
+    @abstractmethod
+    def main_gameplay(self):
+        """Subclass defines main gameplay loop."""
+        pass
+
+    def teardown(self):
+        """Default teardown (can be overridden)."""
+        print("Level complete!")
+
+class BossLevel(GameLevel):
+    def setup(self):
+        print("Spawn boss!")
+
+    def main_gameplay(self):
+        print("Fight boss!")
+
+    def teardown(self):
+        super().teardown()
+        print("Boss defeated! Bonus XP!")
+```
+"""
+
+strategy_pattern = """
+Define interchangeable algorithms:
+
+```python
+from abc import ABC, abstractmethod
+
+class SortStrategy(ABC):
+    @abstractmethod
+    def sort(self, data: list) -> list:
+        pass
+
+class BubbleSort(SortStrategy):
+    def sort(self, data: list) -> list:
+        # Bubble sort implementation
+        return sorted(data)  # Simplified
+
+class QuickSort(SortStrategy):
+    def sort(self, data: list) -> list:
+        # Quick sort implementation
+        return sorted(data)  # Simplified
+
+class Sorter:
+    def __init__(self, strategy: SortStrategy):
+        self.strategy = strategy
+
+    def sort_data(self, data: list):
+        return self.strategy.sort(data)
+
+# Swap strategies at runtime
+sorter = Sorter(BubbleSort())
+sorter.sort_data([3, 1, 2])
+sorter.strategy = QuickSort()
+sorter.sort_data([3, 1, 2])
+```
+"""
+
+[common_mistakes]
+forgetting_abstractmethod = """
+WRONG (no enforcement):
+```python
+class Interface(ABC):
+    def required_method(self):  # No @abstractmethod!
+        pass
+
+class Impl(Interface):
+    pass  # Missing required_method, but no error!
+
+obj = Impl()  # No error! :(
+```
+
+RIGHT (enforced):
+```python
+class Interface(ABC):
+    @abstractmethod
+    def required_method(self):
+        pass
+
+class Impl(Interface):
+    pass  # TypeError on instantiation!
+```
+"""
+
+abstract_without_abc = """
+WRONG:
+```python
+class BadInterface:
+    @abstractmethod
+    def method(self):  # No effect without ABC base!
+        pass
+
+class Impl(BadInterface):
+    pass
+
+obj = Impl()  # No error, abstract not enforced!
+```
+
+RIGHT:
+```python
+from abc import ABC, abstractmethod
+
+class GoodInterface(ABC):
+    @abstractmethod
+    def method(self):
+        pass
+```
+"""
+
+implementing_with_wrong_signature = """
+ABC doesn't enforce method signatures (but type checkers do):
+
+```python
+class Interface(ABC):
+    @abstractmethod
+    def process(self, x: int) -> str:
+        pass
+
+class Impl(Interface):
+    def process(self, x: str) -> int:  # Wrong types!
+        return len(x)
+
+obj = Impl()  # No runtime error, but mypy/pyright will complain
+```
+"""
+
+[when_to_use]
+perfect_for = [
+    "Plugin architectures",
+    "Framework extension points",
+    "Enforcing team contracts",
+    "Public APIs with required methods",
+    "Polymorphic code with guarantees",
+]
+
+avoid_for = [
+    "Internal implementation details",
+    "Duck typing scenarios (use Protocols instead)",
+    "Simple inheritance (just use regular classes)",
+]
+
+[gotchas]
+instantiation_check = """
+Error happens at instantiation, not class definition:
+
+```python
+class Incomplete(MyABC):
+    pass  # No error here!
+
+obj = Incomplete()  # TypeError: Can't instantiate abstract class
+```
+"""
+
+abstract_properties = """
+You can make properties abstract:
+
+```python
+from abc import ABC, abstractmethod
+
+class HasName(ABC):
+    @property
+    @abstractmethod
+    def name(self) -> str:
+        pass
+
+class Person(HasName):
+    @property
+    def name(self) -> str:
+        return "Alice"
+```
+
+Order matters: `@property` then `@abstractmethod`!
+"""
+
+can_have_implementation = """
+Abstract methods CAN have implementations:
+
+```python
+class Base(ABC):
+    @abstractmethod
+    def method(self):
+        print("Base implementation")
+
+class Derived(Base):
+    def method(self):
+        super().method()  # Call base implementation
+        print("Derived implementation")
+```
+"""
+
+[gamepad_tutorial]
+text = """
+🎮 ABC CHALLENGE MODE:
+- RT: Visualize class hierarchy and abstract methods
+- LT: Show which methods are abstract vs concrete
+- Y: Generate ABC boilerplate
+- B: Implement missing abstract methods
+- D-pad: Navigate between abstract and concrete methods
+"""
+
+[challenges]
+starter = "abc_simple_shape"
+intermediate = "abc_plugin_system"
+mastery = "abc_template_method"
+expert = "abc_lmsp_challenge_interface"
+
+[fun_factor]
+type = "design_patterns"
+description = "Build systems where pieces fit together perfectly"
+examples = [
+    "Plugin system with guaranteed interfaces",
+    "Game AI with required behaviors",
+    "Data pipeline with consistent stages",
+]
+
+[adaptive]
+weakness_signals = [
+    "forgetting_abstractmethod_decorator",
+    "not_inheriting_from_abc",
+    "implementing_wrong_signatures",
+    "confusion_about_enforcement_timing",
+]
+strength_indicators = [
+    "proper_interface_design",
+    "understanding_when_to_use",
+    "clean_plugin_architectures",
+]
+
+[fun_facts]
+java_interfaces = """
+Python's ABC is similar to Java's interfaces, but more flexible:
+- Can have default implementations
+- Can use multiple inheritance for multiple interfaces
+- Enforcement is at runtime, not compile time
+"""
+
+collections_abc = """
+Python's collections use ABC extensively:
+
+```python
+from collections.abc import Sequence, Mapping
+
+class MyList(Sequence):
+    # Must implement: __getitem__, __len__
+    pass
+
+class MyDict(Mapping):
+    # Must implement: __getitem__, __iter__, __len__
+    pass
+```
+
+This is how to make custom collections that work with built-in functions!
+"""
+
+virtual_subclasses = """
+You can register classes as "virtual subclasses" without inheritance:
+
+```python
+from abc import ABC
+
+class MyABC(ABC):
+    pass
+
+class Unrelated:
+    pass
+
+MyABC.register(Unrelated)
+print(issubclass(Unrelated, MyABC))  # True!
+print(isinstance(Unrelated(), MyABC))  # True!
+```
+
+Used for duck-typing registration.
+"""
+
+[real_world]
+django = "Model base classes enforce database interface"
+sqlalchemy = "Declarative base for ORM models"
+pytest = "Plugin hooks are ABCs"
+collections = "Sequence, Mapping, Set all use ABC"
+
+[see_also]
+concepts = ["inheritance", "polymorphism", "decorators", "protocols"]
+stdlib = ["abc", "collections.abc"]
+patterns = ["template_method", "strategy", "plugin_architecture"]
+alternatives = ["protocols", "duck_typing"]

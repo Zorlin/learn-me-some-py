@@ -1,0 +1,190 @@
+# Level 3: Imports
+# Prerequisite for: project organization, using libraries
+
+[concept]
+id = "imports"
+name = "Imports: Use Other People's Code"
+level = 3
+category = "modules"
+prerequisites = ["functions"]
+unlocks = ["project_structure", "external_libraries", "packaging"]
+
+[description]
+brief = "Import modules and functions to reuse existing code"
+detailed = """
+Imports let you use code written by others (or yourself in other files).
+It's like summoning tools from your workshop.
+
+```python
+import random  # Import entire module
+random.randint(1, 6)  # Roll a die
+
+from math import sqrt  # Import specific function
+distance = sqrt(25)  # 5.0
+```
+
+Imports let you:
+- Use Python's standard library (random, math, json, etc.)
+- Organize your own code into multiple files
+- Use third-party libraries (installed via pip)
+"""
+
+[syntax]
+import_module = """
+import module_name
+module_name.function()
+"""
+
+import_from = """
+from module_name import function_name
+function_name()  # Use directly
+"""
+
+import_as = """
+import module_name as alias
+alias.function()
+"""
+
+import_multiple = """
+from module_name import func1, func2, func3
+"""
+
+import_all = """
+from module_name import *  # Import everything (avoid this!)
+"""
+
+[examples]
+basic = """
+import random
+
+# Generate random numbers
+damage = random.randint(10, 20)
+hit_chance = random.random()  # 0.0 to 1.0
+
+# Random choices
+direction = random.choice(['north', 'south', 'east', 'west'])
+"""
+
+advanced = """
+from pathlib import Path
+import json
+
+def load_player_data(filename):
+    '''Load player save file'''
+    save_path = Path(filename)
+
+    if not save_path.exists():
+        return None
+
+    with save_path.open('r') as f:
+        data = json.load(f)
+        return data
+
+player = load_player_data('save.json')
+"""
+
+real_world = """
+# Game imports
+import random
+from typing import List, Optional
+from dataclasses import dataclass
+
+# Your own modules
+from lmsp.game.entities import Player, Enemy
+from lmsp.combat.damage import calculate_damage
+from lmsp.utils.math import clamp
+
+def combat_round(player: Player, enemy: Enemy) -> bool:
+    '''Run one combat round, return True if player wins'''
+    damage = calculate_damage(player.attack, enemy.defense)
+    enemy.hp = clamp(enemy.hp - damage, 0, enemy.max_hp)
+    return enemy.hp <= 0
+"""
+
+[common_mistakes]
+import_wrong_name = """
+# WRONG: Import doesn't match usage
+import random
+Random.randint(1, 6)  # NameError!
+
+# RIGHT: Use exact name from import
+import random
+random.randint(1, 6)
+"""
+
+circular_imports = """
+# WRONG: Two files importing each other
+# player.py
+from enemy import Enemy  # Imports enemy.py
+
+# enemy.py
+from player import Player  # Imports player.py (CIRCULAR!)
+
+# RIGHT: Move shared code to third file
+# entities.py
+class Player: ...
+class Enemy: ...
+
+# game.py
+from entities import Player, Enemy
+"""
+
+import_star = """
+# AVOID: Importing everything
+from random import *  # What did we just import?
+randint(1, 6)  # Where does this come from?
+
+# BETTER: Import what you need
+from random import randint
+randint(1, 6)  # Clear where it's from
+"""
+
+[standard_library]
+random = "Random numbers, choices: random.randint(), random.choice()"
+math = "Math functions: math.sqrt(), math.floor(), math.pi"
+json = "JSON reading/writing: json.load(), json.dump()"
+pathlib = "File paths: Path('file.txt').exists()"
+datetime = "Dates and times: datetime.now()"
+collections = "Special containers: deque, Counter, defaultdict"
+
+[import_patterns]
+module = "import math → math.sqrt(25)"
+specific = "from math import sqrt → sqrt(25)"
+alias = "import numpy as np → np.array([1,2,3])"
+relative = "from . import sibling_module (same package)"
+parent = "from .. import parent_module (up one level)"
+
+[gotchas]
+order_matters = "Import order can matter - standard library first, then third-party, then yours"
+name_conflicts = "from x import * can overwrite names from previous imports"
+import_time = "Code at module level runs when imported!"
+circular_death = "Circular imports cause hard-to-debug errors"
+
+[gamepad_tutorial]
+text = """
+🎮 IMPORT MODE:
+- Press Y to add import statement
+- Press RB to suggest imports based on code
+- Press LB to see available functions in module
+- Press X to organize imports (sort and group)
+"""
+
+[challenges]
+starter = "imports_use_random"
+intermediate = "imports_organize_code"
+mastery = "imports_create_module"
+
+[fun_facts]
+standard_library = "Python's standard library is HUGE - batteries included!"
+this_import = "Try: import this (Zen of Python)"
+antigravity = "Try: import antigravity (Easter egg!)"
+pip = "Install external libraries with: pip install package_name"
+
+[fun_factor]
+type = "tooling"
+description = "Summon powerful libraries like magic"
+examples = ["random for dice", "json for saving", "pathlib for files"]
+
+[adaptive]
+weakness_signals = ["import_errors", "name_conflicts", "circular_imports"]
+strength_indicators = ["clean_imports", "good_organization", "proper_usage"]

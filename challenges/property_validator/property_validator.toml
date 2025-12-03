@@ -1,0 +1,324 @@
+# Challenge: Property Validator with Descriptors
+# Build self-validating attributes using Python descriptors
+
+[challenge]
+id = "property_validator"
+name = "Build Property Validators"
+level = 5
+prerequisites = ["descriptors", "classes_advanced", "error_handling", "property_decorator"]
+
+[description]
+brief = "Create reusable validators using descriptor protocol for automatic attribute validation"
+detailed = """
+You're building Django-style field validators.
+
+Create validator descriptors that:
+1. Automatically validate on assignment
+2. Raise ValueError with clear message on invalid input
+3. Store validated value
+4. Are reusable across multiple classes
+
+VALIDATORS TO IMPLEMENT:
+- `PositiveInt`: Only allows positive integers
+- `EmailStr`: Basic email validation (contains @ and .)
+- `RangeInt(min, max)`: Integer within range
+
+EXAMPLE USAGE:
+```python
+class User:
+    age = PositiveInt()
+    email = EmailStr()
+    score = RangeInt(0, 100)
+
+user = User()
+user.age = 25        # OK
+user.age = -5        # ValueError: age must be positive
+user.email = "a@b.c" # OK
+user.email = "invalid" # ValueError: email must contain @ and .
+user.score = 75      # OK
+user.score = 150     # ValueError: score must be between 0 and 100
+```
+
+INPUT: Dictionary describing test:
+```python
+{
+    "validator": "PositiveInt",
+    "value": -5
+}
+```
+
+OUTPUT:
+- If valid: {"status": "valid", "stored_value": value}
+- If invalid: {"status": "invalid", "error": "description"}
+
+This is how Django models, Pydantic, and dataclass validators work.
+"""
+
+[skeleton]
+code = '''
+class PositiveInt:
+    """Descriptor that validates positive integers."""
+    def __init__(self):
+        self.name = None
+
+    def __set_name__(self, owner, name):
+        self.name = name
+
+    def __get__(self, instance, owner):
+        # Your code here
+        pass
+
+    def __set__(self, instance, value):
+        # Your code here
+        pass
+
+class EmailStr:
+    """Descriptor that validates email strings."""
+    # Your code here
+    pass
+
+class RangeInt:
+    """Descriptor that validates integers within range."""
+    def __init__(self, min_val, max_val):
+        self.min_val = min_val
+        self.max_val = max_val
+
+    # Your code here
+    pass
+
+def solution(test_spec):
+    """
+    Test validator descriptor.
+
+    Args:
+        test_spec: dict with validator, value, and optional params
+
+    Returns:
+        {"status": "valid", "stored_value": value} or
+        {"status": "invalid", "error": message}
+    """
+    # Your code here
+    pass
+'''
+
+[tests]
+[[tests.case]]
+name = "positive_int_valid"
+input = {"validator": "PositiveInt", "value": 42}
+expected = {"status": "valid", "stored_value": 42}
+
+[[tests.case]]
+name = "positive_int_invalid_negative"
+input = {"validator": "PositiveInt", "value": -5}
+expected = {"status": "invalid", "error": "must be positive"}
+
+[[tests.case]]
+name = "positive_int_invalid_zero"
+input = {"validator": "PositiveInt", "value": 0}
+expected = {"status": "invalid", "error": "must be positive"}
+
+[[tests.case]]
+name = "email_valid"
+input = {"validator": "EmailStr", "value": "user@example.com"}
+expected = {"status": "valid", "stored_value": "user@example.com"}
+
+[[tests.case]]
+name = "email_invalid_no_at"
+input = {"validator": "EmailStr", "value": "invalidemail.com"}
+expected = {"status": "invalid", "error": "must contain @"}
+
+[[tests.case]]
+name = "email_invalid_no_dot"
+input = {"validator": "EmailStr", "value": "user@example"}
+expected = {"status": "invalid", "error": "must contain ."}
+
+[[tests.case]]
+name = "range_int_valid_min"
+input = {"validator": "RangeInt", "min": 0, "max": 100, "value": 0}
+expected = {"status": "valid", "stored_value": 0}
+
+[[tests.case]]
+name = "range_int_valid_max"
+input = {"validator": "RangeInt", "min": 0, "max": 100, "value": 100}
+expected = {"status": "valid", "stored_value": 100}
+
+[[tests.case]]
+name = "range_int_valid_middle"
+input = {"validator": "RangeInt", "min": 0, "max": 100, "value": 50}
+expected = {"status": "valid", "stored_value": 50}
+
+[[tests.case]]
+name = "range_int_invalid_below"
+input = {"validator": "RangeInt", "min": 0, "max": 100, "value": -1}
+expected = {"status": "invalid", "error": "must be between 0 and 100"}
+
+[[tests.case]]
+name = "range_int_invalid_above"
+input = {"validator": "RangeInt", "min": 0, "max": 100, "value": 101}
+expected = {"status": "invalid", "error": "must be between 0 and 100"}
+
+[hints]
+level_1 = "Descriptors use __get__ and __set__ to control attribute access"
+level_2 = "Store values in instance.__dict__ using a unique key (like _name)"
+level_3 = "Raise ValueError in __set__ for invalid values"
+level_4 = """
+Descriptor Validator Pattern:
+```python
+class PositiveInt:
+    def __init__(self):
+        self.name = None
+
+    def __set_name__(self, owner, name):
+        self.name = name
+
+    def __get__(self, instance, owner):
+        if instance is None:
+            return self
+        return instance.__dict__.get(self.name)
+
+    def __set__(self, instance, value):
+        if not isinstance(value, int) or value <= 0:
+            raise ValueError(f"{self.name} must be positive")
+        instance.__dict__[self.name] = value
+
+class User:
+    age = PositiveInt()
+
+user = User()
+user.age = 25  # Calls PositiveInt.__set__(user, 25)
+print(user.age)  # Calls PositiveInt.__get__(user, User)
+```
+
+Key insight: Descriptors intercept attribute access at the CLASS level,
+but store values at the INSTANCE level.
+"""
+
+[gamepad_hints]
+easy_mode = """
+🎮 DESCRIPTOR VALIDATOR MODE:
+1. Press A to visualize __get__/__set__ flow
+2. Press X to see instance.__dict__ storage
+3. Press Y to step through validation logic
+4. Hold RT for full descriptor pattern
+"""
+
+[solution]
+code = '''
+class PositiveInt:
+    def __init__(self):
+        self.name = None
+
+    def __set_name__(self, owner, name):
+        self.name = name
+
+    def __get__(self, instance, owner):
+        if instance is None:
+            return self
+        return instance.__dict__.get(self.name)
+
+    def __set__(self, instance, value):
+        if not isinstance(value, int) or value <= 0:
+            raise ValueError("must be positive")
+        instance.__dict__[self.name] = value
+
+class EmailStr:
+    def __init__(self):
+        self.name = None
+
+    def __set_name__(self, owner, name):
+        self.name = name
+
+    def __get__(self, instance, owner):
+        if instance is None:
+            return self
+        return instance.__dict__.get(self.name)
+
+    def __set__(self, instance, value):
+        if "@" not in value:
+            raise ValueError("must contain @")
+        if "." not in value:
+            raise ValueError("must contain .")
+        instance.__dict__[self.name] = value
+
+class RangeInt:
+    def __init__(self, min_val, max_val):
+        self.min_val = min_val
+        self.max_val = max_val
+        self.name = None
+
+    def __set_name__(self, owner, name):
+        self.name = name
+
+    def __get__(self, instance, owner):
+        if instance is None:
+            return self
+        return instance.__dict__.get(self.name)
+
+    def __set__(self, instance, value):
+        if not (self.min_val <= value <= self.max_val):
+            raise ValueError(f"must be between {self.min_val} and {self.max_val}")
+        instance.__dict__[self.name] = value
+
+def solution(test_spec):
+    validator_name = test_spec["validator"]
+    value = test_spec["value"]
+
+    # Create test class with validator
+    if validator_name == "PositiveInt":
+        class TestClass:
+            field = PositiveInt()
+    elif validator_name == "EmailStr":
+        class TestClass:
+            field = EmailStr()
+    elif validator_name == "RangeInt":
+        min_val = test_spec["min"]
+        max_val = test_spec["max"]
+        class TestClass:
+            field = RangeInt(min_val, max_val)
+
+    # Test validation
+    obj = TestClass()
+    try:
+        obj.field = value
+        return {"status": "valid", "stored_value": obj.field}
+    except ValueError as e:
+        return {"status": "invalid", "error": str(e)}
+'''
+
+[meta]
+time_limit_seconds = 1200  # 20 minutes
+speed_run_target = 360     # 6 minutes
+points = 200
+next_challenge = "orm_lite"
+
+[adaptive]
+fun_factor = "deep_magic"
+weakness_signals = ["descriptor_protocol_confusion", "storage_location_bugs", "validation_logic_errors"]
+project_themes = ["validation", "django_models", "pydantic", "dataclasses", "type_checking"]
+
+[emotional_checkpoints]
+after_first_test_pass = """
+🎮 Descriptor working! Validation is automatic.
+   [RT] if descriptors are clicking
+"""
+after_all_validators_pass = """
+🎮 All validators working! Self-validating attributes.
+   How's the descriptor protocol feeling?
+   [RT] Making sense  |  [LT] Still abstract  |  [Y] Need more examples
+"""
+after_completion = """
+🎮 DESCRIPTOR MASTERY UNLOCKED!
+
+You just learned the pattern behind:
+- Django model field validators
+- Pydantic validators
+- SQLAlchemy column types
+- Python's @property decorator (it's a descriptor!)
+
+Descriptors are Python's most powerful metaprogramming tool.
+
+This is advanced Python magic used by every major framework.
+
+How powerful do you feel?
+[RT] I understand Python deeply now  |  [LT] Need more practice  |  [Y] Show me more descriptor patterns
+"""

@@ -1,0 +1,222 @@
+# Challenge: Custom Calculator Class
+# Build your first class with methods
+
+[challenge]
+id = "custom_calculator"
+name = "Custom Calculator Class"
+level = 3
+prerequisites = ["class_basics", "init_method", "self"]
+
+[description]
+brief = "Create a Calculator class with memory and operations"
+detailed = """
+You're building a calculator class with memory!
+
+Create a Calculator class with:
+- __init__(): Initialize with memory = 0
+- add(a, b): Return a + b
+- subtract(a, b): Return a - b
+- multiply(a, b): Return a * b
+- divide(a, b): Return a / b (handle division by zero -> return "Error")
+- store(value): Store value in memory
+- recall(): Return current memory value
+- clear(): Set memory to 0
+
+Commands format:
+"ADD 5 3" -> call calc.add(5, 3) -> return "8"
+"STORE 10" -> call calc.store(10) -> return "Stored"
+"RECALL" -> call calc.recall() -> return "10"
+"CLEAR" -> call calc.clear() -> return "Cleared"
+
+All numeric results returned as strings.
+"""
+
+[skeleton]
+code = '''
+class Calculator:
+    def __init__(self):
+        # Initialize calculator with memory
+        pass
+
+    def add(self, a, b):
+        # Return sum
+        pass
+
+    def subtract(self, a, b):
+        # Return difference
+        pass
+
+    def multiply(self, a, b):
+        # Return product
+        pass
+
+    def divide(self, a, b):
+        # Return quotient or "Error" if divide by zero
+        pass
+
+    def store(self, value):
+        # Store value in memory
+        pass
+
+    def recall(self):
+        # Return current memory
+        pass
+
+    def clear(self):
+        # Clear memory
+        pass
+
+def solution(commands):
+    calc = Calculator()
+    results = []
+    # Process each command and call appropriate method
+    # Return list of string results
+    pass
+'''
+
+[tests]
+[[tests.case]]
+name = "basic_operations"
+input = ["ADD 5 3", "SUBTRACT 10 4", "MULTIPLY 6 7"]
+expected = ["8", "6", "42"]
+
+[[tests.case]]
+name = "division"
+input = ["DIVIDE 20 4", "DIVIDE 10 0", "DIVIDE 15 3"]
+expected = ["5.0", "Error", "5.0"]
+
+[[tests.case]]
+name = "memory_operations"
+input = ["STORE 42", "RECALL", "STORE 100", "RECALL", "CLEAR", "RECALL"]
+expected = ["Stored", "42", "Stored", "100", "Cleared", "0"]
+
+[[tests.case]]
+name = "mixed_operations"
+input = [
+    "ADD 10 20",
+    "STORE 50",
+    "MULTIPLY 3 4",
+    "RECALL",
+    "DIVIDE 100 5",
+    "CLEAR",
+    "RECALL"
+]
+expected = ["30", "Stored", "12", "50", "20.0", "Cleared", "0"]
+
+[hints]
+level_1 = "In __init__, set self.memory = 0"
+level_2 = "Each method needs 'self' as first parameter"
+level_3 = "Methods access memory with self.memory"
+level_4 = """
+Pattern:
+```python
+class Calculator:
+    def __init__(self):
+        self.memory = 0
+
+    def add(self, a, b):
+        return a + b
+
+    def store(self, value):
+        self.memory = value
+
+    def recall(self):
+        return self.memory
+```
+"""
+
+[gamepad_hints]
+easy_mode = """
+🎮 CALCULATOR CLASS:
+1. Create class with __init__(self)
+2. Set self.memory = 0
+3. Each method takes self + parameters
+4. Math methods: return a op b
+5. store/recall work with self.memory
+6. In solution(), create calc = Calculator()
+"""
+
+[solution]
+# Hidden from player
+code = '''
+class Calculator:
+    def __init__(self):
+        self.memory = 0
+
+    def add(self, a, b):
+        return a + b
+
+    def subtract(self, a, b):
+        return a - b
+
+    def multiply(self, a, b):
+        return a * b
+
+    def divide(self, a, b):
+        if b == 0:
+            return "Error"
+        return a / b
+
+    def store(self, value):
+        self.memory = value
+
+    def recall(self):
+        return self.memory
+
+    def clear(self):
+        self.memory = 0
+
+def solution(commands):
+    calc = Calculator()
+    results = []
+
+    for command in commands:
+        parts = command.split()
+        action = parts[0]
+
+        if action == "ADD":
+            result = calc.add(int(parts[1]), int(parts[2]))
+            results.append(str(result))
+        elif action == "SUBTRACT":
+            result = calc.subtract(int(parts[1]), int(parts[2]))
+            results.append(str(result))
+        elif action == "MULTIPLY":
+            result = calc.multiply(int(parts[1]), int(parts[2]))
+            results.append(str(result))
+        elif action == "DIVIDE":
+            result = calc.divide(float(parts[1]), float(parts[2]))
+            results.append(str(result))
+        elif action == "STORE":
+            calc.store(int(parts[1]))
+            results.append("Stored")
+        elif action == "RECALL":
+            results.append(str(calc.recall()))
+        elif action == "CLEAR":
+            calc.clear()
+            results.append("Cleared")
+
+    return results
+'''
+
+[meta]
+time_limit_seconds = 900
+speed_run_target = 360
+points = 50
+xp_reward = 50
+category = "oop"
+next_challenge = "inventory_system"
+
+[adaptive]
+fun_factor = "structured"
+weakness_signals = ["forgot_self", "self_not_first_param", "instance_var_confusion"]
+project_themes = ["game_state", "player_stats", "bank_account", "shopping_cart"]
+
+[emotional_checkpoints]
+after_first_test_pass = """
+🎮 Your class works! Object-oriented programming unlocked.
+   [RT] to celebrate
+"""
+after_completion = """
+🎮 Calculator class complete! You're thinking in objects now.
+   [RT] OOP makes sense  |  [LT] Still confused  |  [Y] Why classes?
+"""

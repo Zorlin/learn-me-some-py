@@ -1,0 +1,315 @@
+# Level 4: Graphs and DAGs
+# Prerequisite for: skill trees, dependency systems, pathfinding
+
+[concept]
+id = "graphs_and_dags"
+name = "Graphs and DAGs: Model Relationships"
+level = 4
+category = "data_structures"
+prerequisites = ["dictionaries", "classes", "algorithms"]
+unlocks = ["skill_trees", "dependency_resolution", "pathfinding"]
+
+[description]
+brief = "Represent networks of connected nodes - perfect for skill trees and dependencies"
+detailed = """
+Graphs connect things (nodes) with relationships (edges).
+DAGs (Directed Acyclic Graphs) are graphs with direction and no cycles.
+
+```python
+# Skill tree as DAG
+skills = {
+    'fireball': ['spark'],           # Fireball requires spark
+    'inferno': ['fireball', 'heat'], # Inferno requires both
+    'spark': [],                      # Spark has no prereqs
+    'heat': ['spark']                 # Heat requires spark
+}
+```
+
+Graphs model:
+- Skill trees (what unlocks what)
+- Quest chains (dependencies)
+- Map connections (rooms/areas)
+- Social networks (friendships)
+"""
+
+[syntax]
+adjacency_list = """
+# Most common representation
+graph = {
+    'node1': ['node2', 'node3'],
+    'node2': ['node3'],
+    'node3': []
+}
+"""
+
+adjacency_dict = """
+# With edge data
+graph = {
+    'room1': {'room2': {'distance': 10}, 'room3': {'distance': 5}},
+    'room2': {'room3': {'distance': 3}},
+    'room3': {}
+}
+"""
+
+class_based = """
+class Node:
+    def __init__(self, value):
+        self.value = value
+        self.edges = []
+
+class Graph:
+    def __init__(self):
+        self.nodes = {}
+"""
+
+[examples]
+basic = """
+# Simple skill tree
+skill_tree = {
+    'basic_attack': [],
+    'power_strike': ['basic_attack'],
+    'whirlwind': ['power_strike'],
+    'basic_defense': [],
+    'shield_block': ['basic_defense']
+}
+
+def can_learn(skill, learned_skills):
+    '''Check if player meets prerequisites'''
+    prereqs = skill_tree[skill]
+    return all(prereq in learned_skills for prereq in prereqs)
+
+learned = {'basic_attack', 'basic_defense'}
+print(can_learn('power_strike', learned))  # True
+print(can_learn('whirlwind', learned))     # False
+"""
+
+advanced = """
+from collections import defaultdict, deque
+
+class SkillTree:
+    def __init__(self):
+        self.prerequisites = defaultdict(list)  # skill -> list of prereqs
+        self.unlocks = defaultdict(list)        # skill -> list of skills it unlocks
+
+    def add_skill(self, skill, prereqs=None):
+        '''Add skill with prerequisites'''
+        if prereqs is None:
+            prereqs = []
+        self.prerequisites[skill] = prereqs
+        for prereq in prereqs:
+            self.unlocks[prereq].append(skill)
+
+    def can_learn(self, skill, learned):
+        '''Check if all prerequisites are met'''
+        return all(prereq in learned for prereq in self.prerequisites[skill])
+
+    def get_available_skills(self, learned):
+        '''Get all skills that can be learned now'''
+        available = []
+        for skill in self.prerequisites:
+            if skill not in learned and self.can_learn(skill, learned):
+                available.append(skill)
+        return available
+
+    def topological_sort(self):
+        '''Return skills in learning order'''
+        # Count incoming edges
+        in_degree = {skill: len(prereqs)
+                     for skill, prereqs in self.prerequisites.items()}
+
+        # Start with skills that have no prerequisites
+        queue = deque([skill for skill, degree in in_degree.items()
+                       if degree == 0])
+
+        result = []
+        while queue:
+            skill = queue.popleft()
+            result.append(skill)
+
+            # Reduce in-degree for skills this unlocks
+            for unlocked in self.unlocks[skill]:
+                in_degree[unlocked] -= 1
+                if in_degree[unlocked] == 0:
+                    queue.append(unlocked)
+
+        return result if len(result) == len(self.prerequisites) else None
+
+tree = SkillTree()
+tree.add_skill('spark', [])
+tree.add_skill('fireball', ['spark'])
+tree.add_skill('inferno', ['fireball'])
+
+print(tree.topological_sort())  # ['spark', 'fireball', 'inferno']
+"""
+
+real_world = """
+from typing import Dict, List, Set, Optional
+from dataclasses import dataclass, field
+
+@dataclass
+class Skill:
+    id: str
+    name: str
+    description: str
+    prerequisites: List[str] = field(default_factory=list)
+    cost: int = 1
+
+class ProgressionSystem:
+    def __init__(self):
+        self.skills: Dict[str, Skill] = {}
+        self.unlocks: Dict[str, List[str]] = {}
+
+    def register_skill(self, skill: Skill):
+        '''Register a skill in the system'''
+        self.skills[skill.id] = skill
+
+        # Build reverse lookup (what unlocks what)
+        for prereq in skill.prerequisites:
+            if prereq not in self.unlocks:
+                self.unlocks[prereq] = []
+            self.unlocks[prereq].append(skill.id)
+
+    def validate_tree(self) -> bool:
+        '''Check for cycles (would make skills impossible to learn)'''
+        visited = set()
+        rec_stack = set()
+
+        def has_cycle(skill_id):
+            visited.add(skill_id)
+            rec_stack.add(skill_id)
+
+            for unlocked in self.unlocks.get(skill_id, []):
+                if unlocked not in visited:
+                    if has_cycle(unlocked):
+                        return True
+                elif unlocked in rec_stack:
+                    return True
+
+            rec_stack.remove(skill_id)
+            return False
+
+        for skill_id in self.skills:
+            if skill_id not in visited:
+                if has_cycle(skill_id):
+                    return False
+        return True
+
+    def get_learning_path(self, target: str, learned: Set[str]) -> Optional[List[str]]:
+        '''Find shortest path to learn target skill'''
+        if target in learned:
+            return []
+
+        skill = self.skills[target]
+        path = []
+
+        for prereq in skill.prerequisites:
+            if prereq not in learned:
+                sub_path = self.get_learning_path(prereq, learned)
+                if sub_path is None:
+                    return None
+                path.extend(sub_path)
+                learned.add(prereq)
+
+        path.append(target)
+        return path
+
+# Example usage
+system = ProgressionSystem()
+system.register_skill(Skill('spark', 'Spark', 'Basic fire', []))
+system.register_skill(Skill('fireball', 'Fireball', 'Fire projectile', ['spark']))
+system.register_skill(Skill('inferno', 'Inferno', 'Massive fire', ['fireball']))
+
+print(system.validate_tree())  # True (no cycles)
+path = system.get_learning_path('inferno', set())
+print(path)  # ['spark', 'fireball', 'inferno']
+"""
+
+[dag_operations]
+topological_sort = "Order nodes so all prerequisites come first"
+cycle_detection = "Check if graph has cycles (invalid for DAG)"
+reachability = "Can you get from node A to node B?"
+longest_path = "Find longest path (useful for critical paths)"
+
+[graph_algorithms]
+bfs = "Breadth-first search - explore level by level"
+dfs = "Depth-first search - explore deeply first"
+dijkstra = "Shortest path with weighted edges"
+cycle_detection = "Detect cycles using DFS with recursion stack"
+
+[common_mistakes]
+cycles = """
+# WRONG: Circular dependency (impossible to learn)
+skills = {
+    'skill_a': ['skill_b'],
+    'skill_b': ['skill_a']  # Cycle!
+}
+
+# RIGHT: Proper hierarchy
+skills = {
+    'skill_a': [],
+    'skill_b': ['skill_a']
+}
+"""
+
+missing_nodes = """
+# WRONG: Reference to non-existent node
+skills = {
+    'fireball': ['spark']  # But 'spark' not in dict!
+}
+
+# RIGHT: All referenced nodes exist
+skills = {
+    'spark': [],
+    'fireball': ['spark']
+}
+"""
+
+mutation_during_iteration = """
+# WRONG: Modifying graph during traversal
+for node in graph:
+    if should_remove(node):
+        del graph[node]  # Error!
+
+# RIGHT: Collect changes first
+to_remove = [node for node in graph if should_remove(node)]
+for node in to_remove:
+    del graph[node]
+"""
+
+[gotchas]
+dag_means_acyclic = "DAG = Directed Acyclic Graph - NO CYCLES allowed"
+topological_multiple = "DAGs can have multiple valid topological orderings"
+reachability = "Just because A→B and B→C doesn't mean you stored A→C"
+performance = "BFS/DFS are O(V+E) where V=vertices, E=edges"
+
+[gamepad_tutorial]
+text = """
+🎮 GRAPH MODE:
+- Press Y to visualize graph
+- Press A to add node
+- Press X to add edge
+- Press B to detect cycles
+- RB suggests graph operations
+- LB shows node connections
+- Hold LT to see topological order
+"""
+
+[challenges]
+starter = "graphs_simple_tree"
+intermediate = "graphs_skill_prerequisites"
+mastery = "graphs_full_progression_system"
+
+[fun_facts]
+dag_everywhere = "DAGs are used in: build systems (Make), version control (Git), ML pipelines"
+npm_hell = "Package managers solve DAG problems (dependency resolution)"
+git_dag = "Git history is a DAG - commits can have multiple parents (merges)"
+spreadsheets = "Spreadsheet formulas form a DAG (cell dependencies)"
+
+[fun_factor]
+type = "systems"
+description = "Build complex progression systems"
+examples = ["Skill tree", "Quest chains", "Tech tree", "Recipe dependencies"]
+
+[adaptive]
+weakness_signals = ["cycles", "missing_nodes", "wrong_algorithms"]
+strength_indicators = ["clean_dags", "proper_validation", "efficient_traversal"]

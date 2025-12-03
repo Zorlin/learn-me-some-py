@@ -1,0 +1,85 @@
+# Level 1: While Loops
+# Prerequisite for: game loops, event handling
+
+[concept]
+id = "while_loops_basics"
+name = "While Loops: Keep Going Until Done"
+level = 1
+prerequisites = ["if_else_basics", "for_loops_basics"]
+unlocks = ["game_loop", "while_loops_advanced"]
+
+[description]
+brief = "Repeat code while a condition is True"
+detailed = """
+While loops keep going until something changes. Unlike for loops (which loop
+a specific number of times), while loops run until their condition becomes False.
+
+```python
+lives = 3
+while lives > 0:
+    print(f"Lives remaining: {lives}")
+    lives -= 1
+print("Game Over!")
+```
+
+Perfect for game loops, user input, and "until done" situations.
+"""
+
+[examples]
+basic = """
+# Count down
+count = 5
+while count > 0:
+    print(count)
+    count -= 1
+print("Blast off!")
+"""
+
+advanced = """
+# User input loop
+password = ""
+while password != "secret":
+    password = input("Enter password: ")
+    if password != "secret":
+        print("Wrong! Try again.")
+print("Access granted!")
+"""
+
+[syntax]
+condition = "while condition: (must end with colon)"
+infinite_loop = "while True: runs forever (use break to exit)"
+update_variable = "MUST change something in loop or it never ends!"
+
+[common_mistakes]
+infinite_loop = "Forgot to update loop variable = infinite loop! Always change the condition."
+wrong_condition = "while x = 5: is WRONG. Use while x == 5: (double equals)"
+off_by_one = "while x >= 0 includes 0, while x > 0 stops before 0"
+
+[fun_facts]
+break_exit = "Use 'break' to exit loop early"
+continue_skip = "Use 'continue' to skip rest of loop and start next iteration"
+while_true = "while True: with a break inside is a common pattern for menu loops"
+else_clause = "while loops can have else: that runs when loop finishes normally (no break)"
+
+[gamepad_tutorial]
+text = """
+🎮 LOOP CONTROLLER:
+- Press A to start while loop
+- RT (analog) to show loop condition status
+- Press B to insert break statement
+- LT to slow down loop execution (for debugging)
+"""
+
+[challenges]
+starter = "while_loop_countdown"
+intermediate = "while_loop_guess_number"
+mastery = "while_loop_game_menu"
+
+[fun_factor]
+type = "loop"
+description = "The engine of every game - keeps it running until player quits"
+examples = ["game main loop", "retry until success", "input validator"]
+
+[adaptive]
+weakness_signals = ["infinite_loop", "condition_never_changes", "break_in_wrong_place"]
+strength_indicators = ["clean_exit_condition", "appropriate_break_usage", "proper_update"]

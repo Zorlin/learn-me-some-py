@@ -1,0 +1,265 @@
+# Level 4: Dataclasses
+# Prerequisite for: clean data structures, game entities
+
+[concept]
+id = "dataclasses"
+name = "Dataclasses: Simplified Classes for Data"
+level = 4
+category = "oop"
+prerequisites = ["classes", "decorators", "type_hints"]
+unlocks = ["clean_entities", "immutable_data", "validation"]
+
+[description]
+brief = "Auto-generate boilerplate code for classes that mainly hold data"
+detailed = """
+Dataclasses automatically create __init__, __repr__, __eq__, and more.
+It's like having a code generator built into Python.
+
+```python
+from dataclasses import dataclass
+
+@dataclass
+class Player:
+    name: str
+    hp: int
+    level: int = 1
+
+player = Player("Hero", 100)
+print(player)  # Player(name='Hero', hp=100, level=1)
+```
+
+Dataclasses give you:
+- Automatic __init__ from annotations
+- Pretty __repr__ for debugging
+- __eq__ for comparisons
+- Optional immutability
+- Default values
+"""
+
+[syntax]
+basic = """
+from dataclasses import dataclass
+
+@dataclass
+class ClassName:
+    field1: type
+    field2: type
+    field3: type = default_value
+"""
+
+frozen = """
+@dataclass(frozen=True)  # Immutable
+class Point:
+    x: int
+    y: int
+"""
+
+with_methods = """
+@dataclass
+class Player:
+    name: str
+    hp: int
+
+    def take_damage(self, damage):
+        self.hp -= damage
+"""
+
+post_init = """
+@dataclass
+class Enemy:
+    level: int
+    base_hp: int = 50
+
+    def __post_init__(self):
+        # Called after __init__
+        self.hp = self.base_hp * self.level
+"""
+
+[examples]
+basic = """
+from dataclasses import dataclass
+
+@dataclass
+class Item:
+    name: str
+    value: int
+    rarity: str = "common"
+
+sword = Item("Sword", 100, "rare")
+print(sword)  # Item(name='Sword', value=100, rarity='rare')
+
+# Comparison works automatically
+sword2 = Item("Sword", 100, "rare")
+print(sword == sword2)  # True
+"""
+
+advanced = """
+from dataclasses import dataclass, field
+from typing import List
+
+@dataclass
+class Inventory:
+    items: List[str] = field(default_factory=list)
+    max_size: int = 10
+
+    def add_item(self, item: str) -> bool:
+        if len(self.items) < self.max_size:
+            self.items.append(item)
+            return True
+        return False
+
+    def is_full(self) -> bool:
+        return len(self.items) >= self.max_size
+
+inv = Inventory()
+inv.add_item("Sword")
+inv.add_item("Potion")
+print(inv)  # Inventory(items=['Sword', 'Potion'], max_size=10)
+"""
+
+real_world = """
+from dataclasses import dataclass, field
+from typing import List, Optional
+from enum import Enum
+
+class Rarity(Enum):
+    COMMON = 1
+    UNCOMMON = 2
+    RARE = 3
+    LEGENDARY = 4
+
+@dataclass
+class Stats:
+    strength: int = 10
+    dexterity: int = 10
+    intelligence: int = 10
+
+    def total(self) -> int:
+        return self.strength + self.dexterity + self.intelligence
+
+@dataclass
+class Equipment:
+    weapon: Optional[str] = None
+    armor: Optional[str] = None
+    accessory: Optional[str] = None
+
+@dataclass
+class Character:
+    name: str
+    level: int
+    hp: int
+    stats: Stats = field(default_factory=Stats)
+    equipment: Equipment = field(default_factory=Equipment)
+    inventory: List[str] = field(default_factory=list)
+
+    def __post_init__(self):
+        self.max_hp = self.hp
+
+    def heal(self, amount: int):
+        self.hp = min(self.hp + amount, self.max_hp)
+
+    def level_up(self):
+        self.level += 1
+        self.max_hp += 10
+        self.hp = self.max_hp
+
+hero = Character("Hero", 1, 100)
+hero.stats.strength = 15
+hero.inventory.extend(["Potion", "Sword"])
+print(hero)
+"""
+
+[dataclass_options]
+init = "init=True - Generate __init__ (default True)"
+repr = "repr=True - Generate __repr__ (default True)"
+eq = "eq=True - Generate __eq__ (default True)"
+order = "order=False - Generate __lt__, __le__, etc. (default False)"
+frozen = "frozen=False - Make immutable (default False)"
+slots = "slots=False - Use __slots__ for memory efficiency (Python 3.10+)"
+
+[field_options]
+default = "field(default=value) - Default value"
+default_factory = "field(default_factory=list) - Callable to create default"
+init = "field(init=False) - Don't include in __init__"
+repr = "field(repr=False) - Don't include in __repr__"
+compare = "field(compare=False) - Don't use in __eq__"
+
+[common_mistakes]
+mutable_default = """
+# WRONG: Mutable default (shared between instances!)
+@dataclass
+class Broken:
+    items: list = []  # DON'T DO THIS!
+
+# RIGHT: Use default_factory
+@dataclass
+class Works:
+    items: list = field(default_factory=list)
+"""
+
+missing_type = """
+# WRONG: No type annotation
+@dataclass
+class Broken:
+    name = "default"  # Not a field!
+
+# RIGHT: Add type annotation
+@dataclass
+class Works:
+    name: str = "default"
+"""
+
+frozen_modification = """
+# WRONG: Modifying frozen dataclass
+@dataclass(frozen=True)
+class Point:
+    x: int
+    y: int
+
+p = Point(1, 2)
+p.x = 3  # Error! Frozen
+
+# RIGHT: Create new instance
+p = Point(3, 2)
+"""
+
+[special_methods]
+post_init = "__post_init__(self) - Called after __init__, for additional setup"
+init_var = "InitVar[type] - Pass to __post_init__ but don't store as field"
+
+[gotchas]
+inheritance = "Dataclasses can inherit, but field order matters"
+mutable_defaults = "Never use mutable defaults directly - use default_factory"
+type_hints_required = "Fields need type annotations, even if you don't use them"
+slots_python310 = "slots=True requires Python 3.10+"
+
+[gamepad_tutorial]
+text = """
+🎮 DATACLASS MODE:
+- Press Y to convert class to dataclass
+- Press A to add field
+- Press X to toggle frozen
+- RB suggests field types
+- LB shows generated methods
+- Hold RT to add default_factory
+"""
+
+[challenges]
+starter = "dataclasses_simple_entity"
+intermediate = "dataclasses_game_character"
+mastery = "dataclasses_nested_structures"
+
+[fun_facts]
+python37 = "Dataclasses were added in Python 3.7"
+less_boilerplate = "Dataclass can replace 20+ lines of __init__ code with 1 decorator"
+attrs_inspiration = "Dataclasses were inspired by the attrs library"
+slots_fast = "slots=True makes dataclasses faster and use less memory"
+
+[fun_factor]
+type = "productivity"
+description = "Define game entities with minimal code"
+examples = ["Player data", "Item definitions", "Quest structures"]
+
+[adaptive]
+weakness_signals = ["mutable_defaults", "missing_types", "frozen_violations"]
+strength_indicators = ["proper_fields", "good_defaults", "clean_structures"]

@@ -1,0 +1,150 @@
+# Challenge: Guess My Number
+# Introduction to input and comparison
+
+[challenge]
+id = "guess_my_number"
+name = "Guess My Number"
+level = 1
+prerequisites = ["mad_libs"]
+
+[description]
+brief = "Create an interactive guessing game"
+detailed = """
+Time to make your program INTERACTIVE!
+
+You've been printing output. Now let's get INPUT from the user!
+
+Your mission:
+1. Set a secret number (like 42)
+2. Ask the user to guess using input()
+3. Compare their guess to your number
+4. Print "correct" if they match, "wrong" if they don't
+
+This is your first interactive program!
+"""
+
+[skeleton]
+code = '''
+# Set your secret number
+secret =
+
+# Ask for a guess
+guess =
+
+# Compare and print result
+if
+else
+'''
+
+[tests]
+[[tests.case]]
+name = "correct_guess"
+input = ["42"]
+setup = 'secret = 42'
+expected = ["correct"]
+
+[[tests.case]]
+name = "wrong_guess"
+input = ["100"]
+setup = 'secret = 42'
+expected = ["wrong"]
+
+[[tests.case]]
+name = "another_wrong"
+input = ["1"]
+setup = 'secret = 42'
+expected = ["wrong"]
+
+[hints]
+level_1 = "Use input() to get the guess: guess = input('Enter a number: ')"
+level_2 = "Convert to int: guess = int(input('Enter a number: '))"
+level_3 = "Compare with if: if guess == secret:"
+level_4 = """
+Complete solution:
+```python
+secret = 42
+guess = int(input("Enter a number: "))
+
+if guess == secret:
+    print("correct")
+else:
+    print("wrong")
+```
+
+Key concepts:
+- input() gets text from user
+- int() converts text to number
+- == checks if two things are equal
+- if/else makes decisions
+"""
+
+[gamepad_hints]
+easy_mode = """
+🎮 CONTROLLER GUIDE:
+1. Set secret = 42
+2. Get input: guess = int(input("Enter a number: "))
+3. Check: if guess == secret:
+4.     print("correct")
+5. else:
+6.     print("wrong")
+
+This is your first GAME!
+"""
+
+[solution]
+code = '''
+secret = 42
+guess = int(input("Enter a number: "))
+
+if guess == secret:
+    print("correct")
+else:
+    print("wrong")
+'''
+
+[meta]
+time_limit_seconds = 500
+speed_run_target = 90
+points = 150
+next_challenge = "number_comparison"
+
+[adaptive]
+fun_factor = "interactive_play"
+weakness_signals = ["forgot_int_conversion", "wrong_comparison_operator", "indentation_error"]
+project_themes = ["games", "quizzes", "interactive_tools", "cli_apps"]
+
+[emotional_checkpoints]
+after_first_test_pass = """
+🎮 INTERACTIVE! Your program talks back!
+   [RT] for that interaction rush
+"""
+after_completion = """
+🚀 GAME DEVELOPER UNLOCKED!
+
+You just built an interactive game!
+
+Let that sink in:
+✓ User input
+✓ Conditional logic
+✓ Interactive feedback
+
+Every game, app, and tool does these three things.
+You just learned the foundation of ALL interactive software.
+
+This is HUGE.
+
+How does it feel to build something interactive?
+[RT] Mind blown! | [LT] Make it harder! | [Y] Teach me more!
+"""
+
+# Self-teaching note:
+#
+# This file demonstrates:
+# - input() function (Level 1)
+# - Type conversion with int() (Level 1)
+# - Comparison operators (==) (Level 1)
+# - if/else conditionals (Level 1)
+# - Interactive programs (professional milestone)
+#
+# The learner discovers that programs can respond to users.
+# This is the gateway to game development, apps, and interactivity.

@@ -1,0 +1,215 @@
+# Challenge: Data Processing Pipeline
+# Imports, modules, and putting it all together
+
+[challenge]
+id = "data_processor"
+name = "Data Processing Pipeline"
+level = 3
+prerequisites = ["functions_basics", "imports", "list_comprehensions"]
+
+[description]
+brief = "Build a data processing pipeline with multiple transformations"
+detailed = """
+You're building a data pipeline to clean and transform data!
+
+Create these functions:
+- clean_data(items): Remove empty strings and None values
+- filter_numbers(items): Keep only items that can be converted to int
+- square_values(numbers): Square each number
+- sum_values(numbers): Return sum of all numbers
+
+Then create a pipeline function:
+- process_pipeline(raw_data, operations): Apply operations in order
+
+Operations are strings:
+- "clean" -> clean_data
+- "filter" -> filter_numbers
+- "square" -> square_values
+- "sum" -> sum_values
+
+Example:
+raw_data = ["1", "2", "", "3", None, "abc"]
+operations = ["clean", "filter", "square", "sum"]
+Result: 14  (1² + 2² + 3² = 1 + 4 + 9 = 14)
+
+Commands format:
+"DATA 1,2,,3,abc" -> set data
+"PIPELINE clean,filter,square,sum" -> process and return result
+"""
+
+[skeleton]
+code = '''
+def clean_data(items):
+    # Remove empty strings and None values
+    pass
+
+def filter_numbers(items):
+    # Keep only items that can be converted to int
+    pass
+
+def square_values(numbers):
+    # Square each number
+    pass
+
+def sum_values(numbers):
+    # Return sum
+    pass
+
+def process_pipeline(data, operations):
+    # Apply each operation in order
+    # Return final result
+    pass
+
+def solution(commands):
+    # Process commands and manage pipeline
+    pass
+'''
+
+[tests]
+[[tests.case]]
+name = "basic_pipeline"
+input = ["DATA 1,2,3", "PIPELINE clean,filter,square,sum"]
+expected = ["Data loaded: 3 items", "14"]
+
+[[tests.case]]
+name = "with_empty_values"
+input = ["DATA 1,2,,3,", "PIPELINE clean,filter,square,sum"]
+expected = ["Data loaded: 5 items", "14"]
+
+[[tests.case]]
+name = "with_invalid_numbers"
+input = ["DATA 1,2,abc,3,xyz", "PIPELINE clean,filter,square,sum"]
+expected = ["Data loaded: 5 items", "14"]
+
+[[tests.case]]
+name = "filter_only"
+input = ["DATA 1,abc,2,def,3", "PIPELINE clean,filter"]
+expected = ["Data loaded: 5 items", "[1, 2, 3]"]
+
+[[tests.case]]
+name = "partial_pipeline"
+input = ["DATA 2,3,4", "PIPELINE clean,filter,square"]
+expected = ["Data loaded: 3 items", "[4, 9, 16]"]
+
+[[tests.case]]
+name = "complex_data"
+input = ["DATA 5,,,10,,15,abc,20,def", "PIPELINE clean,filter,square,sum"]
+expected = ["Data loaded: 9 items", "750"]
+
+[hints]
+level_1 = "Use list comprehensions: [x for x in items if x]"
+level_2 = "For filter_numbers, use try/except to test int() conversion"
+level_3 = "Create a mapping dict: operations = {'clean': clean_data, 'filter': filter_numbers, ...}"
+level_4 = """
+Pattern:
+```python
+def process_pipeline(data, operations):
+    ops_map = {
+        'clean': clean_data,
+        'filter': filter_numbers,
+        'square': square_values,
+        'sum': sum_values
+    }
+
+    result = data
+    for op in operations:
+        result = ops_map[op](result)
+    return result
+```
+"""
+
+[gamepad_hints]
+easy_mode = """
+🎮 DATA PIPELINE:
+1. clean_data: [x for x in items if x and x is not None]
+2. filter_numbers: try int(x) for each, keep successes
+3. square_values: [x**2 for x in numbers]
+4. sum_values: sum(numbers)
+5. Pipeline: loop through operations, apply each function
+6. Use dict to map operation names to functions
+"""
+
+[solution]
+# Hidden from player
+code = '''
+def clean_data(items):
+    return [x for x in items if x and x is not None]
+
+def filter_numbers(items):
+    result = []
+    for item in items:
+        try:
+            result.append(int(item))
+        except (ValueError, TypeError):
+            pass
+    return result
+
+def square_values(numbers):
+    return [x ** 2 for x in numbers]
+
+def sum_values(numbers):
+    return sum(numbers)
+
+def process_pipeline(data, operations):
+    ops_map = {
+        'clean': clean_data,
+        'filter': filter_numbers,
+        'square': square_values,
+        'sum': sum_values
+    }
+
+    result = data
+    for op in operations:
+        result = ops_map[op](result)
+    return result
+
+def solution(commands):
+    data = []
+    results = []
+
+    for command in commands:
+        if command.startswith("DATA "):
+            data_str = command[5:]
+            # Split by comma, handle empty strings
+            data = data_str.split(",")
+            results.append(f"Data loaded: {len(data)} items")
+
+        elif command.startswith("PIPELINE "):
+            ops_str = command[9:]
+            operations = ops_str.split(",")
+            result = process_pipeline(data, operations)
+
+            # Format output based on type
+            if isinstance(result, list):
+                # Convert to list of ints for display
+                result = [int(x) if isinstance(x, str) else x for x in result if x or x == 0]
+                results.append(str(result))
+            else:
+                results.append(str(result))
+
+    return results
+'''
+
+[meta]
+time_limit_seconds = 1200
+speed_run_target = 480
+points = 50
+xp_reward = 50
+category = "advanced"
+next_challenge = "complete_level_3"
+
+[adaptive]
+fun_factor = "systems"
+weakness_signals = ["function_composition", "dict_mapping", "try_except_in_loop"]
+project_themes = ["etl_pipeline", "data_cleaning", "transform_system", "batch_processor"]
+
+[emotional_checkpoints]
+after_first_test_pass = """
+🎮 Your pipeline works! Function composition is powerful.
+   [RT] if this feels like magic
+"""
+after_completion = """
+🎮 Data processor complete! You're doing real data engineering.
+   Level 3 mastered! Ready for advanced challenges?
+   [RT] Bring it on  |  [LT] Need a break  |  [Y] What's next?
+"""

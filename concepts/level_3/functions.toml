@@ -1,0 +1,163 @@
+# Level 3: Functions
+# Prerequisite for: classes, decorators, generators
+
+[concept]
+id = "functions"
+name = "Functions: Build Your Own Commands"
+level = 3
+category = "control_flow"
+prerequisites = ["variables", "conditionals", "loops"]
+unlocks = ["classes", "decorators", "generators", "recursion"]
+
+[description]
+brief = "Create reusable blocks of code with inputs and outputs"
+detailed = """
+A function is like a vending machine - you put something in (parameters),
+it does work, and gives you something back (return value).
+
+```python
+def greet(name):
+    return f"Hello, {name}!"
+
+message = greet("Player")  # "Hello, Player!"
+```
+
+Functions let you:
+- Write code once, use it many times
+- Break big problems into small pieces
+- Give names to useful operations
+"""
+
+[syntax]
+basic = """
+def function_name(parameter1, parameter2):
+    # Do work here
+    return result
+"""
+no_params = """
+def say_hello():
+    return "Hello!"
+"""
+no_return = """
+def print_status(hp):
+    print(f"HP: {hp}")
+    # No return means returns None
+"""
+default_params = """
+def attack(damage=10, critical=False):
+    if critical:
+        damage *= 2
+    return damage
+"""
+
+[examples]
+basic = """
+def add(a, b):
+    return a + b
+
+result = add(5, 3)  # 8
+"""
+
+advanced = """
+def calculate_damage(base_damage, crit_chance=0.1, multiplier=1.0):
+    '''Calculate damage with critical hits'''
+    import random
+    is_crit = random.random() < crit_chance
+    damage = base_damage * multiplier
+    if is_crit:
+        damage *= 2
+    return int(damage), is_crit
+
+damage, was_crit = calculate_damage(50, crit_chance=0.2)
+"""
+
+real_world = """
+# Game inventory system
+def can_afford(item_price, player_gold):
+    return player_gold >= item_price
+
+def buy_item(item_name, price, player_gold):
+    if can_afford(price, player_gold):
+        player_gold -= price
+        return True, player_gold
+    return False, player_gold
+
+success, new_gold = buy_item("Sword", 100, 150)
+"""
+
+[common_mistakes]
+forgetting_return = """
+# WRONG: No return value
+def add(a, b):
+    a + b  # This does nothing!
+
+# RIGHT: Return the result
+def add(a, b):
+    return a + b
+"""
+
+modifying_params = """
+# BE CAREFUL: Modifying mutable parameters
+def add_item(inventory, item):
+    inventory.append(item)  # This changes the original!
+    return inventory
+
+# Safer pattern:
+def add_item(inventory, item):
+    new_inventory = inventory.copy()
+    new_inventory.append(item)
+    return new_inventory
+"""
+
+wrong_indentation = """
+# WRONG: Not indented
+def broken():
+print("This won't work!")
+
+# RIGHT: Properly indented
+def works():
+    print("This works!")
+"""
+
+[parameters]
+positional = "Called in order: greet('Alice', 'Bob')"
+keyword = "Called by name: greet(name='Alice', greeting='Hi')"
+default = "Optional values: def greet(name='Player')"
+args = "Variable arguments: def sum(*numbers)"
+kwargs = "Keyword arguments: def config(**options)"
+
+[gotchas]
+return_exits = "return immediately exits the function"
+none_default = "Functions without return give back None"
+scope = "Variables inside functions are local (can't access outside)"
+mutation = "Be careful modifying lists/dicts passed as parameters"
+
+[gamepad_tutorial]
+text = """
+🎮 FUNCTION MODE:
+- Press Y to create a new function
+- Press A to call a function
+- Press B to return from function
+- RB suggests parameter names based on context
+- LB shows function signature when calling
+"""
+
+[challenges]
+starter = "functions_create_simple"
+intermediate = "functions_with_params"
+mastery = "functions_game_logic"
+
+[fun_facts]
+first_class = "Functions are objects - you can pass them to other functions!"
+lambda_preview = "Python has one-line functions called lambdas: lambda x: x * 2"
+recursion = "Functions can call themselves - that's recursion!"
+closure = "Functions can remember variables from where they were defined"
+
+[fun_factor]
+type = "abstraction"
+description = "Build your own verbs for the game"
+examples = ["calculate_damage()", "move_player()", "check_collision()"]
+
+[adaptive]
+weakness_signals = ["missing_return", "parameter_confusion", "scope_errors"]
+strength_indicators = ["clean_functions", "good_names", "proper_returns"]

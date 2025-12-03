@@ -1,0 +1,144 @@
+# Challenge: Favorite Things
+# Work with multiple variables
+
+[challenge]
+id = "favorite_things"
+name = "Favorite Things"
+level = 1
+prerequisites = ["name_length"]
+
+[description]
+brief = "Create a profile with multiple variables"
+detailed = """
+Let's build a personal profile!
+
+You'll work with MULTIPLE variables at once - just like real programs do.
+
+Your mission:
+1. Create these variables:
+   - name (your name)
+   - age (a number)
+   - hobby (something you enjoy)
+2. Print them in a nice format
+
+Output should be: "NAME is AGE years old and loves HOBBY"
+"""
+
+[skeleton]
+code = '''
+# Create your profile variables
+name =
+age =
+hobby =
+
+# Print your profile
+print()
+'''
+
+[tests]
+[[tests.case]]
+name = "alice_profile"
+input = []
+setup = '''
+name = "Alice"
+age = 25
+hobby = "coding"
+'''
+expected = ["Alice is 25 years old and loves coding"]
+
+[[tests.case]]
+name = "bob_profile"
+input = []
+setup = '''
+name = "Bob"
+age = 30
+hobby = "gaming"
+'''
+expected = ["Bob is 30 years old and loves gaming"]
+
+[[tests.case]]
+name = "wings_profile"
+input = []
+setup = '''
+name = "Wings"
+age = 28
+hobby = "building cool stuff"
+'''
+expected = ["Wings is 28 years old and loves building cool stuff"]
+
+[hints]
+level_1 = "Create three variables: name, age, and hobby"
+level_2 = "Remember: age is a NUMBER (no quotes), name and hobby are STRINGS (with quotes)"
+level_3 = "Use an f-string: print(f\"{name} is {age} years old and loves {hobby}\")"
+level_4 = """
+Complete solution:
+```python
+name = "Alice"
+age = 25
+hobby = "coding"
+print(f"{name} is {age} years old and loves {hobby}")
+```
+
+Notice: Numbers don't need quotes!
+age = 25    ← Number
+name = "Alice"  ← String
+"""
+
+[gamepad_hints]
+easy_mode = """
+🎮 CONTROLLER GUIDE:
+1. Set name = "YourName" (with quotes)
+2. Set age = YourAge (NO quotes - it's a number!)
+3. Set hobby = "YourHobby" (with quotes)
+4. Print with f-string: f"{name} is {age}..."
+
+Strings = quotes. Numbers = no quotes!
+"""
+
+[solution]
+code = '''
+name = "Alice"
+age = 25
+hobby = "coding"
+print(f"{name} is {age} years old and loves {hobby}")
+'''
+
+[meta]
+time_limit_seconds = 400
+speed_run_target = 60
+points = 125
+next_challenge = "mad_libs"
+
+[adaptive]
+fun_factor = "personalization"
+weakness_signals = ["mixed_types", "quotes_on_numbers", "forgot_variable"]
+project_themes = ["user_profiles", "database_records", "game_characters", "social_media"]
+
+[emotional_checkpoints]
+after_first_test_pass = """
+👤 Profile created! Multiple variables working!
+   [RT] for that data structure feeling
+"""
+after_completion = """
+🎭 Multi-variable mastery!
+
+You just managed state across multiple variables.
+This is what real programs do - juggle lots of data at once.
+
+You're thinking like a developer now:
+✓ Different data types (strings, numbers)
+✓ Multiple variables
+✓ Formatted output
+
+[RT] I'm getting it! | [LT] More practice? | [Y] What's next?
+"""
+
+# Self-teaching note:
+#
+# This file demonstrates:
+# - Multiple variables (Level 1)
+# - Type awareness (strings vs numbers) (Level 1)
+# - f-strings with multiple variables (Level 1)
+# - State management (professional concept)
+#
+# The learner discovers that programs manage complex data.

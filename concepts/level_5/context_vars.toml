@@ -1,0 +1,388 @@
+# Level 5: Context Variables
+# Thread-safe global state that works with async
+
+[concept]
+id = "context_vars"
+name = "Context Variables: Safe Global State"
+level = 5
+category = "concurrency"
+prerequisites = ["async_await", "threading_basics", "global_scope"]
+unlocks = ["request_context", "async_frameworks", "structured_logging"]
+
+[description]
+brief = "Global variables that work correctly with async and threads"
+detailed = """
+Context variables provide thread-safe and async-safe "global" state that
+automatically follows execution context. Perfect for request IDs, user info,
+or any state that should be "ambient" but isolated per task/thread.
+
+```python
+from contextvars import ContextVar
+import asyncio
+
+# Create a context variable
+request_id: ContextVar[str] = ContextVar('request_id', default='no-request')
+
+async def handle_request(req_id: str):
+    # Set context for this async task
+    request_id.set(req_id)
+
+    await do_work()
+    await do_more_work()
+    # All functions see the same request_id without passing it around!
+
+async def do_work():
+    # Get context automatically
+    print(f"Working on request: {request_id.get()}")
+
+async def do_more_work():
+    print(f"More work on request: {request_id.get()}")
+
+# Each concurrent request has its own context
+await asyncio.gather(
+    handle_request("req-001"),
+    handle_request("req-002"),
+    handle_request("req-003"),
+)
+# Output (interleaved):
+# Working on request: req-001
+# Working on request: req-002
+# More work on request: req-001
+# Working on request: req-003
+# More work on request: req-002
+# More work on request: req-003
+```
+
+Unlike global variables, context vars are isolated per execution context!
+"""
+
+[key_concepts]
+creating_context_vars = """
+Create a ContextVar with a name and optional default:
+
+```python
+from contextvars import ContextVar
+
+user_id: ContextVar[int] = ContextVar('user_id')
+locale: ContextVar[str] = ContextVar('locale', default='en-US')
+
+# Type hints are optional but recommended
+```
+"""
+
+getting_and_setting = """
+Use `.get()` and `.set()`:
+
+```python
+request_id = ContextVar('request_id')
+
+# Set value
+token = request_id.set('abc-123')
+
+# Get value
+current = request_id.get()  # 'abc-123'
+
+# Get with default if not set
+value = request_id.get('default-value')
+
+# Reset to previous value using token
+request_id.reset(token)
+```
+"""
+
+isolation = """
+Each async task and thread has its own context:
+
+```python
+from contextvars import ContextVar
+import asyncio
+
+counter = ContextVar('counter', default=0)
+
+async def increment(task_name):
+    for i in range(3):
+        current = counter.get()
+        counter.set(current + 1)
+        print(f"{task_name}: {counter.get()}")
+        await asyncio.sleep(0.1)
+
+asyncio.run(asyncio.gather(
+    increment("Task A"),
+    increment("Task B"),
+))
+# Output:
+# Task A: 1
+# Task B: 1  # Isolated! Not 2!
+# Task A: 2
+# Task B: 2
+# Task A: 3
+# Task B: 3
+```
+"""
+
+[patterns]
+request_context = """
+Track request-specific data in web frameworks:
+
+```python
+from contextvars import ContextVar
+
+request_id = ContextVar('request_id')
+user = ContextVar('user')
+
+async def middleware(request, handler):
+    request_id.set(request.headers.get('X-Request-ID'))
+    user.set(await get_user_from_token(request))
+
+    response = await handler(request)
+    return response
+
+async def some_handler(request):
+    # No need to pass request_id or user around!
+    logger.info(f"User {user.get()} made request {request_id.get()}")
+    return "OK"
+```
+"""
+
+structured_logging = """
+Add context to all log messages automatically:
+
+```python
+import logging
+from contextvars import ContextVar
+
+request_id = ContextVar('request_id', default='no-request')
+
+class ContextFilter(logging.Filter):
+    def filter(self, record):
+        record.request_id = request_id.get()
+        return True
+
+logger = logging.getLogger(__name__)
+logger.addFilter(ContextFilter())
+
+# Now all logs automatically include request_id!
+async def handle_request(req_id):
+    request_id.set(req_id)
+    logger.info("Processing request")  # Includes request_id in output
+```
+"""
+
+copying_context = """
+Manually copy context to new tasks:
+
+```python
+from contextvars import copy_context
+import asyncio
+
+counter = ContextVar('counter', default=0)
+
+def some_sync_function():
+    print(f"Counter: {counter.get()}")
+
+async def main():
+    counter.set(42)
+
+    # Run sync function in current context
+    ctx = copy_context()
+    await asyncio.get_event_loop().run_in_executor(
+        None,
+        ctx.run,
+        some_sync_function
+    )
+
+asyncio.run(main())  # Output: Counter: 42
+```
+"""
+
+[common_mistakes]
+using_globals_instead = """
+WRONG (not isolated):
+```python
+current_user = None  # Shared across all async tasks!
+
+async def handle_request(user):
+    global current_user
+    current_user = user  # Race condition!
+    await process()
+
+async def process():
+    print(current_user)  # Might see another task's user!
+```
+
+RIGHT (isolated):
+```python
+current_user = ContextVar('current_user')
+
+async def handle_request(user):
+    current_user.set(user)  # Isolated to this task
+    await process()
+
+async def process():
+    print(current_user.get())  # Always correct user
+```
+"""
+
+forgetting_default = """
+WRONG (raises LookupError if not set):
+```python
+value = my_var.get()  # LookupError if never set!
+```
+
+RIGHT (provide default):
+```python
+value = my_var.get('default-value')
+# Or set a default when creating:
+my_var = ContextVar('my_var', default='default-value')
+```
+"""
+
+mutating_context_values = """
+CAREFUL with mutable objects:
+```python
+data = ContextVar('data')
+data.set({'count': 0})
+
+# This mutates the object, not isolated!
+d = data.get()
+d['count'] += 1  # Modifies original dict
+
+# Better: set a new object
+data.set({'count': data.get()['count'] + 1})
+```
+"""
+
+[when_to_use]
+perfect_for = [
+    "Request IDs in web frameworks",
+    "User context in async applications",
+    "Transaction context in database code",
+    "Logging context",
+    "Feature flags per request",
+]
+
+avoid_for = [
+    "Simple function parameters (just pass them!)",
+    "Data that doesn't need isolation",
+    "When explicit is better than implicit",
+]
+
+[gotchas]
+threads_vs_async = """
+Context vars work with BOTH threads and async:
+
+```python
+import threading
+from contextvars import ContextVar
+
+user = ContextVar('user')
+
+def worker(name):
+    user.set(name)
+    print(f"Thread: {user.get()}")
+
+t1 = threading.Thread(target=worker, args=("Alice",))
+t2 = threading.Thread(target=worker, args=("Bob",))
+t1.start(); t2.start()
+t1.join(); t2.join()
+# Output (isolated):
+# Thread: Alice
+# Thread: Bob
+```
+"""
+
+not_inherited_by_default = """
+New threads/tasks DON'T inherit context by default:
+
+```python
+import asyncio
+from contextvars import ContextVar
+
+counter = ContextVar('counter')
+
+async def main():
+    counter.set(42)
+
+    # This task doesn't see counter!
+    task = asyncio.create_task(child())
+    await task
+
+async def child():
+    print(counter.get())  # LookupError!
+
+# Use copy_context() to explicitly copy
+```
+"""
+
+[gamepad_tutorial]
+text = """
+🎮 CONTEXT VARS CHALLENGE MODE:
+- RT: Visualize context isolation between tasks
+- LT: Show context inheritance
+- Y: Insert ContextVar boilerplate
+- B: Add logging context
+- D-pad: Navigate between contexts
+"""
+
+[challenges]
+starter = "context_vars_simple_counter"
+intermediate = "context_vars_request_id"
+mastery = "context_vars_structured_logging"
+expert = "context_vars_lmsp_player_context"
+
+[fun_factor]
+type = "concurrency"
+description = "Magic global variables that actually work"
+examples = [
+    "Track user per request in web server",
+    "Add request IDs to all logs automatically",
+    "Per-player state in multiplayer game",
+]
+
+[adaptive]
+weakness_signals = [
+    "using_globals_instead",
+    "forgetting_to_set_defaults",
+    "mutating_context_values",
+    "lookup_errors",
+]
+strength_indicators = [
+    "proper_isolation_understanding",
+    "correct_default_handling",
+    "immutable_updates",
+]
+
+[fun_facts]
+python_37_addition = """
+Context variables were added in Python 3.7 (PEP 567) to solve async-specific
+problems. Before that, threading.local() worked for threads but not async!
+"""
+
+how_it_works = """
+Under the hood, contextvars uses a immutable mapping (HAMT - Hash Array Mapped
+Trie) that's copied on modification. This allows cheap context copying while
+maintaining isolation.
+"""
+
+replaces_thread_local = """
+Before contextvars, people used threading.local():
+
+```python
+import threading
+local = threading.local()
+local.user = "Alice"
+```
+
+But this DOESN'T work with async! contextvars works with both.
+"""
+
+[real_world]
+fastapi = "Request state without passing request object everywhere"
+django_async = "User and request context in async views"
+structlog = "Structured logging with automatic context"
+celery = "Task-local state in async workers"
+
+[see_also]
+concepts = ["async_await", "threading", "decorators"]
+stdlib = ["contextvars", "logging", "asyncio"]
+patterns = ["dependency_injection", "ambient_context"]

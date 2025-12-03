@@ -1,0 +1,165 @@
+# Level 2: List Comprehensions
+# Prerequisite for: functional programming, pythonic code, data processing
+
+[concept]
+id = "list_comprehensions"
+name = "List Comprehensions: Loops in One Line"
+level = 2
+prerequisites = ["for_loops", "lists_basics", "if_elif_else"]
+
+[description]
+brief = "Create new lists from existing ones in a single line"
+detailed = """
+List comprehensions are a compact way to transform or filter lists.
+Instead of writing a full for loop, you write [expression for item in collection].
+
+```python
+# Traditional way
+squares = []
+for x in range(5):
+    squares.append(x ** 2)
+
+# List comprehension way
+squares = [x ** 2 for x in range(5)]
+# Result: [0, 1, 4, 9, 16]
+```
+"""
+
+[patterns]
+basic = '''
+[expression for item in collection]
+
+# Examples:
+doubled = [x * 2 for x in numbers]
+uppercase = [s.upper() for s in words]
+'''
+with_condition = '''
+[expression for item in collection if condition]
+
+# Examples:
+evens = [x for x in range(10) if x % 2 == 0]
+long_words = [w for w in words if len(w) > 5]
+'''
+with_transformation_and_filter = '''
+[expression for item in collection if condition]
+
+# Examples:
+# Square only positive numbers
+result = [x**2 for x in numbers if x > 0]
+'''
+nested = '''
+[expression for outer in outer_collection for inner in inner_collection]
+
+# Examples:
+# Flatten 2D list
+grid = [[1, 2], [3, 4]]
+flat = [cell for row in grid for cell in row]
+# Result: [1, 2, 3, 4]
+
+# All coordinates
+coords = [(x, y) for x in range(3) for y in range(3)]
+'''
+
+[gotchas]
+readability = """
+List comprehensions should be simple and readable:
+✓ Good: [x*2 for x in nums if x > 0]
+✗ Too complex: [x*2 if x > 0 else x/2 for x in nums if x != 0 and x < 100]
+
+If it's hard to read, use a regular loop!
+"""
+nested_confusion = """
+Nested comprehensions read left-to-right, like nested loops:
+[f(x, y) for x in range(3) for y in range(3)]
+
+Equivalent to:
+for x in range(3):
+    for y in range(3):
+        result.append(f(x, y))
+"""
+no_side_effects = """
+Don't use comprehensions for side effects:
+✗ [print(x) for x in items]  # Bad!
+✓ for x in items: print(x)   # Good
+
+Use comprehensions to CREATE new lists, not for actions.
+"""
+
+[gamepad_tutorial]
+text = """
+🎮 EASY MODE:
+- Press Y to convert for loop to comprehension
+- Press RB to add if condition
+- D-pad to see expansion of comprehension
+- Hold RT for "map/filter" comparison
+"""
+
+[challenges]
+starter = "comprehension_double_numbers"
+intermediate = "comprehension_filter_enemies"
+mastery = "comprehension_nested_grid"
+
+[fun_factor]
+type = "pythonic"
+description = "Like applying a power-up to all items at once"
+examples = ["apply damage to enemies", "heal all party members", "filter items by rarity"]
+
+[adaptive]
+weakness_signals = ["overly_complex", "side_effects_in_comprehension", "nested_confusion"]
+strength_indicators = ["clean_usage", "appropriate_filtering", "readable_expressions"]
+
+[examples]
+basic = '''
+# Double all numbers
+numbers = [1, 2, 3, 4, 5]
+doubled = [x * 2 for x in numbers]
+print(doubled)  # [2, 4, 6, 8, 10]
+
+# Get all enemy names
+enemies = [
+    {"name": "goblin", "hp": 30},
+    {"name": "orc", "hp": 50},
+    {"name": "troll", "hp": 80}
+]
+names = [enemy["name"] for enemy in enemies]
+print(names)  # ['goblin', 'orc', 'troll']
+'''
+
+advanced = '''
+# Filter and transform
+numbers = [-2, -1, 0, 1, 2, 3, 4, 5]
+positive_squares = [x**2 for x in numbers if x > 0]
+print(positive_squares)  # [1, 4, 9, 16, 25]
+
+# Alive enemies only
+enemies = [
+    {"name": "goblin", "hp": 30},
+    {"name": "orc", "hp": 0},
+    {"name": "troll", "hp": 80}
+]
+alive = [e for e in enemies if e["hp"] > 0]
+print([e["name"] for e in alive])  # ['goblin', 'troll']
+
+# Generate game grid
+grid = [[(x, y) for x in range(3)] for y in range(3)]
+# Result: [
+#   [(0,0), (1,0), (2,0)],
+#   [(0,1), (1,1), (2,1)],
+#   [(0,2), (1,2), (2,2)]
+# ]
+
+# Flatten nested list
+nested = [[1, 2], [3, 4], [5, 6]]
+flat = [item for sublist in nested for item in sublist]
+print(flat)  # [1, 2, 3, 4, 5, 6]
+'''
+
+[common_mistakes]
+mistake_1 = "Making comprehensions too complex - use regular loops for clarity"
+mistake_2 = "Using comprehensions for side effects (printing, modifying globals)"
+mistake_3 = "Confusion with nested comprehension order (reads left-to-right)"
+
+[fun_facts]
+fact_1 = "Python borrowed list comprehensions from Haskell (a pure functional language)"
+fact_2 = "Dict and set comprehensions exist too: {x: x**2 for x in range(5)}"
+fact_3 = "List comprehensions are often faster than equivalent for loops!"

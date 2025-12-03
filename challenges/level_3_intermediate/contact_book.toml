@@ -1,0 +1,181 @@
+# Challenge: Contact Book Manager
+# Functions and structured data together
+
+[challenge]
+id = "contact_book"
+name = "Contact Book Manager"
+level = 3
+prerequisites = ["functions_basics", "dicts_basics", "lists_basics"]
+
+[description]
+brief = "Build a contact manager with search and organization"
+detailed = """
+You're building a contact management system!
+
+Commands:
+- ADD <name> <phone> <email>: Add a contact
+- FIND <name>: Return phone and email as "phone,email" or "Not found"
+- SEARCH <term>: Find all contacts with term in name (return names, newline-separated)
+- COUNT: Return total number of contacts
+- DELETE <name>: Remove a contact, return "Deleted <name>" or "Not found"
+
+Example:
+ADD Alice 555-1234 alice@email.com
+ADD Bob 555-5678 bob@email.com
+FIND Alice -> "555-1234,alice@email.com"
+SEARCH li -> "Alice"
+COUNT -> "2"
+"""
+
+[skeleton]
+code = '''
+def solution(commands):
+    # Build a contact book
+    # Store name, phone, email for each contact
+    # Support find, search, count, delete
+    pass
+'''
+
+[tests]
+[[tests.case]]
+name = "basic_contacts"
+input = ["ADD Alice 555-1234 alice@email.com", "FIND Alice", "COUNT"]
+expected = ["Added: Alice", "555-1234,alice@email.com", "1"]
+
+[[tests.case]]
+name = "multiple_contacts"
+input = [
+    "ADD Alice 555-1234 alice@email.com",
+    "ADD Bob 555-5678 bob@email.com",
+    "ADD Charlie 555-9999 charlie@email.com",
+    "COUNT"
+]
+expected = ["Added: Alice", "Added: Bob", "Added: Charlie", "3"]
+
+[[tests.case]]
+name = "find_missing"
+input = ["ADD Alice 555-1234 alice@email.com", "FIND Bob"]
+expected = ["Added: Alice", "Not found"]
+
+[[tests.case]]
+name = "search_contacts"
+input = [
+    "ADD Alice 555-1234 alice@email.com",
+    "ADD Alicia 555-5678 alicia@email.com",
+    "ADD Bob 555-9999 bob@email.com",
+    "SEARCH Ali"
+]
+expected = ["Added: Alice", "Added: Alicia", "Added: Bob", "Alice\nAlicia"]
+
+[[tests.case]]
+name = "delete_contact"
+input = ["ADD Alice 555-1234 alice@email.com", "DELETE Alice", "COUNT", "FIND Alice"]
+expected = ["Added: Alice", "Deleted: Alice", "0", "Not found"]
+
+[[tests.case]]
+name = "empty_search"
+input = ["ADD Alice 555-1234 alice@email.com", "SEARCH xyz"]
+expected = ["Added: Alice", ""]
+
+[hints]
+level_1 = "Store contacts in a dictionary: contacts = {'Alice': {'phone': '...', 'email': '...'}}"
+level_2 = "For SEARCH, loop through all names and check if term is in name"
+level_3 = "Use 'in' operator: if search_term in contact_name"
+level_4 = """
+Pattern:
+```python
+contacts = {}
+
+def add_contact(name, phone, email):
+    contacts[name] = {'phone': phone, 'email': email}
+
+def find_contact(name):
+    if name in contacts:
+        return f"{contacts[name]['phone']},{contacts[name]['email']}"
+    return "Not found"
+
+def search_contacts(term):
+    matches = [name for name in contacts if term in name]
+    return "\\n".join(matches)
+```
+"""
+
+[gamepad_hints]
+easy_mode = """
+🎮 CONTACT BOOK:
+1. Create contacts = {} dictionary
+2. Each contact: {'phone': '...', 'email': '...'}
+3. ADD: contacts[name] = {...}
+4. FIND: return contacts[name] formatted
+5. SEARCH: loop and check if term in name
+6. DELETE: del contacts[name]
+"""
+
+[solution]
+# Hidden from player
+code = '''
+def solution(commands):
+    contacts = {}
+    results = []
+
+    for command in commands:
+        parts = command.split(maxsplit=1)
+        action = parts[0]
+
+        if action == "ADD":
+            items = parts[1].split()
+            name = items[0]
+            phone = items[1]
+            email = items[2]
+            contacts[name] = {'phone': phone, 'email': email}
+            results.append(f"Added: {name}")
+
+        elif action == "FIND":
+            name = parts[1]
+            if name in contacts:
+                c = contacts[name]
+                results.append(f"{c['phone']},{c['email']}")
+            else:
+                results.append("Not found")
+
+        elif action == "SEARCH":
+            term = parts[1]
+            matches = [name for name in contacts if term in name]
+            results.append("\n".join(matches))
+
+        elif action == "COUNT":
+            results.append(str(len(contacts)))
+
+        elif action == "DELETE":
+            name = parts[1]
+            if name in contacts:
+                del contacts[name]
+                results.append(f"Deleted: {name}")
+            else:
+                results.append("Not found")
+
+    return results
+'''
+
+[meta]
+time_limit_seconds = 900
+speed_run_target = 300
+points = 50
+xp_reward = 50
+category = "practical"
+next_challenge = "file_analyzer"
+
+[adaptive]
+fun_factor = "practical"
+weakness_signals = ["nested_dict_confusion", "substring_search_wrong", "del_keyword"]
+project_themes = ["address_book", "crm", "phonebook", "directory"]
+
+[emotional_checkpoints]
+after_first_test_pass = """
+🎮 Your contact book is working! Data structures are powerful.
+   [RT] to show confidence
+"""
+after_completion = """
+🎮 Contact book complete! You're building real databases now.
+   [RT] Ready for more  |  [LT] Too complex  |  [Y] What's next?
+"""

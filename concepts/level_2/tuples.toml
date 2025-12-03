@@ -1,0 +1,104 @@
+# Level 2: Tuples
+# Prerequisite for: dictionary keys, function returns, unpacking
+
+[concept]
+id = "tuples_basics"
+name = "Tuples: Lists That Never Change"
+level = 2
+prerequisites = ["lists_basics", "variables"]
+
+[description]
+brief = "Immutable sequences - like a locked list"
+detailed = """
+A tuple is like a sealed envelope - once you create it, you can't change what's inside.
+Use parentheses () instead of brackets [].
+
+```python
+coordinates = (10, 20)          # A tuple with 2 items
+print(coordinates[0])           # 10 (can read)
+# coordinates[0] = 15           # ERROR! Can't modify
+
+# Single item needs trailing comma
+single = (42,)                  # Tuple
+not_tuple = (42)                # Just a number in parens
+```
+"""
+
+[methods]
+count = "Count occurrences: my_tuple.count(item)"
+index = "Find position: my_tuple.index(item)"
+
+[gotchas]
+single_item_comma = """
+Single-item tuples need a trailing comma:
+✓ (42,)   # Tuple with one item
+✗ (42)    # Just the number 42
+"""
+immutable_means_immutable = """
+You can't change ANY part of a tuple:
+coords = (1, 2)
+coords[0] = 5  # TypeError!
+
+To "modify", create a new tuple:
+coords = (5, 2)  # OK
+"""
+tuples_can_hold_mutables = """
+Tuples are immutable, but can contain mutable objects:
+data = ([1,2], 3)
+data[0].append(4)  # OK! Modifying the list inside
+# data[0] = [5,6]  # ERROR! Can't replace the list
+"""
+
+[gamepad_tutorial]
+text = """
+🎮 EASY MODE:
+- Press Y to unpack a tuple into variables
+- Press RB to convert between tuple/list
+- D-pad to show tuple immutability demo
+"""
+
+[challenges]
+starter = "tuple_create_position"
+intermediate = "tuple_multiple_return"
+mastery = "tuple_unpacking_swap"
+
+[fun_factor]
+type = "immutable_sequence"
+description = "Like read-only game coordinates or RGB colors"
+examples = ["(x, y) positions", "(r, g, b) colors", "function return values"]
+
+[adaptive]
+weakness_signals = ["trying_to_modify", "forgetting_trailing_comma"]
+strength_indicators = ["unpacking_usage", "tuple_as_dict_key"]
+
+[examples]
+basic = '''
+# Position in a 2D game
+position = (100, 200)
+x, y = position  # Unpacking
+print(f"Player at ({x}, {y})")
+'''
+
+advanced = '''
+# Multiple return values
+def get_player_stats():
+    return ("Kira", 85, 12)  # name, hp, level
+
+name, hp, level = get_player_stats()
+print(f"{name}: HP {hp}, Level {level}")
+
+# Tuples as dictionary keys (lists can't do this!)
+game_grid = {}
+game_grid[(0, 0)] = "spawn"
+game_grid[(10, 5)] = "treasure"
+'''
+
+[common_mistakes]
+mistake_1 = "Forgetting the comma in single-item tuples: (42) vs (42,)"
+mistake_2 = "Trying to use list methods like .append() on tuples"
+mistake_3 = "Not understanding tuple unpacking: a, b = (1, 2, 3) fails"
+
+[fun_facts]
+fact_1 = "Tuples are faster and use less memory than lists!"
+fact_2 = "Tuples can be dictionary keys because they're immutable"
+fact_3 = "Python's multiple assignment uses tuple unpacking: a, b = 1, 2"

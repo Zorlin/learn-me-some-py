@@ -1,0 +1,159 @@
+# Level 0: Basic Operators
+# Math operations you can do in Python!
+
+[concept]
+id = "basic_operators"
+name = "Basic Math Operators: +, -, *, /, %"
+level = 0
+prerequisites = ["numbers"]
+
+[description]
+brief = "Do math in Python with familiar symbols"
+detailed = """
+Python uses symbols for math operations:
+
+```python
+x = 10 + 5    # Addition: 15
+y = 10 - 5    # Subtraction: 5
+z = 10 * 5    # Multiplication: 50
+a = 10 / 5    # Division: 2.0
+b = 10 % 3    # Modulo (remainder): 1
+```
+
+Most are familiar, but % might be new!
+"""
+
+[operators]
+addition = """
++ adds numbers together
+
+score = 100
+bonus = 50
+total = score + bonus  # 150
+
+Also works on strings! "Hello" + "World" = "HelloWorld"
+"""
+
+subtraction = """
+- subtracts numbers
+
+health = 100
+damage = 25
+remaining = health - damage  # 75
+
+Can make negative numbers: 10 - 20 = -10
+"""
+
+multiplication = """
+* multiplies numbers
+
+damage = 10
+multiplier = 2
+total_damage = damage * multiplier  # 20
+
+Also works on strings! "Ha" * 3 = "HaHaHa"
+"""
+
+division = """
+/ divides numbers (always returns float)
+
+total = 10
+count = 4
+average = total / count  # 2.5
+
+Remember: Division by zero crashes! 10 / 0 is an error.
+"""
+
+modulo = """
+% gives the REMAINDER after division
+
+print(10 % 3)   # 1 (10 ÷ 3 = 3 remainder 1)
+print(15 % 4)   # 3 (15 ÷ 4 = 3 remainder 3)
+print(20 % 5)   # 0 (20 ÷ 5 = 4 remainder 0)
+
+Super useful for:
+- Checking if a number is even: x % 2 == 0
+- Wrapping around (like a clock): hour % 12
+- Alternating patterns: if index % 2 == 0
+"""
+
+[order_of_operations]
+rules = """
+Python follows PEMDAS (just like math class):
+1. Parentheses ()
+2. Exponents ** (we'll learn this later)
+3. Multiplication * and Division /
+4. Addition + and Subtraction -
+
+Left to right for same level!
+"""
+examples = '''
+# Without parentheses
+result = 5 + 3 * 2    # 11 (not 16!)
+# 3 * 2 happens first (6), then + 5
+
+# With parentheses
+result = (5 + 3) * 2  # 16
+# 5 + 3 happens first (8), then * 2
+'''
+
+[gotchas]
+division_by_zero = """
+NEVER divide by zero!
+
+x = 10 / 0  # ERROR! ZeroDivisionError
+
+Always check if your divisor might be zero.
+"""
+integer_division = """
+/ always gives you a float, even for whole numbers:
+
+print(10 / 2)   # 5.0 (float!)
+print(9 / 3)    # 3.0 (float!)
+
+Want an integer? Use // (we'll learn this later)
+"""
+modulo_negative = """
+Modulo with negative numbers can be surprising:
+
+print(-10 % 3)   # 2 (not -1!)
+
+The sign matches the divisor (right side). Usually avoid with negatives.
+"""
+string_multiplication = """
+* works on strings, but + is careful:
+
+"Hi" * 3         # "HiHiHi" ✓
+"Hi" + " there"  # "Hi there" ✓
+"Hi" + 3         # ERROR! Can't add string and number
+"""
+
+[gamepad_tutorial]
+text = """
+🎮 CONTROLLER MODE:
+- Press A to insert operator
+- Press Y for operator template with variables
+- Press RB to suggest operator based on context
+- D-pad to cycle through operators: + → - → * → / → %
+"""
+
+[challenges]
+starter = "operators_calculate_total"
+intermediate = "operators_health_calculation"
+mastery = "operators_game_stats_formula"
+
+[fun_factor]
+type = "math"
+description = "The engine of game logic, physics, and calculations"
+examples = ["damage formula", "XP calculation", "inventory math", "timer logic"]
+
+[adaptive]
+weakness_signals = ["order_of_operations_error", "division_by_zero", "type_mismatch"]
+strength_indicators = ["correct_precedence", "parentheses_usage", "safe_division"]
+
+[fun_facts]
+pemdas = "PEMDAS is the same in Python as in math class!"
+modulo_power = "% (modulo) is secretly one of the most useful operators in programming!"
+history = "These symbols (+, -, *, /) are nearly universal across programming languages"
+shortcuts = "Python has shortcuts like += and *= (we'll learn these soon!)"
+more_operators = "Python has MORE operators! // for integer division, ** for powers, and more!"

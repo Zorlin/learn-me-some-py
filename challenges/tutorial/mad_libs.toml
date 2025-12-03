@@ -1,0 +1,160 @@
+# Challenge: Mad Libs
+# Master string manipulation
+
+[challenge]
+id = "mad_libs"
+name = "Mad Libs"
+level = 1
+prerequisites = ["favorite_things"]
+
+[description]
+brief = "Create a silly story with string concatenation"
+detailed = """
+Time to have fun with strings!
+
+Mad Libs is a game where you fill in blanks to create silly stories.
+
+Your mission:
+1. Create variables for: adjective, noun, verb, place
+2. Combine them into this story:
+   "The ADJECTIVE NOUN VERB to the PLACE"
+
+Example: "The silly cat danced to the moon"
+
+Use any method: f-strings, + operator, whatever works!
+"""
+
+[skeleton]
+code = '''
+# Create your story variables
+adjective =
+noun =
+verb =
+place =
+
+# Build your story
+story =
+
+# Print it
+print()
+'''
+
+[tests]
+[[tests.case]]
+name = "silly_story"
+input = []
+setup = '''
+adjective = "silly"
+noun = "cat"
+verb = "danced"
+place = "moon"
+'''
+expected = ["The silly cat danced to the moon"]
+
+[[tests.case]]
+name = "weird_story"
+input = []
+setup = '''
+adjective = "purple"
+noun = "elephant"
+verb = "flew"
+place = "supermarket"
+'''
+expected = ["The purple elephant flew to the supermarket"]
+
+[[tests.case]]
+name = "cool_story"
+input = []
+setup = '''
+adjective = "awesome"
+noun = "robot"
+verb = "jumped"
+place = "castle"
+'''
+expected = ["The awesome robot jumped to the castle"]
+
+[hints]
+level_1 = "Create four string variables"
+level_2 = "Combine with +: \"The \" + adjective + \" \" + noun + ..."
+level_3 = "Or use f-string: f\"The {adjective} {noun} {verb} to the {place}\""
+level_4 = """
+Two solutions:
+
+Method 1 (f-string - recommended):
+```python
+adjective = "silly"
+noun = "cat"
+verb = "danced"
+place = "moon"
+story = f"The {adjective} {noun} {verb} to the {place}"
+print(story)
+```
+
+Method 2 (concatenation):
+```python
+story = "The " + adjective + " " + noun + " " + verb + " to the " + place
+print(story)
+```
+"""
+
+[gamepad_hints]
+easy_mode = """
+🎮 CONTROLLER GUIDE:
+1. Fill in your words (all strings!)
+2. Use f-string: f"The {adjective} {noun}..."
+3. Don't forget spaces between words!
+
+Mad Libs = programming + creativity!
+"""
+
+[solution]
+code = '''
+adjective = "silly"
+noun = "cat"
+verb = "danced"
+place = "moon"
+story = f"The {adjective} {noun} {verb} to the {place}"
+print(story)
+'''
+
+[meta]
+time_limit_seconds = 400
+speed_run_target = 60
+points = 125
+next_challenge = "guess_my_number"
+
+[adaptive]
+fun_factor = "creative_play"
+weakness_signals = ["forgot_spaces", "concatenation_errors", "quote_mismatch"]
+project_themes = ["text_generators", "story_apps", "chatbots", "creative_writing_tools"]
+
+[emotional_checkpoints]
+after_first_test_pass = """
+📖 Story generated! String magic working!
+   [RT] for creative coding vibes
+"""
+after_completion = """
+🎨 String wizard unlocked!
+
+You just built a text generator!
+Change the variables, get infinite stories.
+
+This is how:
+- Chatbots generate responses
+- Games create dialogue
+- Apps personalize messages
+
+You're manipulating reality with text now.
+
+[RT] I love this! | [LT] More challenges! | [Y] What else can strings do?
+"""
+
+# Self-teaching note:
+#
+# This file demonstrates:
+# - String concatenation (Level 1)
+# - f-strings (Level 1)
+# - Multiple string variables (Level 1)
+# - Template-based generation (professional pattern)
+#
+# The learner discovers that code can be creative and fun.

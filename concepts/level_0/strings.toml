@@ -1,0 +1,108 @@
+# Level 0: Strings
+# Text is everywhere in programming!
+
+[concept]
+id = "strings"
+name = "Strings: Working with Text"
+level = 0
+prerequisites = ["variables"]
+
+[description]
+brief = "Text in Python - from single words to entire stories"
+detailed = """
+Strings are how Python handles text. Wrap text in quotes and you've got a string!
+
+```python
+greeting = "Hello!"
+message = 'Welcome to Python'
+story = "Once upon a time..."
+
+print(greeting)   # Output: Hello!
+```
+
+Single quotes 'like this' or double quotes "like this" both work!
+"""
+
+[syntax]
+single_quotes = "'This is a string'"
+double_quotes = '"This is also a string"'
+multiline = '''"""
+This is a
+multi-line
+string!
+"""'''
+
+[operations]
+concatenation = '''
+# Join strings with +
+first = "Hello"
+second = "World"
+combined = first + " " + second  # "Hello World"
+'''
+repetition = '''
+# Repeat strings with *
+laugh = "ha" * 3  # "hahahaha"
+line = "=" * 10   # "=========="
+'''
+length = '''
+# Find length with len()
+name = "Archer"
+print(len(name))  # Output: 6
+'''
+
+[gotchas]
+quote_matching = """
+Quotes must match!
+
+✓ "Hello"        # Both double
+✓ 'Hello'        # Both single
+✗ "Hello'        # Mismatched!
+✗ 'Hello"        # Mismatched!
+"""
+quotes_inside = """
+Use different quotes when you need quotes inside:
+
+✓ "It's working!"      # Single quote inside double
+✓ 'He said "Hi"'       # Double quotes inside single
+✗ 'It's broken'        # Single inside single - breaks!
+
+Or use escape: 'It\\'s working!'
+"""
+numbers_vs_strings = """
+Strings that look like numbers are NOT numbers:
+
+age_number = 25           # This is a number
+age_string = "25"         # This is text!
+
+print(age_number + 5)     # 30 (math works!)
+print(age_string + "5")   # "255" (joins text!)
+"""
+
+[gamepad_tutorial]
+text = """
+🎮 CONTROLLER MODE:
+- Press A to auto-complete string quotes: "___"
+- Press Y for string templates and f-strings
+- Press RB for string method suggestions
+- D-pad LEFT/RIGHT to navigate string escapes
+"""
+
+[challenges]
+starter = "strings_create_greeting"
+intermediate = "strings_join_words"
+mastery = "strings_build_banner"
+
+[fun_factor]
+type = "text"
+description = "The foundation of user interface and storytelling!"
+examples = ["game dialogue", "player names", "menus", "story text"]
+
+[adaptive]
+weakness_signals = ["quote_mismatch", "concatenation_type_error", "escape_issues"]
+strength_indicators = ["clean_concatenation", "appropriate_quotes", "creative_text"]
+
+[fun_facts]
+name = "They're called 'strings' because text is a STRING of characters!"
+power = "Python strings can hold emojis, multiple languages, and even poetry!"
+immutable = "Strings never change - every operation creates a NEW string!"
+everywhere = "Almost every program uses strings. Text is fundamental to computing!"

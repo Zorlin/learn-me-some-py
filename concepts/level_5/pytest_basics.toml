@@ -1,0 +1,456 @@
+# Level 5: Pytest Basics
+# Professional testing for Python
+
+[concept]
+id = "pytest_basics"
+name = "Pytest: Modern Python Testing"
+level = 5
+category = "testing"
+prerequisites = ["functions", "assertions", "exceptions", "imports"]
+unlocks = ["pytest_fixtures", "test_driven_development", "continuous_integration"]
+
+[description]
+brief = "Write and run tests that verify your code works"
+detailed = """
+Pytest is Python's most popular testing framework. It makes writing tests
+feel natural - just write functions that start with `test_` and use `assert`.
+
+```python
+# File: math_utils.py
+def add(a, b):
+    return a + b
+
+def divide(a, b):
+    if b == 0:
+        raise ValueError("Cannot divide by zero")
+    return a / b
+
+# File: test_math_utils.py
+import pytest
+from math_utils import add, divide
+
+def test_add_positive_numbers():
+    assert add(2, 3) == 5
+
+def test_add_negative_numbers():
+    assert add(-1, -1) == -2
+
+def test_divide_normal():
+    assert divide(10, 2) == 5.0
+
+def test_divide_by_zero():
+    with pytest.raises(ValueError, match="Cannot divide by zero"):
+        divide(10, 0)
+
+# Run with: pytest test_math_utils.py
+```
+
+Pytest automatically discovers tests, runs them, and reports results!
+"""
+
+[key_concepts]
+test_discovery = """
+Pytest finds tests automatically:
+
+**File naming:**
+- `test_*.py` - Files starting with test_
+- `*_test.py` - Files ending with _test
+
+**Function naming:**
+- `test_*()` - Functions starting with test_
+
+**Class naming:**
+- `Test*` - Classes starting with Test (no __init__)
+
+```
+project/
+├── src/
+│   └── calculator.py
+└── tests/
+    ├── test_calculator.py    # Discovered!
+    └── calculator_test.py    # Also discovered!
+```
+
+Run with: `pytest` (discovers all tests in current directory)
+"""
+
+assertions = """
+Use plain `assert` statements:
+
+```python
+def test_string_operations():
+    result = "hello".upper()
+    assert result == "HELLO"
+
+    name = "Alice"
+    assert len(name) == 5
+    assert name.startswith("A")
+    assert "i" in name
+```
+
+Pytest shows detailed information when assertions fail:
+
+```
+AssertionError: assert 'HELLO' == 'hello'
+  - HELLO
+  + hello
+```
+"""
+
+pytest_raises = """
+Test that code raises exceptions:
+
+```python
+import pytest
+
+def test_exception():
+    with pytest.raises(ValueError):
+        int("not a number")
+
+def test_exception_with_message():
+    with pytest.raises(ValueError, match="invalid literal"):
+        int("not a number")
+
+def test_exception_access():
+    with pytest.raises(ValueError) as excinfo:
+        int("not a number")
+    assert "invalid literal" in str(excinfo.value)
+```
+"""
+
+[patterns]
+parametrize = """
+Run same test with different inputs:
+
+```python
+import pytest
+
+@pytest.mark.parametrize("a,b,expected", [
+    (2, 3, 5),
+    (0, 0, 0),
+    (-1, 1, 0),
+    (100, 200, 300),
+])
+def test_add(a, b, expected):
+    assert add(a, b) == expected
+
+# Runs 4 tests with one function!
+```
+
+Multiple parameters:
+```python
+@pytest.mark.parametrize("input,expected", [
+    ("hello", "HELLO"),
+    ("", ""),
+    ("123", "123"),
+])
+def test_upper(input, expected):
+    assert input.upper() == expected
+```
+"""
+
+test_classes = """
+Group related tests in classes:
+
+```python
+class TestCalculator:
+    def test_add(self):
+        assert add(1, 2) == 3
+
+    def test_subtract(self):
+        assert subtract(5, 3) == 2
+
+    def test_multiply(self):
+        assert multiply(2, 3) == 6
+
+# Run with: pytest test_calculator.py::TestCalculator
+```
+
+Classes help organize tests but aren't required!
+"""
+
+markers = """
+Mark tests with custom attributes:
+
+```python
+import pytest
+
+@pytest.mark.slow
+def test_slow_operation():
+    # This test takes a long time
+    pass
+
+@pytest.mark.skip(reason="Not implemented yet")
+def test_future_feature():
+    pass
+
+@pytest.mark.skipif(sys.version_info < (3, 10), reason="Requires Python 3.10+")
+def test_new_syntax():
+    pass
+
+@pytest.mark.xfail(reason="Known bug")
+def test_known_issue():
+    assert buggy_function() == expected
+```
+
+Run specific marks: `pytest -m slow`
+Skip marks: `pytest -m "not slow"`
+"""
+
+[common_mistakes]
+test_name_typo = """
+WRONG (won't be discovered):
+```python
+def tes_add():  # Typo! Missing 't'
+    assert add(1, 2) == 3
+
+def validate_add():  # Wrong prefix!
+    assert add(1, 2) == 3
+```
+
+RIGHT:
+```python
+def test_add():
+    assert add(1, 2) == 3
+```
+"""
+
+class_with_init = """
+WRONG (won't be collected):
+```python
+class TestMath:
+    def __init__(self):  # Don't add __init__!
+        self.value = 0
+
+    def test_add(self):
+        assert add(1, 2) == 3
+```
+
+RIGHT:
+```python
+class TestMath:
+    def test_add(self):
+        assert add(1, 2) == 3
+```
+
+Use fixtures for setup, not __init__!
+"""
+
+comparing_floats = """
+WRONG (flaky due to floating point):
+```python
+def test_division():
+    assert divide(1, 3) == 0.333333333333  # Might fail!
+```
+
+RIGHT:
+```python
+def test_division():
+    assert divide(1, 3) == pytest.approx(0.333, rel=1e-3)
+```
+"""
+
+[when_to_use]
+perfect_for = [
+    "Unit tests (test individual functions)",
+    "Integration tests (test components together)",
+    "Regression tests (prevent bugs from returning)",
+    "TDD (write tests first, then code)",
+]
+
+always_test = [
+    "Edge cases (empty input, None, etc.)",
+    "Error conditions (exceptions, invalid input)",
+    "Boundary values (0, -1, max values)",
+    "Real-world scenarios",
+]
+
+[command_line]
+basic = """
+```bash
+pytest                      # Run all tests
+pytest test_file.py        # Run specific file
+pytest test_file.py::test_func  # Run specific test
+pytest -v                  # Verbose output
+pytest -s                  # Show print() output
+pytest -x                  # Stop on first failure
+pytest --lf                # Run last failed tests
+pytest --ff                # Run failures first
+pytest -k "add"            # Run tests matching name
+pytest -m slow             # Run tests with marker
+```
+"""
+
+[gotchas]
+print_not_shown = """
+By default, pytest captures print() output:
+
+```python
+def test_debug():
+    print("Debug info")  # Won't see this unless test fails
+    assert True
+```
+
+To see output: `pytest -s` or `pytest --capture=no`
+"""
+
+test_order = """
+Tests should be independent! Don't rely on execution order:
+
+WRONG:
+```python
+state = []
+
+def test_append():
+    state.append(1)
+    assert len(state) == 1
+
+def test_append_again():
+    state.append(2)
+    assert len(state) == 2  # Might fail if run in different order!
+```
+
+RIGHT: Use fixtures for shared setup (covered in pytest_fixtures)
+"""
+
+[gamepad_tutorial]
+text = """
+🎮 PYTEST CHALLENGE MODE:
+- RT: Run all tests
+- LT: Run only failing tests
+- Y: Generate test boilerplate for selected function
+- B: Add parametrize decorator
+- A: Jump to failing test
+- D-pad: Navigate between test results
+"""
+
+[challenges]
+starter = "pytest_simple_assertions"
+intermediate = "pytest_parametrize"
+mastery = "pytest_exception_testing"
+expert = "pytest_lmsp_concept_validation"
+
+[fun_factor]
+type = "testing"
+description = "Prove your code works before users find bugs"
+examples = [
+    "Red → Green → Refactor (TDD)",
+    "Catch bugs before deployment",
+    "Fearlessly refactor with test safety net",
+]
+
+[adaptive]
+weakness_signals = [
+    "test_name_typos",
+    "forgetting_test_prefix",
+    "not_testing_edge_cases",
+    "not_testing_exceptions",
+    "floating_point_comparison_errors",
+]
+strength_indicators = [
+    "comprehensive_test_coverage",
+    "good_test_organization",
+    "parametrized_tests",
+    "testing_edge_cases",
+]
+
+[fun_facts]
+better_than_unittest = """
+Pytest is more popular than Python's built-in `unittest` because:
+- Simpler syntax (plain assert, no self.assertEqual)
+- Better test discovery
+- More powerful fixtures
+- Cleaner parametrization
+- Better error messages
+"""
+
+origin_story = """
+Pytest started in 2004 as "py.test" by Holger Krekel. It was designed to
+make testing feel like writing normal Python code, not Java-style test
+classes with assertEqual methods.
+"""
+
+test_coverage = """
+Combine with pytest-cov for coverage reports:
+
+```bash
+pip install pytest-cov
+pytest --cov=myproject tests/
+
+# Generates coverage report showing which lines are tested
+```
+"""
+
+[real_world]
+django = "Uses pytest-django for testing"
+fastapi = "All tests use pytest"
+requests = "pytest for HTTP library tests"
+numpy = "pytest for numerical testing"
+
+[see_also]
+concepts = ["assertions", "exceptions", "functions"]
+related = ["pytest_fixtures", "test_driven_development", "mocking"]
+stdlib_alternative = ["unittest"]
+plugins = ["pytest-cov", "pytest-asyncio", "pytest-mock"]
+
+[best_practices]
+naming = """
+Be descriptive with test names:
+
+GOOD:
+```python
+def test_add_returns_sum_of_two_positive_numbers():
+def test_divide_raises_value_error_when_denominator_is_zero():
+def test_user_login_succeeds_with_valid_credentials():
+```
+
+NOT SO GOOD:
+```python
+def test_1():
+def test_add():
+def test_edge_case():
+```
+"""
+
+arrange_act_assert = """
+Structure tests with AAA pattern:
+
+```python
+def test_user_creation():
+    # Arrange - Set up test data
+    name = "Alice"
+    age = 30
+
+    # Act - Perform the action
+    user = User(name, age)
+
+    # Assert - Check the results
+    assert user.name == "Alice"
+    assert user.age == 30
+    assert user.is_adult()
+```
+"""
+
+one_assertion_per_test = """
+Prefer focused tests (but not dogmatic):
+
+GOOD (focused):
+```python
+def test_user_name():
+    user = User("Alice")
+    assert user.name == "Alice"
+
+def test_user_age():
+    user = User("Alice", 30)
+    assert user.age == 30
+```
+
+ALSO OK (related assertions):
+```python
+def test_user_creation():
+    user = User("Alice", 30)
+    assert user.name == "Alice"
+    assert user.age == 30
+    assert user.is_adult()
+```
+"""

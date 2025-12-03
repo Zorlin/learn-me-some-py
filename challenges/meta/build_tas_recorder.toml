@@ -1,0 +1,244 @@
+# Meta-Challenge: Build TAS Recording System
+# Tool-Assisted Learning - record, replay, rewind!
+
+[challenge]
+id = "meta_build_tas_recorder"
+name = "Meta: Build TAS Recording"
+level = 6
+prerequisites = ["dataclasses", "serialization", "event_systems"]
+
+[description]
+brief = "Build the TAS system that records every action for replay and analysis"
+detailed = """
+Remember using `/rewind` to go back 5 steps? Or `/checkpoint` to save your progress?
+That was TAS (Tool-Assisted Speedrun) technology applied to LEARNING.
+
+The TAS recorder:
+- Records every keystroke, button press, edit
+- Creates checkpoints (named save states)
+- Allows replay at any speed
+- Enables rewind (undo multiple steps)
+- Compares approaches (diff checkpoints)
+
+Build the time machine that made LMSP learning debuggable.
+"""
+
+[skeleton]
+code = '''
+from dataclasses import dataclass, field
+from datetime import datetime
+from typing import Any
+
+@dataclass
+class RecordedEvent:
+    """One recorded action in the TAS."""
+    timestamp: float
+    event_type: str  # "keystroke", "button", "test_run", etc.
+    data: dict[str, Any]
+    state_snapshot: str  # JSON of full state
+
+@dataclass
+class Recording:
+    """A complete TAS recording session."""
+    start_time: datetime
+    events: list[RecordedEvent] = field(default_factory=list)
+    checkpoints: dict[str, int] = field(default_factory=dict)  # name -> event_index
+
+class Recorder:
+    """Records a TAS session."""
+
+    def __init__(self):
+        self.recording = Recording(start_time=datetime.now())
+        self._start_timestamp = 0.0
+
+    def record_event(self, event_type: str, data: dict, state_snapshot: str):
+        """
+        Record an event.
+
+        Captures timestamp relative to recording start.
+        """
+        # Your code here
+        pass
+
+    def checkpoint(self, name: str):
+        """
+        Create a named checkpoint at current position.
+
+        Stores the index of the current event.
+        """
+        # Your code here
+        pass
+
+    def rewind_to(self, checkpoint_name: str) -> int:
+        """
+        Get the event index for a checkpoint.
+
+        Returns index to replay from.
+        """
+        # Your code here
+        pass
+
+    def export(self) -> Recording:
+        """Export the recording for replay/analysis."""
+        return self.recording
+'''
+
+[tests]
+[[tests.case]]
+name = "record_single_event"
+input = [{"type": "keystroke", "data": {"key": "a"}}]
+expected = {"events_count": 1}
+
+[[tests.case]]
+name = "create_checkpoint"
+input = [
+    {"type": "keystroke", "data": {"key": "d"}},
+    {"type": "keystroke", "data": {"key": "e"}},
+    {"checkpoint": "after_def"}
+]
+expected = {"checkpoint_exists": True, "checkpoint_at": 2}
+
+[[tests.case]]
+name = "rewind_to_checkpoint"
+input = [
+    {"type": "keystroke", "data": {"key": "x"}},
+    {"checkpoint": "before_error"},
+    {"type": "keystroke", "data": {"key": "y"}},
+    {"type": "keystroke", "data": {"key": "z"}},
+    {"rewind_to": "before_error"}
+]
+expected = {"rewind_index": 1}
+
+[hints]
+level_1 = "Use time.time() to capture relative timestamps"
+level_2 = "Store checkpoints as name -> event_index mappings"
+level_3 = "Append events to the recording.events list"
+level_4 = """
+Pattern:
+```python
+import time
+
+class Recorder:
+    def __init__(self):
+        self.recording = Recording(start_time=datetime.now())
+        self._start_timestamp = time.time()
+
+    def record_event(self, event_type: str, data: dict, state_snapshot: str):
+        event = RecordedEvent(
+            timestamp=time.time() - self._start_timestamp,
+            event_type=event_type,
+            data=data,
+            state_snapshot=state_snapshot
+        )
+        self.recording.events.append(event)
+
+    def checkpoint(self, name: str):
+        self.recording.checkpoints[name] = len(self.recording.events)
+
+    def rewind_to(self, checkpoint_name: str) -> int:
+        return self.recording.checkpoints.get(checkpoint_name, 0)
+```
+"""
+
+[gamepad_hints]
+easy_mode = """
+🎮 TIME MACHINE ACTIVATED!
+You're building the rewind system that made learning undoable.
+Every mistake becomes debuggable.
+"""
+
+[solution]
+code = '''
+from dataclasses import dataclass, field
+from datetime import datetime
+from typing import Any
+import time
+
+@dataclass
+class RecordedEvent:
+    timestamp: float
+    event_type: str
+    data: dict[str, Any]
+    state_snapshot: str
+
+@dataclass
+class Recording:
+    start_time: datetime
+    events: list[RecordedEvent] = field(default_factory=list)
+    checkpoints: dict[str, int] = field(default_factory=dict)
+
+class Recorder:
+    def __init__(self):
+        self.recording = Recording(start_time=datetime.now())
+        self._start_timestamp = time.time()
+
+    def record_event(self, event_type: str, data: dict, state_snapshot: str):
+        event = RecordedEvent(
+            timestamp=time.time() - self._start_timestamp,
+            event_type=event_type,
+            data=data,
+            state_snapshot=state_snapshot
+        )
+        self.recording.events.append(event)
+
+    def checkpoint(self, name: str):
+        self.recording.checkpoints[name] = len(self.recording.events)
+
+    def rewind_to(self, checkpoint_name: str) -> int:
+        if checkpoint_name not in self.recording.checkpoints:
+            return 0
+        return self.recording.checkpoints[checkpoint_name]
+
+    def export(self) -> Recording:
+        return self.recording
+'''
+
+[meta]
+time_limit_seconds = 600
+speed_run_target = 180
+points = 500
+is_meta_challenge = true
+lmsp_component = "lmsp/introspection/tas.py"
+teaching_philosophy = """
+Building TAS recording teaches:
+- Event sourcing patterns
+- State snapshots
+- Time-series data
+- Replay systems
+- The power of UNDO
+
+This is DEBUGGABILITY. Learning isn't linear - you need rewind.
+
+Traditional education: mistakes are permanent. LMSP: everything is rewindable.
+You're building tools that make exploration safe.
+
+TAS speedrunning technology applied to EDUCATION.
+"""
+
+[adaptive]
+fun_factor = "mastery"
+weakness_signals = ["timestamp_calculation", "checkpoint_indexing", "state_snapshot_missing"]
+project_themes = ["debugging_tools", "event_sourcing", "replay_systems"]
+
+[emotional_checkpoints]
+after_first_test_pass = """
+🎮 Recording events! The TAS system is capturing history.
+   [RT] Time travel is real  |  [LT] Event systems are complex
+"""
+after_completion = """
+⏮️ TIME MACHINE COMPLETE!
+
+You've built the ability to rewind learning itself.
+
+Every `/rewind`, every `/checkpoint`, every second-chance?
+This code. Recording. Replaying. Making mistakes safe.
+
+Traditional education: one shot. LMSP: infinite retries.
+
+You've made learning debuggable.
+
+Meta-checkpoint created: "You built the TAS system"
+
+How does it feel to build time travel?
+   [RT] I am a time lord  |  [LT] /rewind please  |  [Y] Can I rewind THIS challenge?
+"""

@@ -1,0 +1,103 @@
+# Challenge: Simple Math
+# Python is a powerful calculator
+
+[challenge]
+id = "simple_math"
+name = "Simple Math"
+level = 0
+prerequisites = ["personal_greeting"]
+
+[description]
+brief = "Do basic arithmetic with Python"
+detailed = """
+Python is an incredible calculator. Let's prove it!
+
+Your mission:
+1. Create a variable called 'result'
+2. Calculate 42 + 58
+3. Print the result
+
+Computers are REALLY good at math. This is where they shine.
+"""
+
+[skeleton]
+code = '''
+# Calculate 42 + 58 and store in result
+result =
+
+# Print the result
+print()
+'''
+
+[tests]
+[[tests.case]]
+name = "addition"
+input = []
+expected = ["100"]
+
+[hints]
+level_1 = "Use the + operator to add numbers"
+level_2 = "Store the calculation: result = 42 + 58"
+level_3 = "Then print it: print(result)"
+level_4 = """
+Complete solution:
+```python
+result = 42 + 58
+print(result)
+```
+
+Notice: No quotes around numbers!
+Numbers without quotes = math
+Numbers with quotes = just text
+"""
+
+[gamepad_hints]
+easy_mode = """
+🎮 CONTROLLER GUIDE:
+1. Set result = 42 + 58
+2. Print result
+3. That's it!
+
+Math in Python is exactly like a calculator.
+"""
+
+[solution]
+code = '''
+result = 42 + 58
+print(result)
+'''
+
+[meta]
+time_limit_seconds = 300
+speed_run_target = 40
+points = 75
+next_challenge = "temperature_converter"
+
+[adaptive]
+fun_factor = "instant_feedback"
+weakness_signals = ["quotes_around_numbers", "no_calculation", "wrong_operator"]
+project_themes = ["calculators", "data_analysis", "game_scores", "finance_apps"]
+
+[emotional_checkpoints]
+after_completion = """
+🧮 Math mode activated!
+
+Python operators you now know:
++ (addition)
+- (subtraction)
+* (multiplication)
+/ (division)
+
+You're building computational thinking!
+
+[RT] Math is fun! | [LT] More examples? | [Y] What else can I calculate?
+"""
+
+# Self-teaching note:
+#
+# This file demonstrates:
+# - Arithmetic operators (Level 0)
+# - Numbers vs strings (crucial distinction)
+# - Variables storing computed values (Level 0)
+#
+# The learner discovers that code can DO things, not just display things.

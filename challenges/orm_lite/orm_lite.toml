@@ -1,0 +1,299 @@
+# Challenge: ORM Lite with Metaclasses
+# Build a mini Object-Relational Mapper using metaclass magic
+
+[challenge]
+id = "orm_lite"
+name = "Build an ORM with Metaclasses"
+level = 6
+prerequisites = ["classes_advanced", "metaclasses", "descriptors", "dictionaries_advanced"]
+
+[description]
+brief = "Create an ORM that auto-generates SQL from class definitions using metaclasses"
+detailed = """
+You're building a mini Django ORM / SQLAlchemy.
+
+Create a `Model` metaclass that:
+1. Captures class attribute definitions as field metadata
+2. Auto-generates CREATE TABLE SQL
+3. Provides .save() method to generate INSERT SQL
+4. Provides .get() classmethod to generate SELECT SQL
+
+EXAMPLE USAGE:
+```python
+class User(metaclass=Model):
+    name = Field(type="TEXT")
+    age = Field(type="INTEGER")
+    email = Field(type="TEXT")
+
+# Auto-generated behavior:
+User.create_table_sql()
+# Returns: "CREATE TABLE User (name TEXT, age INTEGER, email TEXT)"
+
+user = User(name="Alice", age=30, email="alice@example.com")
+user.save_sql()
+# Returns: "INSERT INTO User (name, age, email) VALUES ('Alice', 30, 'alice@example.com')"
+
+User.get_sql(name="Alice")
+# Returns: "SELECT * FROM User WHERE name='Alice'"
+```
+
+INPUT: Dictionary describing operation:
+```python
+{
+    "operation": "create_table",
+    "class_name": "User",
+    "fields": {"name": "TEXT", "age": "INTEGER"}
+}
+```
+
+OUTPUT: SQL string
+
+This teaches the DEEPEST Python magic - how Django models work under the hood.
+"""
+
+[skeleton]
+code = '''
+class Field:
+    """Descriptor for model fields."""
+    def __init__(self, type):
+        self.type = type
+        self.name = None
+
+    def __set_name__(self, owner, name):
+        self.name = name
+
+class Model(type):
+    """Metaclass for ORM models."""
+    def __new__(cls, name, bases, dct):
+        # Your metaclass magic here
+        pass
+
+def solution(operation_spec):
+    """
+    Test ORM functionality.
+
+    Args:
+        operation_spec: dict describing operation
+
+    Returns:
+        Generated SQL string
+    """
+    # Your code here
+    pass
+'''
+
+[tests]
+[[tests.case]]
+name = "create_table_simple"
+input = {
+    "operation": "create_table",
+    "class_name": "User",
+    "fields": {"name": "TEXT", "age": "INTEGER"}
+}
+expected = "CREATE TABLE User (name TEXT, age INTEGER)"
+
+[[tests.case]]
+name = "create_table_multiple_fields"
+input = {
+    "operation": "create_table",
+    "class_name": "Product",
+    "fields": {"id": "INTEGER", "title": "TEXT", "price": "REAL", "stock": "INTEGER"}
+}
+expected = "CREATE TABLE Product (id INTEGER, title TEXT, price REAL, stock INTEGER)"
+
+[[tests.case]]
+name = "insert_single_row"
+input = {
+    "operation": "insert",
+    "class_name": "User",
+    "fields": {"name": "TEXT", "age": "INTEGER"},
+    "values": {"name": "Alice", "age": 30}
+}
+expected = "INSERT INTO User (name, age) VALUES ('Alice', 30)"
+
+[[tests.case]]
+name = "insert_with_string_escaping"
+input = {
+    "operation": "insert",
+    "class_name": "Post",
+    "fields": {"title": "TEXT", "content": "TEXT"},
+    "values": {"title": "Hello", "content": "World"}
+}
+expected = "INSERT INTO Post (title, content) VALUES ('Hello', 'World')"
+
+[[tests.case]]
+name = "select_by_condition"
+input = {
+    "operation": "select",
+    "class_name": "User",
+    "fields": {"name": "TEXT", "age": "INTEGER"},
+    "where": {"name": "Alice"}
+}
+expected = "SELECT * FROM User WHERE name='Alice'"
+
+[[tests.case]]
+name = "select_multiple_conditions"
+input = {
+    "operation": "select",
+    "class_name": "Product",
+    "fields": {"title": "TEXT", "price": "REAL"},
+    "where": {"title": "Widget", "price": 9.99}
+}
+expected = "SELECT * FROM Product WHERE title='Widget' AND price=9.99"
+
+[hints]
+level_1 = "Metaclasses intercept class creation with __new__"
+level_2 = "Store field metadata in the class during __new__"
+level_3 = "Add methods to the class dict before calling super().__new__"
+level_4 = """
+Metaclass ORM Pattern:
+```python
+class Field:
+    def __init__(self, type):
+        self.type = type
+        self.name = None
+
+    def __set_name__(self, owner, name):
+        self.name = name
+
+class Model(type):
+    def __new__(cls, name, bases, dct):
+        # Extract fields
+        fields = {k: v for k, v in dct.items() if isinstance(v, Field)}
+
+        # Store metadata
+        dct['_fields'] = fields
+
+        # Add create_table method
+        def create_table_sql(cls):
+            field_defs = [f"{name} {field.type}" for name, field in fields.items()]
+            return f"CREATE TABLE {name} ({', '.join(field_defs)})"
+
+        dct['create_table_sql'] = classmethod(create_table_sql)
+
+        # Add __init__
+        def __init__(self, **kwargs):
+            for k, v in kwargs.items():
+                setattr(self, k, v)
+
+        dct['__init__'] = __init__
+
+        # Add save method
+        def save_sql(self):
+            field_names = list(fields.keys())
+            values = [getattr(self, name) for name in field_names]
+            value_strs = [f"'{v}'" if isinstance(v, str) else str(v) for v in values]
+            return f"INSERT INTO {name} ({', '.join(field_names)}) VALUES ({', '.join(value_strs)})"
+
+        dct['save_sql'] = save_sql
+
+        return super().__new__(cls, name, bases, dct)
+```
+"""
+
+[gamepad_hints]
+easy_mode = """
+🎮 METACLASS MAGIC MODE:
+1. Press A to visualize class creation flow
+2. Press X to see __new__ vs __init__ timing
+3. Press Y to step through method injection
+4. Hold RT for full metaclass pattern
+"""
+
+[solution]
+code = '''
+class Field:
+    def __init__(self, type):
+        self.type = type
+        self.name = None
+
+    def __set_name__(self, owner, name):
+        self.name = name
+
+class Model(type):
+    def __new__(cls, name, bases, dct):
+        fields = {k: v for k, v in dct.items() if isinstance(v, Field)}
+        dct['_fields'] = fields
+
+        def create_table_sql(cls):
+            field_defs = [f"{fname} {field.type}" for fname, field in cls._fields.items()]
+            return f"CREATE TABLE {cls.__name__} ({', '.join(field_defs)})"
+
+        def __init__(self, **kwargs):
+            for k, v in kwargs.items():
+                setattr(self, k, v)
+
+        def save_sql(self):
+            field_names = list(self._fields.keys())
+            values = [getattr(self, fname) for fname in field_names]
+            value_strs = [f"'{v}'" if isinstance(v, str) else str(v) for v in values]
+            return f"INSERT INTO {self.__class__.__name__} ({', '.join(field_names)}) VALUES ({', '.join(value_strs)})"
+
+        def get_sql(cls, **where):
+            conditions = [f"{k}='{v}'" if isinstance(v, str) else f"{k}={v}" for k, v in where.items()]
+            return f"SELECT * FROM {cls.__name__} WHERE {' AND '.join(conditions)}"
+
+        dct['create_table_sql'] = classmethod(create_table_sql)
+        dct['__init__'] = __init__
+        dct['save_sql'] = save_sql
+        dct['get_sql'] = classmethod(get_sql)
+
+        return super().__new__(cls, name, bases, dct)
+
+def solution(operation_spec):
+    op = operation_spec["operation"]
+    class_name = operation_spec["class_name"]
+    fields_dict = operation_spec["fields"]
+
+    # Dynamically create class
+    fields = {fname: Field(type=ftype) for fname, ftype in fields_dict.items()}
+    ModelClass = Model(class_name, (), fields)
+
+    if op == "create_table":
+        return ModelClass.create_table_sql()
+    elif op == "insert":
+        values = operation_spec["values"]
+        instance = ModelClass(**values)
+        return instance.save_sql()
+    elif op == "select":
+        where = operation_spec["where"]
+        return ModelClass.get_sql(**where)
+'''
+
+[meta]
+time_limit_seconds = 1800  # 30 minutes
+speed_run_target = 600     # 10 minutes for experts
+points = 250
+next_challenge = "query_builder"
+
+[adaptive]
+fun_factor = "deep_magic"
+weakness_signals = ["metaclass_confusion", "descriptor_misuse", "method_injection_errors"]
+project_themes = ["orm", "database", "django", "sqlalchemy", "active_record"]
+
+[emotional_checkpoints]
+after_first_test_pass = """
+🎮 Metaclass working! You're manipulating class creation itself.
+   [RT] if your mind is expanding
+"""
+after_insert_pass = """
+🎮 SQL generation from objects! This is ORM magic.
+   How's the metaclass concept landing?
+   [RT] Starting to click  |  [LT] Brain melting  |  [Y] Need to review
+"""
+after_completion = """
+🎮 METACLASS MASTERY ACHIEVED!
+
+You just learned Python's DEEPEST magic:
+- How Django models auto-generate SQL
+- How SQLAlchemy ORM works
+- How class creation can be intercepted
+- The power of metaclasses and descriptors
+
+This is the pattern behind every major Python ORM.
+
+You are now in the top 1% of Python developers.
+
+How legendary do you feel?
+[RT] I am a Python sorcerer  |  [LT] Need to practice more  |  [Y] Show me descriptor magic next
+"""

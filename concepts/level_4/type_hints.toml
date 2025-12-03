@@ -1,0 +1,260 @@
+# Level 4: Type Hints
+# Prerequisite for: code quality, IDE support, maintainability
+
+[concept]
+id = "type_hints"
+name = "Type Hints: Document Expected Types"
+level = 4
+category = "quality"
+prerequisites = ["functions", "classes"]
+unlocks = ["static_analysis", "better_ide_support", "mypy"]
+
+[description]
+brief = "Annotate code with type information for clarity and tooling support"
+detailed = """
+Type hints tell readers (and tools) what types your code expects.
+They're like labels on cables - not required, but incredibly helpful.
+
+```python
+def calculate_damage(base: int, multiplier: float) -> int:
+    return int(base * multiplier)
+
+damage: int = calculate_damage(50, 1.5)  # 75
+```
+
+Type hints provide:
+- Better IDE autocomplete
+- Catch bugs before running code
+- Self-documenting code
+- Refactoring confidence
+"""
+
+[syntax]
+variables = """
+name: str = "Player"
+hp: int = 100
+items: list[str] = ["sword", "potion"]
+"""
+
+functions = """
+def function(param1: type1, param2: type2) -> return_type:
+    return value
+"""
+
+optional = """
+from typing import Optional
+
+def find_player(name: str) -> Optional[Player]:
+    # Returns Player or None
+    return None
+"""
+
+collections = """
+from typing import List, Dict, Set, Tuple
+
+items: List[str] = ["sword"]
+stats: Dict[str, int] = {"hp": 100}
+tags: Set[str] = {"hostile", "boss"}
+position: Tuple[int, int] = (10, 20)
+"""
+
+[examples]
+basic = """
+def greet(name: str) -> str:
+    return f"Hello, {name}!"
+
+def add(a: int, b: int) -> int:
+    return a + b
+
+player_name: str = "Hero"
+health: int = 100
+alive: bool = True
+"""
+
+advanced = """
+from typing import List, Dict, Optional, Union
+
+def calculate_stats(
+    base_stats: Dict[str, int],
+    buffs: List[int],
+    debuffs: Optional[List[int]] = None
+) -> Dict[str, int]:
+    '''Calculate final stats with buffs/debuffs'''
+    result = base_stats.copy()
+
+    for buff in buffs:
+        result['strength'] = result.get('strength', 0) + buff
+
+    if debuffs:
+        for debuff in debuffs:
+            result['strength'] = max(0, result['strength'] - debuff)
+
+    return result
+
+stats: Dict[str, int] = calculate_stats(
+    {'strength': 10},
+    [5, 3],
+    [2]
+)
+"""
+
+real_world = """
+from typing import List, Dict, Optional, Union, Tuple, Protocol
+from dataclasses import dataclass
+
+class Damageable(Protocol):
+    '''Protocol for things that can take damage'''
+    hp: int
+
+    def take_damage(self, amount: int) -> bool:
+        ...
+
+@dataclass
+class Player:
+    name: str
+    hp: int
+    max_hp: int
+    inventory: List[str]
+
+    def take_damage(self, amount: int) -> bool:
+        '''Return True if still alive'''
+        self.hp -= amount
+        return self.hp > 0
+
+    def heal(self, amount: int) -> None:
+        self.hp = min(self.hp + amount, self.max_hp)
+
+def apply_damage(
+    target: Damageable,
+    damage: int,
+    damage_type: str = "physical"
+) -> Tuple[bool, int]:
+    '''Apply damage and return (alive, actual_damage)'''
+    old_hp = target.hp
+    alive = target.take_damage(damage)
+    actual = old_hp - target.hp
+    return alive, actual
+
+player = Player("Hero", 100, 100, [])
+alive, damage_dealt = apply_damage(player, 30)
+"""
+
+[common_types]
+basic = "int, str, float, bool"
+none = "None - represents None value"
+any = "Any - accepts any type (avoid when possible)"
+optional = "Optional[T] - T or None (same as Union[T, None])"
+union = "Union[T1, T2] - T1 or T2"
+list = "List[T] - list of T"
+dict = "Dict[K, V] - dict with K keys and V values"
+tuple = "Tuple[T1, T2] - fixed-size tuple"
+
+[typing_module]
+List = "List[int] - list of integers"
+Dict = "Dict[str, int] - dict with string keys, int values"
+Set = "Set[str] - set of strings"
+Tuple = "Tuple[int, int] - tuple of two ints"
+Optional = "Optional[str] - str or None"
+Union = "Union[int, float] - int or float"
+Any = "Any - any type (use sparingly)"
+Callable = "Callable[[int, int], int] - function taking 2 ints, returning int"
+
+[common_mistakes]
+using_list_lowercase_old = """
+# WRONG in Python < 3.9
+items: list[str] = []  # Error in Python 3.8 and below
+
+# RIGHT for Python < 3.9
+from typing import List
+items: List[str] = []
+
+# RIGHT for Python 3.9+
+items: list[str] = []  # Built-in generics!
+"""
+
+optional_vs_none = """
+# WRONG: Using None as type
+def find_player(name: str) -> None:  # Misleading!
+    return player or None
+
+# RIGHT: Use Optional
+from typing import Optional
+
+def find_player(name: str) -> Optional[Player]:
+    return player if found else None
+"""
+
+mutable_defaults = """
+# WRONG: Mutable default with type hint
+def add_item(inventory: List[str] = []) -> None:
+    inventory.append("item")  # Shared between calls!
+
+# RIGHT: Use None and create inside
+def add_item(inventory: Optional[List[str]] = None) -> None:
+    if inventory is None:
+        inventory = []
+    inventory.append("item")
+"""
+
+[advanced_types]
+protocol = """
+from typing import Protocol
+
+class Drawable(Protocol):
+    def draw(self) -> None:
+        ...  # Any class with draw() method
+"""
+
+generic = """
+from typing import TypeVar, Generic
+
+T = TypeVar('T')
+
+class Container(Generic[T]):
+    def __init__(self, item: T):
+        self.item = item
+"""
+
+literal = """
+from typing import Literal
+
+def set_difficulty(level: Literal["easy", "normal", "hard"]) -> None:
+    pass
+"""
+
+[gotchas]
+runtime_no_check = "Type hints don't enforce types at runtime - Python ignores them"
+python_version = "Built-in generics (list[int]) require Python 3.9+"
+mypy = "Use mypy to check types: pip install mypy && mypy your_script.py"
+performance = "Type hints have zero runtime cost"
+
+[gamepad_tutorial]
+text = """
+🎮 TYPE HINT MODE:
+- Press Y to add type hints to function
+- Press A to add variable type
+- Press X to add return type
+- RB suggests types based on usage
+- LB shows type information
+- Hold LT to run mypy check
+"""
+
+[challenges]
+starter = "type_hints_simple_functions"
+intermediate = "type_hints_collections"
+mastery = "type_hints_complex_types"
+
+[fun_facts]
+optional = "Type hints were added in Python 3.5 (PEP 484)"
+no_enforcement = "Python doesn't check types at runtime - hints are for tools"
+mypy = "mypy is the most popular type checker"
+gradual = "You can add type hints gradually - they're completely optional"
+
+[fun_factor]
+type = "quality"
+description = "Catch bugs before they happen"
+examples = ["IDE autocomplete", "mypy validation", "Better refactoring"]
+
+[adaptive]
+weakness_signals = ["wrong_types", "missing_optional", "any_overuse"]
+strength_indicators = ["accurate_hints", "proper_optionals", "clean_annotations"]

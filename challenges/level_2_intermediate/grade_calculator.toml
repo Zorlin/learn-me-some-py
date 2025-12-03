@@ -1,0 +1,189 @@
+# Challenge: Grade Calculator
+# Use dictionaries and loops to calculate grades
+
+[challenge]
+id = "grade_calculator"
+name = "Grade Calculator"
+level = 2
+prerequisites = ["dicts_basics", "for_loops", "arithmetic"]
+
+[description]
+brief = "Calculate student grades with weighted categories"
+detailed = """
+You're building a grade calculator for a school!
+
+Commands:
+- ADD <category> <weight> <score>: Add a grade (category, weight %, score out of 100)
+- AVERAGE <category>: Return average score for that category (rounded to 1 decimal)
+- FINAL: Calculate final weighted grade (rounded to 1 decimal)
+- LETTER: Convert final grade to letter (A: 90+, B: 80-89, C: 70-79, D: 60-69, F: <60)
+
+Example:
+ADD homework 20 85 -> "Added homework: 85"
+ADD homework 20 90 -> "Added homework: 90"
+ADD exam 60 88 -> "Added exam: 88"
+AVERAGE homework -> "87.5"
+FINAL -> "88.0"
+LETTER -> "B"
+
+Weighted calculation:
+(87.5 * 0.20) + (88.0 * 0.60) = 17.5 + 52.8 = 70.3... but we need all weights!
+"""
+
+[skeleton]
+code = '''
+def solution(commands):
+    # Build a grade calculator
+    # Track categories, weights, and scores
+    # Calculate weighted averages
+    pass
+'''
+
+[tests]
+[[tests.case]]
+name = "basic_grading"
+input = ["ADD homework 20 85", "ADD homework 20 90", "AVERAGE homework"]
+expected = ["Added homework: 85", "Added homework: 90", "87.5"]
+
+[[tests.case]]
+name = "multiple_categories"
+input = ["ADD homework 30 80", "ADD exam 70 90", "AVERAGE homework", "AVERAGE exam"]
+expected = ["Added homework: 80", "Added exam: 90", "80.0", "90.0"]
+
+[[tests.case]]
+name = "final_grade_calculation"
+input = ["ADD homework 40 80", "ADD exam 60 90", "FINAL"]
+expected = ["Added homework: 80", "Added exam: 90", "86.0"]
+
+[[tests.case]]
+name = "letter_grades"
+input = ["ADD test 100 95", "LETTER"]
+expected = ["Added test: 95", "A"]
+
+[[tests.case]]
+name = "complete_workflow"
+input = [
+    "ADD homework 20 85",
+    "ADD homework 20 90",
+    "ADD quiz 30 88",
+    "ADD exam 50 92",
+    "AVERAGE homework",
+    "FINAL",
+    "LETTER"
+]
+expected = ["Added homework: 85", "Added homework: 90", "Added quiz: 88", "Added exam: 92", "87.5", "90.4", "A"]
+
+[hints]
+level_1 = "Use a dictionary to group scores by category: grades = {'homework': [], 'exam': []}"
+level_2 = "Also track weights in another dict: weights = {'homework': 20, 'exam': 60}"
+level_3 = "For AVERAGE, use sum(scores) / len(scores)"
+level_4 = """
+Pattern:
+```python
+grades = {}  # category -> list of scores
+weights = {}  # category -> weight
+
+for command in commands:
+    if command.startswith("ADD "):
+        parts = command.split()
+        category = parts[1]
+        weight = int(parts[2])
+        score = int(parts[3])
+
+        if category not in grades:
+            grades[category] = []
+            weights[category] = weight
+
+        grades[category].append(score)
+```
+"""
+
+[gamepad_hints]
+easy_mode = """
+🎮 GRADE CALCULATOR:
+1. Create grades = {} and weights = {} dicts
+2. For ADD, append score to grades[category]
+3. For AVERAGE, sum(grades[cat]) / len(grades[cat])
+4. For FINAL, sum each (category_avg * weight / 100)
+5. For LETTER, use if/elif ladder
+"""
+
+[solution]
+# Hidden from player
+code = '''
+def solution(commands):
+    grades = {}
+    weights = {}
+    results = []
+
+    for command in commands:
+        if command.startswith("ADD "):
+            parts = command.split()
+            category = parts[1]
+            weight = int(parts[2])
+            score = int(parts[3])
+
+            if category not in grades:
+                grades[category] = []
+                weights[category] = weight
+
+            grades[category].append(score)
+            results.append(f"Added {category}: {score}")
+
+        elif command.startswith("AVERAGE "):
+            category = command.split()[1]
+            if category in grades:
+                avg = sum(grades[category]) / len(grades[category])
+                results.append(f"{avg:.1f}")
+            else:
+                results.append("0.0")
+
+        elif command == "FINAL":
+            final = 0.0
+            for category, scores in grades.items():
+                avg = sum(scores) / len(scores)
+                final += avg * (weights[category] / 100)
+            results.append(f"{final:.1f}")
+
+        elif command == "LETTER":
+            final = 0.0
+            for category, scores in grades.items():
+                avg = sum(scores) / len(scores)
+                final += avg * (weights[category] / 100)
+
+            if final >= 90:
+                results.append("A")
+            elif final >= 80:
+                results.append("B")
+            elif final >= 70:
+                results.append("C")
+            elif final >= 60:
+                results.append("D")
+            else:
+                results.append("F")
+
+    return results
+'''
+
+[meta]
+time_limit_seconds = 900
+speed_run_target = 300
+points = 50
+xp_reward = 50
+category = "data_processing"
+next_challenge = "contact_book"
+
+[adaptive]
+fun_factor = "practical"
+weakness_signals = ["weighted_average_confusion", "rounding_errors", "dict_initialization"]
+project_themes = ["gradebook", "performance_tracker", "score_analyzer", "report_card"]
+
+[emotional_checkpoints]
+after_first_test_pass = """
+🎮 Your grade calculator works! Math + code = power.
+   [RT] if this makes sense
+"""
+after_completion = """
+🎮 Grade calculator complete! You're doing real math now.
+   [RT] Math is fun  |  [LT] Math is hard  |  [Y] Explain weighted averages
+"""

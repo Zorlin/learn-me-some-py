@@ -1,0 +1,255 @@
+# Challenge: Plugin System with Dynamic Imports
+# Build extensible systems with runtime module loading
+
+[challenge]
+id = "plugin_system"
+name = "Build a Plugin System"
+level = 5
+prerequisites = ["imports_advanced", "classes_advanced", "dictionaries_advanced", "error_handling"]
+
+[description]
+brief = "Create a plugin loader that dynamically imports and executes plugins"
+detailed = """
+You're building a plugin system for extensible applications.
+
+SCENARIO: Plugins are Python code strings that define functions.
+Your system must:
+1. Load plugin code dynamically (exec() or importlib)
+2. Discover available functions in the plugin
+3. Execute plugin functions by name with arguments
+4. Handle plugin errors gracefully
+
+INPUT:
+```python
+{
+    "plugin_code": "def greet(name): return f'Hello, {name}!'",
+    "command": "greet",
+    "args": ["World"]
+}
+```
+
+OUTPUT:
+- If successful: {"result": "Hello, World!"}
+- If function not found: {"error": "function not found"}
+- If execution fails: {"error": "execution failed"}
+
+ADVANCED: Support multiple functions in one plugin:
+```python
+plugin_code = '''
+def add(a, b):
+    return a + b
+
+def multiply(a, b):
+    return a * b
+'''
+```
+
+This is how plugin systems work in:
+- VSCode extensions
+- Pytest plugins
+- Flask/Django extensions
+- Game modding systems
+
+SECURITY NOTE: In production, NEVER exec() untrusted code.
+This challenge teaches the pattern; real systems use sandboxing.
+"""
+
+[skeleton]
+code = '''
+def solution(scenario):
+    """
+    Execute plugin code dynamically.
+
+    Args:
+        scenario: dict with plugin_code, command, args
+
+    Returns:
+        {"result": value} on success
+        {"error": message} on failure
+    """
+    # Your code here
+    pass
+'''
+
+[tests]
+[[tests.case]]
+name = "simple_function"
+input = {
+    "plugin_code": "def greet(name): return f'Hello, {name}!'",
+    "command": "greet",
+    "args": ["World"]
+}
+expected = {"result": "Hello, World!"}
+
+[[tests.case]]
+name = "math_function"
+input = {
+    "plugin_code": "def add(a, b): return a + b",
+    "command": "add",
+    "args": [5, 3]
+}
+expected = {"result": 8}
+
+[[tests.case]]
+name = "function_not_found"
+input = {
+    "plugin_code": "def foo(): return 42",
+    "command": "bar",
+    "args": []
+}
+expected = {"error": "function not found"}
+
+[[tests.case]]
+name = "execution_error"
+input = {
+    "plugin_code": "def divide(a, b): return a / b",
+    "command": "divide",
+    "args": [10, 0]
+}
+expected = {"error": "execution failed"}
+
+[[tests.case]]
+name = "multiple_functions"
+input = {
+    "plugin_code": "def add(a, b): return a + b\ndef sub(a, b): return a - b",
+    "command": "sub",
+    "args": [10, 3]
+}
+expected = {"result": 7}
+
+[[tests.case]]
+name = "no_args_function"
+input = {
+    "plugin_code": "def get_answer(): return 42",
+    "command": "get_answer",
+    "args": []
+}
+expected = {"result": 42}
+
+[[tests.case]]
+name = "complex_logic"
+input = {
+    "plugin_code": """
+def process(items):
+    return [x * 2 for x in items if x > 0]
+""",
+    "command": "process",
+    "args": [[-1, 2, -3, 4, 5]]
+}
+expected = {"result": [4, 8, 10]}
+
+[hints]
+level_1 = "Use exec() to run code string in a namespace dictionary"
+level_2 = "After exec(), the namespace dict contains defined functions"
+level_3 = "Check if command exists in namespace, then call it with *args"
+level_4 = """
+Dynamic Execution Pattern:
+```python
+def solution(scenario):
+    plugin_code = scenario["plugin_code"]
+    command = scenario["command"]
+    args = scenario["args"]
+
+    # Create namespace for plugin execution
+    namespace = {}
+
+    try:
+        # Execute plugin code in namespace
+        exec(plugin_code, namespace)
+    except Exception:
+        return {"error": "execution failed"}
+
+    # Check if command exists
+    if command not in namespace:
+        return {"error": "function not found"}
+
+    # Get the function
+    func = namespace[command]
+
+    # Execute with arguments
+    try:
+        result = func(*args)
+        return {"result": result}
+    except Exception:
+        return {"error": "execution failed"}
+```
+
+Key insight: exec() populates a dictionary with defined names.
+"""
+
+[gamepad_hints]
+easy_mode = """
+🎮 PLUGIN SYSTEM MODE:
+1. Press A to see exec() namespace visualization
+2. Press X to step through plugin loading
+3. Press Y to see error handling flow
+4. Hold RT for full pattern
+"""
+
+[solution]
+code = '''
+def solution(scenario):
+    plugin_code = scenario["plugin_code"]
+    command = scenario["command"]
+    args = scenario["args"]
+
+    namespace = {}
+
+    # Execute plugin code
+    try:
+        exec(plugin_code, namespace)
+    except Exception:
+        return {"error": "execution failed"}
+
+    # Check if function exists
+    if command not in namespace:
+        return {"error": "function not found"}
+
+    # Call the function
+    try:
+        func = namespace[command]
+        result = func(*args)
+        return {"result": result}
+    except Exception:
+        return {"error": "execution failed"}
+'''
+
+[meta]
+time_limit_seconds = 900   # 15 minutes
+speed_run_target = 240     # 4 minutes
+points = 180
+next_challenge = "hot_reload_system"
+
+[adaptive]
+fun_factor = "power_unlock"
+weakness_signals = ["exec_misuse", "namespace_confusion", "error_handling_incomplete"]
+project_themes = ["extensibility", "plugins", "modding", "dynamic_loading", "scripting"]
+
+[emotional_checkpoints]
+after_first_test_pass = """
+🎮 Plugin loaded and executed! Dynamic code works.
+   [RT] if this feels like magic
+"""
+after_error_handling_pass = """
+🎮 Error handling solid! Your system is robust.
+   How's the exec() concept sitting with you?
+   [RT] Makes sense  |  [LT] Feels dangerous  |  [Y] Show me more
+"""
+after_completion = """
+🎮 PLUGIN SYSTEM MASTERY!
+
+You just built the foundation of:
+- VSCode extension system
+- Pytest plugin architecture
+- Game modding frameworks
+- Scriptable applications
+- Dynamic configuration systems
+
+This is how extensible software is built.
+
+IMPORTANT: In production, sandbox untrusted code.
+exec() is powerful and dangerous.
+
+How powerful do you feel?
+[RT] I can build anything  |  [LT] Intimidated by the power  |  [Y] Show me sandboxing techniques
+"""

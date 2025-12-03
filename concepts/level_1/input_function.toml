@@ -1,0 +1,131 @@
+# Level 1: The input() Function
+# Get information from the user!
+
+[concept]
+id = "input_function"
+name = "input(): Ask the User Questions"
+level = 1
+prerequisites = ["print_function", "variables", "strings"]
+
+[description]
+brief = "Let users type responses - make your programs interactive!"
+detailed = """
+input() pauses your program and waits for the user to type something.
+Whatever they type becomes a string you can use!
+
+```python
+name = input("What's your name? ")
+print("Hello, " + name + "!")
+
+# When run:
+# What's your name? Archer
+# Hello, Archer!
+```
+
+input() ALWAYS returns a string, even if they type a number!
+"""
+
+[syntax]
+basic = '''
+response = input("Your question: ")
+'''
+with_prompt = '''
+# The text in input() is shown to the user
+age = input("How old are you? ")
+color = input("Favorite color: ")
+'''
+no_prompt = '''
+# You can use input() without text (but it's confusing!)
+answer = input()  # User sees nothing, just waits
+'''
+
+[usage]
+interactive = '''
+# Make a simple chatbot
+print("Welcome to Python!")
+name = input("What's your name? ")
+print(f"Nice to meet you, {name}!")
+
+hobby = input("What do you like to do? ")
+print(f"{hobby} sounds fun!")
+'''
+
+[gotchas]
+always_string = """
+input() ALWAYS returns a string, even if user types a number:
+
+age = input("Age: ")  # User types: 25
+print(age + 5)        # ERROR! Can't add string "25" and int 5
+
+You need to convert! (See: type_conversion)
+age = int(input("Age: "))  # Now it's a number
+print(age + 5)             # 30 ✓
+"""
+newline_automatic = """
+input() automatically adds space after your prompt:
+
+name = input("Name:")   # Shows: "Name:" (no space)
+name = input("Name: ")  # Shows: "Name: " (with space)
+
+The space before closing " is optional but looks better!
+"""
+no_validation = """
+input() accepts ANYTHING the user types:
+
+age = input("Age: ")  # User types: banana
+# age is now "banana" (a string)
+# If you try int(age), you'll get an error!
+
+Always be ready for weird input!
+"""
+
+[gamepad_tutorial]
+text = """
+🎮 CONTROLLER MODE:
+- Press A on "input" to auto-complete input()
+- Press Y to insert input with prompt template
+- Press RB to suggest good prompt text
+- D-pad UP to add type conversion wrapper
+"""
+
+[patterns]
+basic_interaction = '''
+# Ask question, use answer
+name = input("What's your name? ")
+print(f"Hello, {name}!")
+'''
+with_conversion = '''
+# Get a number from user
+age_string = input("Age: ")
+age = int(age_string)  # Convert to integer
+print(f"In 10 years you'll be {age + 10}")
+'''
+multiple_questions = '''
+# Build up information
+print("Character creator:")
+name = input("Name: ")
+hero_class = input("Class: ")
+weapon = input("Weapon: ")
+print(f"{name} the {hero_class} wields a {weapon}!")
+'''
+
+[challenges]
+starter = "input_ask_name"
+intermediate = "input_mad_libs"
+mastery = "input_character_creator"
+
+[fun_factor]
+type = "interaction"
+description = "Make programs that talk WITH users, not AT them"
+examples = ["text adventures", "quizzes", "character creators", "chatbots"]
+
+[adaptive]
+weakness_signals = ["forgot_type_conversion", "missing_prompt", "type_error"]
+strength_indicators = ["clear_prompts", "proper_conversion", "good_ux"]
+
+[fun_facts]
+history = "input() used to be called raw_input() in Python 2!"
+blocking = "input() PAUSES your program until the user types something"
+newline = "Users press Enter/Return to submit their input"
+universal = "Getting user input is fundamental to interactive programs"
+alternatives = "GUIs and games use different input methods, but the concept is the same!"

@@ -1,0 +1,82 @@
+# Level 0: Types
+# Prerequisite for: everything else
+
+[concept]
+id = "types_basics"
+name = "Types: What Kind of Thing Is This?"
+level = 0
+prerequisites = ["variables"]
+unlocks = ["if_else", "basic_operators"]
+
+[description]
+brief = "Every value in Python has a type"
+detailed = """
+Just like in real life, different things work differently.
+You can add numbers, but you concatenate strings.
+
+```python
+age = 25              # int (whole number)
+height = 5.9          # float (decimal number)
+name = "Alex"         # str (text)
+is_learning = True    # bool (True or False)
+nothing = None        # None (absence of value)
+```
+
+Python knows the difference and won't let you mix them wrong.
+"""
+
+[examples]
+basic = """
+# Python figures out types automatically
+score = 100           # This is an int
+message = "Hello"     # This is a str
+ready = True          # This is a bool
+"""
+
+advanced = """
+# You can check types with type()
+print(type(42))        # <class 'int'>
+print(type(3.14))      # <class 'float'>
+print(type("hi"))      # <class 'str'>
+print(type(True))      # <class 'bool'>
+print(type(None))      # <class 'NoneType'>
+"""
+
+[types]
+int = "Whole numbers: 42, -17, 0"
+float = "Decimal numbers: 3.14, -0.5, 2.0"
+str = "Text in quotes: 'hello', \"world\""
+bool = "True or False (capitalized!)"
+none = "None - represents 'nothing' or 'no value'"
+
+[common_mistakes]
+case_sensitive = "True and False are capitalized. 'true' and 'false' won't work!"
+none_vs_zero = "None is not the same as 0 or empty string. It means 'no value'."
+mixing_types = "Can't do: 5 + 'hello'. Python won't guess what you meant."
+
+[fun_facts]
+everything_is_object = "In Python, even numbers are objects with methods!"
+bool_is_int = "True is actually 1 and False is 0. They're special ints!"
+dynamic_typing = "Variables can change type: x = 5; x = 'hi' is totally valid (though confusing)"
+
+[gamepad_tutorial]
+text = """
+🎮 TYPE EXPLORER:
+- Press A on a variable to see its type
+- Hold LB + A to convert between types
+- D-pad RIGHT suggests type-appropriate operations
+"""
+
+[challenges]
+starter = "types_identify"
+intermediate = "types_convert"
+mastery = "types_debug_mismatch"
+
+[fun_factor]
+type = "puzzle"
+description = "Like sorting toys into boxes - each type has its own rules"
+examples = ["type detective", "conversion challenge", "operator matching"]
+
+[adaptive]
+weakness_signals = ["type_error", "comparison_with_none", "bool_lowercase"]
+strength_indicators = ["correct_type_usage", "appropriate_conversions"]

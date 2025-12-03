@@ -1,0 +1,185 @@
+# Challenge: File Content Analyzer
+# Learn file I/O and text processing
+
+[challenge]
+id = "file_analyzer"
+name = "File Content Analyzer"
+level = 3
+prerequisites = ["file_io", "string_methods", "dicts_basics"]
+
+[description]
+brief = "Analyze text files to extract statistics"
+detailed = """
+You're building a file analyzer tool!
+
+Given file contents as a multiline string, analyze it:
+
+Commands:
+- LINES: Return total line count
+- WORDS: Return total word count
+- CHARS: Return total character count (including spaces/newlines)
+- LONGEST: Return the longest word
+- FREQUENT: Return the most frequent word (lowercase comparison)
+
+For FREQUENT, ignore case and punctuation. If tie, return any of them.
+
+Example file contents:
+"Hello world!\\nHello Python.\\nWorld of code."
+
+LINES -> "3"
+WORDS -> "7"
+LONGEST -> "Python"
+FREQUENT -> "hello"
+"""
+
+[skeleton]
+code = '''
+def solution(file_contents, commands):
+    # Analyze the file contents
+    # file_contents is a string (can be multiline)
+    # commands is a list of analysis commands
+    # Return list of results
+    pass
+'''
+
+[tests]
+[[tests.case]]
+name = "basic_analysis"
+input.file_contents = "Hello world!\nHello Python.\nWorld of code."
+input.commands = ["LINES", "WORDS", "CHARS"]
+expected = ["3", "7", "41"]
+
+[[tests.case]]
+name = "longest_word"
+input.file_contents = "The quick brown fox jumps"
+input.commands = ["LONGEST"]
+expected = ["brown"]
+
+[[tests.case]]
+name = "most_frequent"
+input.file_contents = "hello world hello python world world"
+input.commands = ["FREQUENT"]
+expected = ["world"]
+
+[[tests.case]]
+name = "case_insensitive_frequent"
+input.file_contents = "Hello HELLO hello World"
+input.commands = ["FREQUENT"]
+expected = ["hello"]
+
+[[tests.case]]
+name = "complete_analysis"
+input.file_contents = "Python is great.\nPython is powerful.\nI love Python!"
+input.commands = ["LINES", "WORDS", "LONGEST", "FREQUENT"]
+expected = ["3", "9", "powerful", "python"]
+
+[[tests.case]]
+name = "empty_file"
+input.file_contents = ""
+input.commands = ["LINES", "WORDS", "CHARS"]
+expected = ["0", "0", "0"]
+
+[hints]
+level_1 = "Split by lines: file_contents.split('\\n')"
+level_2 = "Split by words: file_contents.split()"
+level_3 = "Remove punctuation: use .strip('.,!?') on each word"
+level_4 = """
+Pattern:
+```python
+lines = file_contents.split('\\n') if file_contents else []
+words = file_contents.split()
+
+# For frequency
+word_counts = {}
+for word in words:
+    clean_word = word.strip('.,!?').lower()
+    word_counts[clean_word] = word_counts.get(clean_word, 0) + 1
+
+most_frequent = max(word_counts, key=word_counts.get)
+```
+"""
+
+[gamepad_hints]
+easy_mode = """
+🎮 FILE ANALYZER:
+1. LINES: count \\n characters + 1 (or split and len)
+2. WORDS: split by whitespace, count items
+3. CHARS: use len() on entire string
+4. LONGEST: max(words, key=len)
+5. FREQUENT: count each word in dict, find max
+"""
+
+[solution]
+# Hidden from player
+code = '''
+def solution(file_contents, commands):
+    results = []
+
+    # Pre-process file
+    lines = file_contents.split("\\n") if file_contents else []
+    words = file_contents.split()
+
+    # Clean words for frequency analysis
+    clean_words = []
+    for word in words:
+        clean = word.strip(".,!?;:").lower()
+        if clean:
+            clean_words.append(clean)
+
+    # Word frequency
+    word_counts = {}
+    for word in clean_words:
+        word_counts[word] = word_counts.get(word, 0) + 1
+
+    for command in commands:
+        if command == "LINES":
+            count = len(lines) if file_contents else 0
+            results.append(str(count))
+
+        elif command == "WORDS":
+            results.append(str(len(words)))
+
+        elif command == "CHARS":
+            results.append(str(len(file_contents)))
+
+        elif command == "LONGEST":
+            if words:
+                longest = max(words, key=len)
+                # Remove punctuation from longest
+                longest = longest.strip(".,!?;:")
+                results.append(longest)
+            else:
+                results.append("")
+
+        elif command == "FREQUENT":
+            if word_counts:
+                most_frequent = max(word_counts, key=word_counts.get)
+                results.append(most_frequent)
+            else:
+                results.append("")
+
+    return results
+'''
+
+[meta]
+time_limit_seconds = 900
+speed_run_target = 300
+points = 50
+xp_reward = 50
+category = "data_processing"
+next_challenge = "error_handler"
+
+[adaptive]
+fun_factor = "analytical"
+weakness_signals = ["string_split_confusion", "max_key_usage", "case_sensitivity_bug"]
+project_themes = ["log_analyzer", "text_processor", "word_cloud", "search_engine"]
+
+[emotional_checkpoints]
+after_first_test_pass = """
+🎮 Your analyzer works! File processing unlocked.
+   [RT] if you're feeling good
+"""
+after_completion = """
+🎮 File analyzer complete! You're processing real data.
+   [RT] Data is fun  |  [LT] Too abstract  |  [Y] Show me more
+"""

@@ -1,0 +1,234 @@
+# Challenge: Decorator Factory
+# Build decorators that take arguments and modify function behavior
+
+[challenge]
+id = "decorator_factory"
+name = "Build a Decorator Factory"
+level = 5
+prerequisites = ["decorators_basics", "closures", "functions_advanced", "args_kwargs"]
+
+[description]
+brief = "Create a retry decorator that takes parameters and handles failures"
+detailed = """
+You're building a decorator factory for resilient systems.
+
+Create a `retry` decorator that:
+1. Takes arguments: max_attempts, delay_seconds
+2. Retries function on exception up to max_attempts times
+3. Waits delay_seconds between retries
+4. Returns result if successful
+5. Raises last exception if all attempts fail
+
+USAGE:
+```python
+@retry(max_attempts=3, delay_seconds=0.1)
+def flaky_api_call():
+    # might fail, will retry
+    pass
+```
+
+INPUT: A dictionary describing the scenario:
+```python
+{
+    "max_attempts": 3,
+    "delay_seconds": 0.1,
+    "failures_before_success": 2  # fails twice, succeeds third time
+}
+```
+
+OUTPUT:
+- If succeeds within attempts: "SUCCESS"
+- If exhausts attempts: "FAILED"
+
+This tests your understanding of:
+- Decorators with arguments (factory pattern)
+- Closures and nested functions
+- Exception handling
+- Function wrapping with @functools.wraps
+
+Professional systems use this for API calls, database connections, network requests.
+"""
+
+[skeleton]
+code = '''
+import functools
+import time
+
+def retry(max_attempts, delay_seconds):
+    """
+    Decorator factory that retries a function on failure.
+
+    Args:
+        max_attempts: int - maximum retry attempts
+        delay_seconds: float - seconds to wait between retries
+
+    Returns:
+        decorator function
+    """
+    # Your code here
+    pass
+
+def solution(scenario):
+    """
+    Test the retry decorator.
+
+    Args:
+        scenario: dict with max_attempts, delay_seconds, failures_before_success
+
+    Returns:
+        "SUCCESS" if function succeeds within attempts
+        "FAILED" if all attempts exhausted
+    """
+    # Your code here - use the retry decorator
+    pass
+'''
+
+[tests]
+[[tests.case]]
+name = "succeeds_first_try"
+input = {"max_attempts": 3, "delay_seconds": 0.01, "failures_before_success": 0}
+expected = "SUCCESS"
+
+[[tests.case]]
+name = "succeeds_second_try"
+input = {"max_attempts": 3, "delay_seconds": 0.01, "failures_before_success": 1}
+expected = "SUCCESS"
+
+[[tests.case]]
+name = "succeeds_last_try"
+input = {"max_attempts": 3, "delay_seconds": 0.01, "failures_before_success": 2}
+expected = "SUCCESS"
+
+[[tests.case]]
+name = "exhausts_all_attempts"
+input = {"max_attempts": 3, "delay_seconds": 0.01, "failures_before_success": 3}
+expected = "FAILED"
+
+[[tests.case]]
+name = "single_attempt_success"
+input = {"max_attempts": 1, "delay_seconds": 0.01, "failures_before_success": 0}
+expected = "SUCCESS"
+
+[[tests.case]]
+name = "single_attempt_failure"
+input = {"max_attempts": 1, "delay_seconds": 0.01, "failures_before_success": 1}
+expected = "FAILED"
+
+[hints]
+level_1 = "A decorator factory is a function that returns a decorator"
+level_2 = "The pattern is: factory(args) -> decorator -> wrapper -> original function"
+level_3 = "Use a counter to track attempts and raise/catch exceptions in a loop"
+level_4 = """
+Decorator Factory Pattern:
+```python
+def retry(max_attempts, delay_seconds):
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            last_exception = None
+            for attempt in range(max_attempts):
+                try:
+                    return func(*args, **kwargs)
+                except Exception as e:
+                    last_exception = e
+                    if attempt < max_attempts - 1:
+                        time.sleep(delay_seconds)
+            # All attempts failed
+            raise last_exception
+        return wrapper
+    return decorator
+```
+
+Three levels of functions:
+1. Factory: takes decorator arguments
+2. Decorator: takes the function to wrap
+3. Wrapper: replaces the original function
+"""
+
+[gamepad_hints]
+easy_mode = """
+🎮 DECORATOR FACTORY MODE:
+1. Press A to visualize the three-level nesting
+2. Press X to step through attempt loop
+3. Press Y to see exception handling flow
+4. Hold RT for the full pattern
+"""
+
+[solution]
+code = '''
+import functools
+import time
+
+def retry(max_attempts, delay_seconds):
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            last_exception = None
+            for attempt in range(max_attempts):
+                try:
+                    return func(*args, **kwargs)
+                except Exception as e:
+                    last_exception = e
+                    if attempt < max_attempts - 1:
+                        time.sleep(delay_seconds)
+            raise last_exception
+        return wrapper
+    return decorator
+
+def solution(scenario):
+    max_attempts = scenario["max_attempts"]
+    delay_seconds = scenario["delay_seconds"]
+    failures_before_success = scenario["failures_before_success"]
+
+    # Create a flaky function that fails N times then succeeds
+    call_count = {"count": 0}
+
+    @retry(max_attempts=max_attempts, delay_seconds=delay_seconds)
+    def flaky_function():
+        call_count["count"] += 1
+        if call_count["count"] <= failures_before_success:
+            raise Exception(f"Attempt {call_count['count']} failed")
+        return "success"
+
+    try:
+        result = flaky_function()
+        return "SUCCESS"
+    except Exception:
+        return "FAILED"
+'''
+
+[meta]
+time_limit_seconds = 1200  # 20 minutes
+speed_run_target = 360     # 6 minutes
+points = 200
+next_challenge = "context_manager"
+
+[adaptive]
+fun_factor = "power_unlock"
+weakness_signals = ["closure_confusion", "decorator_nesting_errors", "exception_handling_bugs"]
+project_themes = ["resilience", "api_clients", "network_retry", "database_connections"]
+
+[emotional_checkpoints]
+after_first_test_pass = """
+🎮 Your retry decorator works for simple cases!
+   [RT] if decorators are clicking
+"""
+after_all_attempts_pass = """
+🎮 Retry logic solid! You're handling failures gracefully.
+   How's the nested function mental model?
+   [RT] Crystal clear  |  [LT] Still wrapping my head around it
+"""
+after_completion = """
+🎮 DECORATOR MASTERY UNLOCKED!
+
+You just built a professional decorator factory used in:
+- HTTP client libraries (requests, httpx)
+- Database ORMs (retry on deadlock)
+- Cloud SDK clients (AWS, GCP retry logic)
+- Distributed systems (resilient RPC calls)
+
+This is the pattern behind @retry, @cache, @rate_limit, @auth_required.
+
+How powerful do you feel?
+[RT] I am a Python wizard  |  [LT] Need to practice more  |  [Y] Show me more decorator patterns
+"""

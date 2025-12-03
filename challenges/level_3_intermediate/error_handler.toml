@@ -1,0 +1,181 @@
+# Challenge: Safe Calculator with Error Handling
+# Master try/except and defensive programming
+
+[challenge]
+id = "error_handler"
+name = "Safe Calculator with Error Handling"
+level = 3
+prerequisites = ["exceptions", "try_except", "functions_basics"]
+
+[description]
+brief = "Build a calculator that handles errors gracefully"
+detailed = """
+You're building a calculator that never crashes!
+
+Commands:
+- ADD <a> <b>: Return sum as string
+- DIVIDE <a> <b>: Return quotient (1 decimal place)
+- PARSE <value>: Convert to int, return value as string
+- GET <key>: Get value from storage dictionary
+
+Error responses:
+- "ERROR: invalid number" - can't convert to int/float
+- "ERROR: division by zero" - divide by 0
+- "ERROR: key not found" - GET on missing key
+
+The calculator has internal storage:
+- STORE <key> <value>: Store value with key
+
+Example:
+ADD 5 3 -> "8"
+DIVIDE 10 2 -> "5.0"
+DIVIDE 10 0 -> "ERROR: division by zero"
+PARSE abc -> "ERROR: invalid number"
+"""
+
+[skeleton]
+code = '''
+def solution(commands):
+    # Build a safe calculator
+    # Handle all errors gracefully
+    # Never crash, always return a result
+    pass
+'''
+
+[tests]
+[[tests.case]]
+name = "basic_math"
+input = ["ADD 5 3", "ADD 10 20", "DIVIDE 10 2"]
+expected = ["8", "30", "5.0"]
+
+[[tests.case]]
+name = "division_by_zero"
+input = ["DIVIDE 10 0", "DIVIDE 5 0"]
+expected = ["ERROR: division by zero", "ERROR: division by zero"]
+
+[[tests.case]]
+name = "invalid_numbers"
+input = ["ADD 5 abc", "PARSE notanumber", "DIVIDE x y"]
+expected = ["ERROR: invalid number", "ERROR: invalid number", "ERROR: invalid number"]
+
+[[tests.case]]
+name = "storage_operations"
+input = ["STORE age 25", "GET age", "GET missing"]
+expected = ["Stored: age", "25", "ERROR: key not found"]
+
+[[tests.case]]
+name = "mixed_operations"
+input = [
+    "ADD 10 5",
+    "DIVIDE 20 4",
+    "DIVIDE 1 0",
+    "PARSE 42",
+    "PARSE bad",
+    "STORE x 100",
+    "GET x",
+    "GET y"
+]
+expected = ["15", "5.0", "ERROR: division by zero", "42", "ERROR: invalid number", "Stored: x", "100", "ERROR: key not found"]
+
+[hints]
+level_1 = "Use try/except blocks to catch errors"
+level_2 = "ValueError is raised when int() or float() fails"
+level_3 = "ZeroDivisionError is raised when dividing by zero"
+level_4 = """
+Pattern:
+```python
+try:
+    a = int(parts[1])
+    b = int(parts[2])
+    result = a + b
+    return str(result)
+except ValueError:
+    return "ERROR: invalid number"
+except ZeroDivisionError:
+    return "ERROR: division by zero"
+```
+"""
+
+[gamepad_hints]
+easy_mode = """
+🎮 ERROR HANDLER:
+1. Wrap risky operations in try/except
+2. Catch ValueError for bad numbers
+3. Catch ZeroDivisionError for divide by 0
+4. Catch KeyError for missing dict keys
+5. Always return a string result
+"""
+
+[solution]
+# Hidden from player
+code = '''
+def solution(commands):
+    storage = {}
+    results = []
+
+    for command in commands:
+        parts = command.split()
+        action = parts[0]
+
+        try:
+            if action == "ADD":
+                a = int(parts[1])
+                b = int(parts[2])
+                results.append(str(a + b))
+
+            elif action == "DIVIDE":
+                a = float(parts[1])
+                b = float(parts[2])
+                if b == 0:
+                    raise ZeroDivisionError()
+                result = a / b
+                results.append(f"{result:.1f}")
+
+            elif action == "PARSE":
+                value = int(parts[1])
+                results.append(str(value))
+
+            elif action == "STORE":
+                key = parts[1]
+                value = parts[2]
+                storage[key] = value
+                results.append(f"Stored: {key}")
+
+            elif action == "GET":
+                key = parts[1]
+                if key not in storage:
+                    raise KeyError()
+                results.append(storage[key])
+
+        except (ValueError, IndexError):
+            results.append("ERROR: invalid number")
+        except ZeroDivisionError:
+            results.append("ERROR: division by zero")
+        except KeyError:
+            results.append("ERROR: key not found")
+
+    return results
+'''
+
+[meta]
+time_limit_seconds = 900
+speed_run_target = 300
+points = 50
+xp_reward = 50
+category = "practical"
+next_challenge = "custom_calculator"
+
+[adaptive]
+fun_factor = "defensive"
+weakness_signals = ["exception_not_caught", "wrong_exception_type", "bare_except"]
+project_themes = ["robust_api", "user_input_validation", "safe_operations", "error_logging"]
+
+[emotional_checkpoints]
+after_first_test_pass = """
+🎮 Your error handling works! Robust code is professional code.
+   [RT] to show confidence
+"""
+after_completion = """
+🎮 Error handler complete! Your code never crashes now.
+   [RT] Feel safer  |  [LT] Exceptions confusing  |  [Y] Why is this important?
+"""

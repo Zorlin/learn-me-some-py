@@ -1,0 +1,233 @@
+# Meta-Challenge: Build the Weakness Driller
+# The gentle system that helps you overcome struggles!
+
+[challenge]
+id = "meta_build_weakness_driller"
+name = "Meta: Build Weakness Detection"
+level = 6
+prerequisites = ["pattern_matching", "statistics", "dataclasses"]
+
+[description]
+brief = "Build the system that detects struggles and resurfaces concepts with support"
+detailed = """
+Remember when you failed a challenge twice, and LMSP gently brought it back
+with extra scaffolding? That was weakness detection. NON-PUNISHING support.
+
+The weakness driller:
+- Detects genuine struggle (not just a bad day)
+- Distinguishes clustered failures (bad session) from spread failures (true weakness)
+- Resurfaces concepts with easier variants
+- Provides extra scaffolding and hints
+
+Build the support system that helped you when you struggled.
+"""
+
+[skeleton]
+code = '''
+from dataclasses import dataclass
+from datetime import datetime, timedelta
+
+@dataclass
+class Attempt:
+    """Record of one attempt at a concept."""
+    concept: str
+    success: bool
+    timestamp: datetime
+
+@dataclass
+class WeaknessSignal:
+    """Detected weakness with recommendation."""
+    concept: str
+    severity: str  # "temporary" or "needs_scaffolding"
+    failure_count: int
+    recommendation: str
+
+def detect_weakness(concept: str, attempts: list[Attempt]) -> WeaknessSignal | None:
+    """
+    Analyze attempts to detect if this is a genuine weakness.
+
+    Rules:
+    - Need at least 2 failures to signal weakness
+    - If failures are clustered (< 1 hour apart), it's a bad session (temporary)
+    - If failures > successes and spread out, needs scaffolding
+    - Otherwise, no weakness detected
+
+    Returns WeaknessSignal or None.
+    """
+    # Your code here
+    pass
+'''
+
+[tests]
+[[tests.case]]
+name = "not_enough_failures"
+input = ["lists", [
+    {"concept": "lists", "success": False, "hours_ago": 1}
+]]
+expected = {"weakness": None}
+
+[[tests.case]]
+name = "clustered_failures_temporary"
+input = ["comprehensions", [
+    {"concept": "comprehensions", "success": False, "hours_ago": 2},
+    {"concept": "comprehensions", "success": False, "hours_ago": 1.5},
+    {"concept": "comprehensions", "success": False, "hours_ago": 1}
+]]
+expected = {"severity": "temporary", "recommendation": "Take a break"}
+
+[[tests.case]]
+name = "spread_failures_needs_scaffolding"
+input = ["lambda", [
+    {"concept": "lambda", "success": False, "hours_ago": 48},
+    {"concept": "lambda", "success": True, "hours_ago": 24},
+    {"concept": "lambda", "success": False, "hours_ago": 12},
+    {"concept": "lambda", "success": False, "hours_ago": 1}
+]]
+expected = {"severity": "needs_scaffolding"}
+
+[hints]
+level_1 = "Filter attempts to just the concept in question"
+level_2 = "Check if failures are within 1 hour of each other (clustered)"
+level_3 = "Count failures vs successes to determine severity"
+level_4 = """
+Pattern:
+```python
+def detect_weakness(concept: str, attempts: list[Attempt]) -> WeaknessSignal | None:
+    concept_attempts = [a for a in attempts if a.concept == concept]
+    failures = [a for a in concept_attempts if not a.success]
+    successes = [a for a in concept_attempts if a.success]
+
+    if len(failures) < 2:
+        return None
+
+    # Check if clustered
+    failures_sorted = sorted(failures, key=lambda a: a.timestamp)
+    is_clustered = all(
+        (failures_sorted[i+1].timestamp - failures_sorted[i].timestamp) < timedelta(hours=1)
+        for i in range(len(failures_sorted) - 1)
+    )
+
+    if is_clustered:
+        return WeaknessSignal(
+            concept=concept,
+            severity="temporary",
+            failure_count=len(failures),
+            recommendation="Take a break, try tomorrow"
+        )
+
+    if len(failures) > len(successes) * 2:
+        return WeaknessSignal(
+            concept=concept,
+            severity="needs_scaffolding",
+            failure_count=len(failures),
+            recommendation="Break into smaller pieces"
+        )
+
+    return None
+```
+"""
+
+[gamepad_hints]
+easy_mode = """
+🎮 SUPPORT SYSTEM ACTIVATED!
+You're building the gentle guide that helps through struggles.
+This never punished you - it SUPPORTED you.
+"""
+
+[solution]
+code = '''
+from dataclasses import dataclass
+from datetime import datetime, timedelta
+
+@dataclass
+class Attempt:
+    concept: str
+    success: bool
+    timestamp: datetime
+
+@dataclass
+class WeaknessSignal:
+    concept: str
+    severity: str
+    failure_count: int
+    recommendation: str
+
+def detect_weakness(concept: str, attempts: list[Attempt]) -> WeaknessSignal | None:
+    concept_attempts = [a for a in attempts if a.concept == concept]
+    failures = [a for a in concept_attempts if not a.success]
+    successes = [a for a in concept_attempts if a.success]
+
+    if len(failures) < 2:
+        return None
+
+    failures_sorted = sorted(failures, key=lambda a: a.timestamp)
+
+    is_clustered = True
+    for i in range(len(failures_sorted) - 1):
+        time_diff = failures_sorted[i+1].timestamp - failures_sorted[i].timestamp
+        if time_diff > timedelta(hours=1):
+            is_clustered = False
+            break
+
+    if is_clustered:
+        return WeaknessSignal(
+            concept=concept,
+            severity="temporary",
+            failure_count=len(failures),
+            recommendation="Take a break, try tomorrow"
+        )
+
+    if len(failures) > len(successes) * 2:
+        return WeaknessSignal(
+            concept=concept,
+            severity="needs_scaffolding",
+            failure_count=len(failures),
+            recommendation="Break into smaller pieces"
+        )
+
+    return None
+'''
+
+[meta]
+time_limit_seconds = 600
+speed_run_target = 200
+points = 400
+is_meta_challenge = true
+lmsp_component = "lmsp/adaptive/weakness.py"
+teaching_philosophy = """
+Building weakness detection teaches:
+- Time-series analysis (clustering)
+- Pattern recognition in temporal data
+- Statistical thresholds
+- Empathetic algorithm design
+- The difference between punishment and support
+
+This is SUPPORT. Not judgment. Not punishment. HELP.
+
+Traditional education punishes failure. LMSP detects struggle
+and offers support. You're building compassion into code.
+"""
+
+[adaptive]
+fun_factor = "mastery"
+weakness_signals = ["datetime_comparison_bug", "clustering_logic_error", "threshold_tuning"]
+project_themes = ["adaptive_learning", "student_support", "intervention_systems"]
+
+[emotional_checkpoints]
+after_first_test_pass = """
+🎮 Detecting patterns! The support system is learning to help.
+   [RT] Building empathy into code  |  [LT] Edge cases are hard
+"""
+after_completion = """
+💚 SUPPORT SYSTEM ONLINE!
+
+You've built a system that never punishes. Only supports.
+
+Every time LMSP noticed you struggling and offered help?
+This code. Gentle. Patient. Non-judgmental.
+
+You've coded compassion.
+
+How does it feel to build a teacher that doesn't punish?
+   [RT] This is beautiful  |  [LT] I wish school was like this  |  [Y] Tell me more
+"""

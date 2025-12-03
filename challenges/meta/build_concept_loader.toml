@@ -1,0 +1,205 @@
+# Meta-Challenge: Build the Concept Loader
+# You're building the LMSP system itself!
+
+[challenge]
+id = "meta_build_concept_loader"
+name = "Meta: Build the Concept Loader"
+level = 6
+prerequisites = ["file_io", "toml_parsing", "dataclasses", "functions_advanced"]
+
+[description]
+brief = "Build the system that loads concept definitions from TOML files"
+detailed = """
+You're building a piece of LMSP itself!
+
+The concept loader reads TOML files like this one and turns them into Python objects
+that the game engine can use. Every concept in LMSP - from variables to classes to
+comprehensions - starts as a TOML file and gets loaded by the code YOU'RE ABOUT TO WRITE.
+
+Implement a concept loader that:
+- Reads a TOML file from disk
+- Parses the structure into a Concept dataclass
+- Validates that prerequisites exist
+- Returns the loaded concept
+
+This is META. You're building the system that taught you.
+"""
+
+[skeleton]
+code = '''
+from dataclasses import dataclass
+from pathlib import Path
+import toml
+
+@dataclass
+class Concept:
+    """A Python concept in the LMSP curriculum."""
+    id: str
+    name: str
+    level: int
+    prerequisites: list[str]
+    description_brief: str
+    description_detailed: str
+
+def load_concept(toml_path: str) -> Concept:
+    """
+    Load a concept from a TOML file.
+
+    Args:
+        toml_path: Path to the .toml file
+
+    Returns:
+        Concept object with parsed data
+
+    Example TOML:
+        [concept]
+        id = "lists"
+        name = "Lists"
+        level = 2
+        prerequisites = ["variables"]
+
+        [description]
+        brief = "Dynamic arrays"
+        detailed = "Lists are..."
+    """
+    # Your code here
+    pass
+'''
+
+[tests]
+[[tests.case]]
+name = "load_simple_concept"
+input = ["""[concept]
+id = "test_concept"
+name = "Test Concept"
+level = 1
+prerequisites = []
+
+[description]
+brief = "A test"
+detailed = "Testing"
+"""]
+expected = {"id": "test_concept", "name": "Test Concept", "level": 1}
+
+[[tests.case]]
+name = "load_with_prerequisites"
+input = ["""[concept]
+id = "advanced"
+name = "Advanced Concept"
+level = 3
+prerequisites = ["basic1", "basic2"]
+
+[description]
+brief = "Advanced stuff"
+detailed = "Requires prerequisites"
+"""]
+expected = {"prerequisites": ["basic1", "basic2"]}
+
+[[tests.case]]
+name = "parse_descriptions"
+input = ["""[concept]
+id = "desc_test"
+name = "Description Test"
+level = 2
+prerequisites = []
+
+[description]
+brief = "Brief description"
+detailed = "This is a detailed description"
+"""]
+expected = {"description_brief": "Brief description"}
+
+[hints]
+level_1 = "Use Path.read_text() to read the file, then toml.loads() to parse"
+level_2 = "Access TOML sections with data['concept']['id']"
+level_3 = "Create the Concept dataclass by unpacking the parsed data"
+level_4 = """
+Pattern:
+```python
+data = toml.loads(Path(toml_path).read_text())
+concept_data = data['concept']
+desc_data = data['description']
+
+return Concept(
+    id=concept_data['id'],
+    name=concept_data['name'],
+    # ... continue for all fields
+)
+```
+"""
+
+[gamepad_hints]
+easy_mode = """
+🎮 META MODE ACTIVATED!
+You're building the loader that reads concept definitions.
+Think: this code will load the TOML file that defined THIS challenge!
+"""
+
+[solution]
+code = '''
+from dataclasses import dataclass
+from pathlib import Path
+import toml
+
+@dataclass
+class Concept:
+    id: str
+    name: str
+    level: int
+    prerequisites: list[str]
+    description_brief: str
+    description_detailed: str
+
+def load_concept(toml_path: str) -> Concept:
+    data = toml.loads(Path(toml_path).read_text())
+
+    concept_data = data['concept']
+    desc_data = data['description']
+
+    return Concept(
+        id=concept_data['id'],
+        name=concept_data['name'],
+        level=concept_data['level'],
+        prerequisites=concept_data.get('prerequisites', []),
+        description_brief=desc_data['brief'],
+        description_detailed=desc_data['detailed']
+    )
+'''
+
+[meta]
+time_limit_seconds = 600
+speed_run_target = 180
+points = 400
+is_meta_challenge = true
+lmsp_component = "lmsp/python/concepts.py"
+teaching_philosophy = """
+Building the concept loader teaches:
+- File I/O patterns (reading from disk)
+- TOML parsing (structured data)
+- Dataclass construction (from dictionaries)
+- Error handling (missing fields)
+- The meta-insight: "I'm building the system that defines how I learn"
+
+When learners understand the STRUCTURE of how concepts are defined,
+they can create their own concepts and extend LMSP itself.
+"""
+
+[adaptive]
+fun_factor = "creation"
+weakness_signals = ["file_not_found_error", "key_error_toml", "dataclass_init_error"]
+project_themes = ["curriculum_design", "educational_platforms", "content_management"]
+
+[emotional_checkpoints]
+after_first_test_pass = """
+🎮 You're parsing TOML! The concept definitions are coming to life.
+   [RT] This feels powerful  |  [LT] Still confusing
+"""
+after_completion = """
+🔥 YOU JUST BUILT A PIECE OF LMSP!
+
+Every concept you've learned was loaded by code like this.
+You've gone full circle - from learner to builder.
+
+How does it feel to build the system that taught you?
+   [RT] Mind = Blown  |  [LT] Need to process this  |  [Y] Tell me more
+"""

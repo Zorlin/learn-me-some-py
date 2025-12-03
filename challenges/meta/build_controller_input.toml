@@ -1,0 +1,255 @@
+# Meta-Challenge: Build Controller Input Handling
+# Make coding feel like gaming!
+
+[challenge]
+id = "meta_build_controller_input"
+name = "Meta: Build Gamepad Support"
+level = 6
+prerequisites = ["event_loops", "input_handling", "dataclasses"]
+
+[description]
+brief = "Build the gamepad input system that makes LMSP feel like a game"
+detailed = """
+You learned Python with a CONTROLLER. Not a keyboard. A gamepad.
+
+The controller input system maps:
+- Face buttons → Python verbs (A=def, B=return, X=if, Y=for)
+- Triggers → Indentation (LT=dedent, RT=indent)
+- Bumpers → Smart actions (LB=undo, RB=autocomplete)
+- Sticks → Navigation
+
+Build the input layer that made coding feel like gaming.
+"""
+
+[skeleton]
+code = '''
+from dataclasses import dataclass
+from enum import Enum
+
+class Button(Enum):
+    A = "a"
+    B = "b"
+    X = "x"
+    Y = "y"
+    LB = "lb"
+    RB = "rb"
+    START = "start"
+    SELECT = "select"
+
+@dataclass
+class ControllerState:
+    """Current state of the controller."""
+    buttons_pressed: set[Button]
+    left_trigger: float  # 0.0 to 1.0
+    right_trigger: float
+    left_stick_x: float  # -1.0 to 1.0
+    left_stick_y: float
+    right_stick_x: float
+    right_stick_y: float
+
+class ControllerMapping:
+    """Maps controller inputs to Python code actions."""
+
+    def __init__(self):
+        self.verb_map = {
+            Button.A: "def ",
+            Button.B: "return ",
+            Button.X: "if ",
+            Button.Y: "for "
+        }
+
+    def button_to_verb(self, button: Button) -> str:
+        """Convert button press to Python verb."""
+        return self.verb_map.get(button, "")
+
+    def should_indent(self, state: ControllerState) -> bool:
+        """Check if we should increase indentation (RT pressed)."""
+        # Your code here
+        pass
+
+    def should_dedent(self, state: ControllerState) -> bool:
+        """Check if we should decrease indentation (LT pressed)."""
+        # Your code here
+        pass
+
+    def handle_input(self, state: ControllerState) -> list[str]:
+        """
+        Process controller state and return list of code actions.
+
+        Returns actions like:
+        - "insert:def "
+        - "indent"
+        - "dedent"
+        - "undo"
+        - "autocomplete"
+        """
+        # Your code here
+        pass
+'''
+
+[tests]
+[[tests.case]]
+name = "button_a_inserts_def"
+input = [{"button": "A"}]
+expected = {"action": "insert:def "}
+
+[[tests.case]]
+name = "rt_trigger_indents"
+input = [{"right_trigger": 0.8}]
+expected = {"action": "indent"}
+
+[[tests.case]]
+name = "lt_trigger_dedents"
+input = [{"left_trigger": 0.7}]
+expected = {"action": "dedent"}
+
+[[tests.case]]
+name = "lb_undoes"
+input = [{"button": "LB"}]
+expected = {"action": "undo"}
+
+[hints]
+level_1 = "Map buttons to actions in a dictionary"
+level_2 = "Check trigger values: > 0.5 means pressed"
+level_3 = "Build a list of actions based on current state"
+level_4 = """
+Pattern:
+```python
+def should_indent(self, state: ControllerState) -> bool:
+    return state.right_trigger > 0.5
+
+def should_dedent(self, state: ControllerState) -> bool:
+    return state.left_trigger > 0.5
+
+def handle_input(self, state: ControllerState) -> list[str]:
+    actions = []
+
+    for button in state.buttons_pressed:
+        if button == Button.LB:
+            actions.append("undo")
+        elif button == Button.RB:
+            actions.append("autocomplete")
+        elif button in self.verb_map:
+            actions.append(f"insert:{self.verb_map[button]}")
+
+    if self.should_indent(state):
+        actions.append("indent")
+    if self.should_dedent(state):
+        actions.append("dedent")
+
+    return actions
+```
+"""
+
+[gamepad_hints]
+easy_mode = """
+🎮 YOU'RE BUILDING THE GAMEPAD SYSTEM WITH A GAMEPAD!
+Maximum meta achieved. Controller controlling controller code.
+"""
+
+[solution]
+code = '''
+from dataclasses import dataclass
+from enum import Enum
+
+class Button(Enum):
+    A = "a"
+    B = "b"
+    X = "x"
+    Y = "y"
+    LB = "lb"
+    RB = "rb"
+    START = "start"
+    SELECT = "select"
+
+@dataclass
+class ControllerState:
+    buttons_pressed: set[Button]
+    left_trigger: float
+    right_trigger: float
+    left_stick_x: float
+    left_stick_y: float
+    right_stick_x: float
+    right_stick_y: float
+
+class ControllerMapping:
+    def __init__(self):
+        self.verb_map = {
+            Button.A: "def ",
+            Button.B: "return ",
+            Button.X: "if ",
+            Button.Y: "for "
+        }
+
+    def button_to_verb(self, button: Button) -> str:
+        return self.verb_map.get(button, "")
+
+    def should_indent(self, state: ControllerState) -> bool:
+        return state.right_trigger > 0.5
+
+    def should_dedent(self, state: ControllerState) -> bool:
+        return state.left_trigger > 0.5
+
+    def handle_input(self, state: ControllerState) -> list[str]:
+        actions = []
+
+        for button in state.buttons_pressed:
+            if button == Button.LB:
+                actions.append("undo")
+            elif button == Button.RB:
+                actions.append("autocomplete")
+            elif button == Button.START:
+                actions.append("hint")
+            elif button in self.verb_map:
+                actions.append(f"insert:{self.verb_map[button]}")
+
+        if self.should_indent(state):
+            actions.append("indent")
+        if self.should_dedent(state):
+            actions.append("dedent")
+
+        return actions
+'''
+
+[meta]
+time_limit_seconds = 600
+speed_run_target = 180
+points = 400
+is_meta_challenge = true
+lmsp_component = "lmsp/input/gamepad.py"
+teaching_philosophy = """
+Building controller input teaches:
+- Event handling and input processing
+- State machines (button state)
+- Enums for categorical inputs
+- Mapping abstractions (buttons → actions)
+- Making non-traditional interfaces feel natural
+
+This is ACCESSIBILITY. Making coding accessible via controller.
+
+Traditional coding = keyboard only. LMSP = play the same way you game.
+You're building inclusivity into educational tools.
+"""
+
+[adaptive]
+fun_factor = "creation"
+weakness_signals = ["enum_button_confusion", "trigger_threshold_bug", "state_handling"]
+project_themes = ["game_input", "accessibility", "controller_mapping"]
+
+[emotional_checkpoints]
+after_first_test_pass = """
+🎮 Controller mapping online! Buttons are becoming Python verbs.
+   [RT] This is SO cool  |  [LT] Input handling is complex
+"""
+after_completion = """
+🎮 GAMEPAD SYSTEM COMPLETE!
+
+You coded Python... with a controller.
+You built the controller system... with a controller.
+
+Meta-recursion: MAXIMUM.
+
+Coding doesn't need a keyboard. You proved it. You BUILT it.
+
+   [RT] Gaming + Coding = Life  |  [LT] My hands are confused  |  [Y] Let me map more buttons!
+"""

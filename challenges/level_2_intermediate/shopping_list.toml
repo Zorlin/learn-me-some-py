@@ -1,0 +1,146 @@
+# Challenge: Shopping List Manager
+# Learn list operations through a practical shopping app
+
+[challenge]
+id = "shopping_list"
+name = "Shopping List Manager"
+level = 2
+prerequisites = ["lists_basics", "in_operator", "len"]
+
+[description]
+brief = "Build a shopping list that can add, remove, and check items"
+detailed = """
+You're building a shopping list app for your phone.
+
+Implement these commands:
+- ADD <item>: Add item to the list. Return "Added <item>"
+- REMOVE <item>: Remove item from list. Return "Removed <item>" or "Item not found"
+- CHECK <item>: Check if item is on the list. Return "yes" or "no"
+- COUNT: Return the number of items as a string
+- LIST: Return all items as a comma-separated string (e.g., "milk,eggs,bread")
+
+The list starts empty.
+"""
+
+[skeleton]
+code = '''
+def solution(commands):
+    # Your shopping list starts empty
+    # Process each command and return appropriate response
+    # commands is a list of command strings like ["ADD milk", "CHECK eggs", "COUNT"]
+    pass
+'''
+
+[tests]
+[[tests.case]]
+name = "basic_operations"
+input = ["ADD milk", "ADD eggs", "CHECK milk", "CHECK bread", "COUNT"]
+expected = ["Added milk", "Added eggs", "yes", "no", "2"]
+
+[[tests.case]]
+name = "remove_items"
+input = ["ADD milk", "ADD eggs", "REMOVE milk", "CHECK milk", "COUNT"]
+expected = ["Added milk", "Added eggs", "Removed milk", "no", "1"]
+
+[[tests.case]]
+name = "remove_nonexistent"
+input = ["ADD milk", "REMOVE eggs"]
+expected = ["Added milk", "Item not found"]
+
+[[tests.case]]
+name = "list_items"
+input = ["ADD milk", "ADD eggs", "ADD bread", "LIST"]
+expected = ["Added milk", "Added eggs", "Added bread", "milk,eggs,bread"]
+
+[[tests.case]]
+name = "empty_list"
+input = ["COUNT", "LIST"]
+expected = ["0", ""]
+
+[hints]
+level_1 = "Use a list to store your shopping items"
+level_2 = "Split each command into parts: command.split() gives you ['ADD', 'milk']"
+level_3 = "Use if/elif to handle different commands"
+level_4 = """
+Pattern:
+```python
+shopping_list = []
+results = []
+for command in commands:
+    parts = command.split()
+    action = parts[0]
+    if action == "ADD":
+        item = parts[1]
+        # add to list
+```
+"""
+
+[gamepad_hints]
+easy_mode = """
+🎮 SHOPPING LIST BUILDER:
+1. Press A to start coding
+2. Create shopping_list = [] at the top
+3. Press Y to loop through commands
+4. Press X to split commands (command.split())
+5. Use if/elif for each action
+"""
+
+[solution]
+# Hidden from player
+code = '''
+def solution(commands):
+    shopping_list = []
+    results = []
+
+    for command in commands:
+        parts = command.split()
+        action = parts[0]
+
+        if action == "ADD":
+            item = parts[1]
+            shopping_list.append(item)
+            results.append(f"Added {item}")
+        elif action == "REMOVE":
+            item = parts[1]
+            if item in shopping_list:
+                shopping_list.remove(item)
+                results.append(f"Removed {item}")
+            else:
+                results.append("Item not found")
+        elif action == "CHECK":
+            item = parts[1]
+            if item in shopping_list:
+                results.append("yes")
+            else:
+                results.append("no")
+        elif action == "COUNT":
+            results.append(str(len(shopping_list)))
+        elif action == "LIST":
+            results.append(",".join(shopping_list))
+
+    return results
+'''
+
+[meta]
+time_limit_seconds = 600
+speed_run_target = 120
+points = 30
+xp_reward = 30
+category = "practical"
+next_challenge = "word_counter"
+
+[adaptive]
+fun_factor = "practical"
+weakness_signals = ["forgot_split", "string_vs_int", "remove_not_found_crash"]
+project_themes = ["todo_app", "inventory", "wishlist", "meal_planner"]
+
+[emotional_checkpoints]
+after_first_test_pass = """
+🎮 Nice! Your ADD and CHECK are working.
+   [RT] to show satisfaction
+"""
+after_completion = """
+🎮 Shopping list complete! You just built a real app feature.
+   How did that feel?
+   [RT] Useful/satisfying  |  [LT] Tedious  |  [Y] Tell me more
+"""

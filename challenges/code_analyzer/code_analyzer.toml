@@ -1,0 +1,354 @@
+# Challenge: Code Analyzer with AST
+# Parse and analyze Python code using Abstract Syntax Trees
+
+[challenge]
+id = "code_analyzer"
+name = "Build a Code Analyzer"
+level = 6
+prerequisites = ["ast_module", "classes_advanced", "recursion_advanced", "pattern_matching"]
+
+[description]
+brief = "Analyze Python code structure using AST to extract functions, complexity, and patterns"
+detailed = """
+You're building a static code analysis tool.
+
+Use Python's `ast` module to analyze code and extract:
+1. Function definitions (name, line number, argument count)
+2. Cyclomatic complexity (number of decision points)
+3. Dangerous patterns (eval, exec usage)
+4. Import statements
+
+INPUT: Python source code as string
+```python
+code = '''
+import os
+
+def add(a, b):
+    return a + b
+
+def complex_func(x):
+    if x > 0:
+        if x > 10:
+            return "big"
+        return "small"
+    return "negative"
+
+eval(user_input)
+'''
+```
+
+OUTPUT: Analysis dictionary
+```python
+{
+    "functions": [
+        {"name": "add", "line": 3, "args": 2, "complexity": 1},
+        {"name": "complex_func", "line": 6, "args": 1, "complexity": 3}
+    ],
+    "imports": ["os"],
+    "dangerous": ["eval"]
+}
+```
+
+COMPLEXITY CALCULATION:
+- Base complexity: 1
+- Each if/elif/for/while: +1
+- Each and/or in condition: +1
+- Each except handler: +1
+
+This is how linters (pylint, flake8) and static analysis tools work.
+"""
+
+[skeleton]
+code = '''
+import ast
+
+def solution(code):
+    """
+    Analyze Python code using AST.
+
+    Args:
+        code: str - Python source code
+
+    Returns:
+        dict with functions, imports, dangerous patterns
+    """
+    # Your code here
+    pass
+'''
+
+[tests]
+[[tests.case]]
+name = "simple_function"
+input = """
+def hello():
+    return "world"
+"""
+expected = {
+    "functions": [{"name": "hello", "line": 2, "args": 0, "complexity": 1}],
+    "imports": [],
+    "dangerous": []
+}
+
+[[tests.case]]
+name = "multiple_functions"
+input = """
+def add(a, b):
+    return a + b
+
+def multiply(x, y):
+    return x * y
+"""
+expected = {
+    "functions": [
+        {"name": "add", "line": 2, "args": 2, "complexity": 1},
+        {"name": "multiply", "line": 5, "args": 2, "complexity": 1}
+    ],
+    "imports": [],
+    "dangerous": []
+}
+
+[[tests.case]]
+name = "complex_function"
+input = """
+def categorize(value):
+    if value < 0:
+        return "negative"
+    elif value == 0:
+        return "zero"
+    else:
+        return "positive"
+"""
+expected = {
+    "functions": [{"name": "categorize", "line": 2, "args": 1, "complexity": 3}],
+    "imports": [],
+    "dangerous": []
+}
+
+[[tests.case]]
+name = "nested_conditions"
+input = """
+def check(x, y):
+    if x > 0:
+        if y > 0:
+            return "both positive"
+    return "not both positive"
+"""
+expected = {
+    "functions": [{"name": "check", "line": 2, "args": 2, "complexity": 3}],
+    "imports": [],
+    "dangerous": []
+}
+
+[[tests.case]]
+name = "imports_detected"
+input = """
+import os
+import sys
+from pathlib import Path
+
+def work():
+    pass
+"""
+expected = {
+    "functions": [{"name": "work", "line": 5, "args": 0, "complexity": 1}],
+    "imports": ["os", "sys", "pathlib"],
+    "dangerous": []
+}
+
+[[tests.case]]
+name = "dangerous_patterns"
+input = """
+def unsafe():
+    eval(user_input)
+    exec(code)
+    return result
+"""
+expected = {
+    "functions": [{"name": "unsafe", "line": 2, "args": 0, "complexity": 1}],
+    "imports": [],
+    "dangerous": ["eval", "exec"]
+}
+
+[[tests.case]]
+name = "realistic_code"
+input = """
+import json
+import requests
+
+def fetch_data(url, timeout=30):
+    if not url:
+        raise ValueError("URL required")
+
+    try:
+        response = requests.get(url, timeout=timeout)
+        if response.status_code == 200:
+            return json.loads(response.text)
+        else:
+            return None
+    except Exception:
+        return None
+"""
+expected = {
+    "functions": [{"name": "fetch_data", "line": 4, "args": 2, "complexity": 5}],
+    "imports": ["json", "requests"],
+    "dangerous": []
+}
+
+[hints]
+level_1 = "Use ast.parse() to convert code string to AST"
+level_2 = "Use ast.walk() or ast.NodeVisitor to traverse the tree"
+level_3 = "Count ast.If, ast.For, ast.While nodes for complexity"
+level_4 = """
+AST Analyzer Pattern:
+```python
+import ast
+
+class Analyzer(ast.NodeVisitor):
+    def __init__(self):
+        self.functions = []
+        self.imports = []
+        self.dangerous = []
+
+    def visit_FunctionDef(self, node):
+        # Extract function info
+        func_info = {
+            "name": node.name,
+            "line": node.lineno,
+            "args": len(node.args.args),
+            "complexity": self.calculate_complexity(node)
+        }
+        self.functions.append(func_info)
+        self.generic_visit(node)
+
+    def visit_Import(self, node):
+        for alias in node.names:
+            self.imports.append(alias.name)
+
+    def visit_ImportFrom(self, node):
+        self.imports.append(node.module)
+
+    def visit_Call(self, node):
+        if isinstance(node.func, ast.Name):
+            if node.func.id in ['eval', 'exec']:
+                self.dangerous.append(node.func.id)
+        self.generic_visit(node)
+
+    def calculate_complexity(self, node):
+        complexity = 1
+        for child in ast.walk(node):
+            if isinstance(child, (ast.If, ast.For, ast.While, ast.ExceptHandler)):
+                complexity += 1
+        return complexity
+
+def solution(code):
+    tree = ast.parse(code)
+    analyzer = Analyzer()
+    analyzer.visit(tree)
+    return {
+        "functions": analyzer.functions,
+        "imports": analyzer.imports,
+        "dangerous": list(set(analyzer.dangerous))
+    }
+```
+"""
+
+[gamepad_hints]
+easy_mode = """
+🎮 AST ANALYSIS MODE:
+1. Press A to visualize the AST tree structure
+2. Press X to step through node visitor pattern
+3. Press Y to see complexity calculation
+4. Hold RT for full analyzer pattern
+"""
+
+[solution]
+code = '''
+import ast
+
+class Analyzer(ast.NodeVisitor):
+    def __init__(self):
+        self.functions = []
+        self.imports = []
+        self.dangerous = []
+
+    def visit_FunctionDef(self, node):
+        func_info = {
+            "name": node.name,
+            "line": node.lineno,
+            "args": len(node.args.args),
+            "complexity": self.calculate_complexity(node)
+        }
+        self.functions.append(func_info)
+        self.generic_visit(node)
+
+    def visit_Import(self, node):
+        for alias in node.names:
+            self.imports.append(alias.name)
+
+    def visit_ImportFrom(self, node):
+        if node.module:
+            self.imports.append(node.module)
+
+    def visit_Call(self, node):
+        if isinstance(node.func, ast.Name):
+            if node.func.id in ['eval', 'exec']:
+                if node.func.id not in self.dangerous:
+                    self.dangerous.append(node.func.id)
+        self.generic_visit(node)
+
+    def calculate_complexity(self, node):
+        complexity = 1
+        for child in ast.walk(node):
+            if isinstance(child, (ast.If, ast.For, ast.While, ast.ExceptHandler)):
+                complexity += 1
+        return complexity
+
+def solution(code):
+    tree = ast.parse(code)
+    analyzer = Analyzer()
+    analyzer.visit(tree)
+    return {
+        "functions": analyzer.functions,
+        "imports": analyzer.imports,
+        "dangerous": analyzer.dangerous
+    }
+'''
+
+[meta]
+time_limit_seconds = 1800  # 30 minutes
+speed_run_target = 600     # 10 minutes
+points = 250
+next_challenge = "refactoring_tool"
+
+[adaptive]
+fun_factor = "deep_magic"
+weakness_signals = ["ast_traversal_errors", "visitor_pattern_confusion", "complexity_calculation_wrong"]
+project_themes = ["static_analysis", "linters", "code_quality", "ast_manipulation", "developer_tools"]
+
+[emotional_checkpoints]
+after_first_test_pass = """
+🎮 AST parsing working! You're analyzing code with code.
+   [RT] if this feels like meta-magic
+"""
+after_complexity_pass = """
+🎮 Complexity calculation solid! You're measuring code quality.
+   How's the visitor pattern feeling?
+   [RT] Makes sense  |  [LT] Still abstract  |  [Y] Show me more
+"""
+after_completion = """
+🎮 AST MASTERY ACHIEVED!
+
+You just learned the pattern behind:
+- Linters (pylint, flake8, ruff)
+- Code formatters (black, autopep8)
+- Static analysis tools (mypy, pyright)
+- Refactoring tools (rope, jedi)
+- Code complexity analyzers
+
+You can now BUILD TOOLS THAT BUILD TOOLS.
+
+This is metaprogramming at its finest.
+
+How legendary do you feel?
+[RT] I can analyze anything  |  [LT] Need to practice more  |  [Y] Show me code transformation with AST
+"""
