@@ -57,6 +57,24 @@ export interface MasteryInfo {
   next_hint: string
 }
 
+export interface SuggestedLesson {
+  id: string
+  name: string
+  level: number
+  category: string
+  time_to_read: number
+  has_try_it: boolean
+  depth: number
+}
+
+export interface DirectorIntervention {
+  type: string
+  content: string
+  reason: string
+  confidence: number
+  suggested_lessons?: SuggestedLesson[]
+}
+
 export interface ValidationResult {
   success: boolean
   tests_passing: number
@@ -86,6 +104,10 @@ export interface ValidationResult {
     name: string
     description: string
   }
+  // Director intervention fields
+  director_intervention?: DirectorIntervention
+  suggested_lessons?: SuggestedLesson[]
+  suggestion_reason?: string
 }
 
 export type GamePhase = 'menu' | 'selecting' | 'coding' | 'testing' | 'feedback' | 'complete'
@@ -109,6 +131,9 @@ export const useGameStore = defineStore('game', () => {
   // Multi-stage challenge state
   const currentStage = ref(1)
   const stageCompletedCode = ref<Record<number, string>>({})  // Code from completed stages
+  const stageTimes = ref<Record<number, number>>({})          // Time spent on each stage (current run)
+  const bestStageTimes = ref<Record<number, number>>({})      // Personal best times per stage
+  const stageStartTime = ref<number | null>(null)             // When current stage started
 
   // Timer state - tracks wall-clock coding time
   const timerStartedAt = ref<number | null>(null)     // Timestamp when timer started
@@ -142,6 +167,7 @@ export const useGameStore = defineStore('game', () => {
   // LocalStorage helpers for Save/Load
   const STORAGE_PREFIX = 'lmsp_challenge_'
   const COMPLETED_PREFIX = 'lmsp_completed_'
+  const STAGE_PREFIX = 'lmsp_stage_'
 
   function getSavedCode(challengeId: string): string | null {
     try {
@@ -183,6 +209,32 @@ export const useGameStore = defineStore('game', () => {
     }
   }
 
+  // Stage persistence helpers
+  function getSavedStage(challengeId: string): number {
+    try {
+      const saved = localStorage.getItem(`${STAGE_PREFIX}${challengeId}`)
+      return saved ? parseInt(saved, 10) : 1
+    } catch {
+      return 1
+    }
+  }
+
+  function saveStage(challengeId: string, stage: number) {
+    try {
+      localStorage.setItem(`${STAGE_PREFIX}${challengeId}`, stage.toString())
+    } catch {
+      // Ignore
+    }
+  }
+
+  function clearSavedStage(challengeId: string) {
+    try {
+      localStorage.removeItem(`${STAGE_PREFIX}${challengeId}`)
+    } catch {
+      // Ignore
+    }
+  }
+
   // Timer localStorage helpers
   function getSavedTimer(challengeId: string): number {
     try {
@@ -207,6 +259,54 @@ export const useGameStore = defineStore('game', () => {
     } catch {
       // Ignore
     }
+  }
+
+  // Best stage times helpers
+  const STAGE_TIMES_PREFIX = 'lmsp_stage_times_'
+
+  function getSavedBestStageTimes(challengeId: string): Record<number, number> {
+    try {
+      const saved = localStorage.getItem(`${STAGE_TIMES_PREFIX}${challengeId}`)
+      return saved ? JSON.parse(saved) : {}
+    } catch {
+      return {}
+    }
+  }
+
+  function saveBestStageTimes(challengeId: string, times: Record<number, number>) {
+    try {
+      localStorage.setItem(`${STAGE_TIMES_PREFIX}${challengeId}`, JSON.stringify(times))
+    } catch {
+      // Ignore
+    }
+  }
+
+  function recordStageTime(stageNumber: number) {
+    // Record time for the completed stage
+    if (stageStartTime.value === null) return
+
+    const stageElapsed = (Date.now() - stageStartTime.value) / 1000
+    stageTimes.value[stageNumber] = stageElapsed
+
+    // Update best time if this is faster (or first time)
+    if (currentChallenge.value) {
+      const challengeId = currentChallenge.value.id
+      const currentBest = bestStageTimes.value[stageNumber]
+
+      if (currentBest === undefined || stageElapsed < currentBest) {
+        bestStageTimes.value[stageNumber] = stageElapsed
+        saveBestStageTimes(challengeId, bestStageTimes.value)
+      }
+    }
+  }
+
+  function startStageTimer() {
+    stageStartTime.value = Date.now()
+  }
+
+  function getCurrentStageElapsed(): number {
+    if (stageStartTime.value === null) return 0
+    return (Date.now() - stageStartTime.value) / 1000
   }
 
   // Timer control functions
@@ -285,9 +385,17 @@ export const useGameStore = defineStore('game', () => {
       validationResult.value = null
       hintsUsed.value = 0
 
-      // Reset multi-stage state
-      currentStage.value = 1
+      // Restore multi-stage state
+      const savedStage = getSavedStage(challengeId)
+      currentStage.value = response.data.is_multi_stage ? savedStage : 1
       stageCompletedCode.value = {}
+      stageTimes.value = {}
+
+      // Load best stage times for this challenge
+      bestStageTimes.value = getSavedBestStageTimes(challengeId)
+
+      // Start stage timer (for multi-stage, tracks time per stage)
+      stageStartTime.value = Date.now()
     } catch (e: unknown) {
       error.value = e instanceof Error ? e.message : 'Failed to load challenge'
     } finally {
@@ -303,11 +411,15 @@ export const useGameStore = defineStore('game', () => {
     error.value = null
 
     try {
+      // Capture current solve time BEFORE pausing (in case tests pass)
+      const currentSolveTime = getElapsedSeconds()
+
       // Build submit payload - include stage for multi-stage challenges
       const payload: Record<string, unknown> = {
         challenge_id: currentChallenge.value.id,
         code: code.value,
         player_id: 'default', // TODO: Get from player store
+        solve_time: currentSolveTime, // Send wall-clock coding time to backend
       }
 
       // For multi-stage challenges, include current stage
@@ -319,12 +431,20 @@ export const useGameStore = defineStore('game', () => {
 
       validationResult.value = response.data
 
+      // Freeze timer the instant all tests pass - captures exact solve time
+      if (response.data.success) {
+        pauseTimer()
+      }
+
       // Always return to coding phase after running tests
       // User can review their solution before submitting
       phase.value = 'coding'
 
       // Handle multi-stage completion
       if (response.data.is_multi_stage && response.data.stage_complete) {
+        // Record time for this stage
+        recordStageTime(currentStage.value)
+
         // Store completed stage's code
         stageCompletedCode.value[currentStage.value] = code.value
 
@@ -332,11 +452,14 @@ export const useGameStore = defineStore('game', () => {
           // All stages done - mark challenge as completed
           if (currentChallenge.value) {
             markCompleted(currentChallenge.value.id)
+            clearSavedStage(currentChallenge.value.id)  // Reset for next playthrough
           }
         }
         // Note: Don't auto-advance - let the UI show the stage complete message
         // and user can click to advance
       } else if (response.data.success && currentChallenge.value && !response.data.is_multi_stage) {
+        // Single-stage challenge - record as stage 1
+        recordStageTime(1)
         // Single-stage challenge completed
         markCompleted(currentChallenge.value.id)
         // In replay mode, update the previous solution with the new one
@@ -365,6 +488,18 @@ export const useGameStore = defineStore('game', () => {
     // Advance to next stage
     currentStage.value = validationResult.value.next_stage
     validationResult.value = null
+
+    // Persist stage to localStorage
+    if (currentChallenge.value) {
+      saveStage(currentChallenge.value.id, currentStage.value)
+    }
+
+    // Start fresh stage timer for the new stage
+    stageStartTime.value = Date.now()
+
+    // Resume main timer (it was paused when previous stage completed)
+    timerStartedAt.value = Date.now()
+    timerPaused.value = false
 
     // Keep the current code (code carries forward in multi-stage challenges)
     // The learner builds on their previous work
@@ -473,6 +608,8 @@ export const useGameStore = defineStore('game', () => {
     // Multi-stage state
     currentStage,
     stageCompletedCode,
+    stageTimes,
+    bestStageTimes,
 
     // Computed
     testsPassingCount,
@@ -501,5 +638,6 @@ export const useGameStore = defineStore('game', () => {
 
     // Multi-stage actions
     advanceToNextStage,
+    getCurrentStageElapsed,
   }
 })

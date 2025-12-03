@@ -23,6 +23,7 @@ export interface Achievement {
 
 export interface PlayerProfile {
   player_id: string
+  display_name: string | null
   mastery_levels: Record<string, number>
   xp: number
   level: number
@@ -38,8 +39,10 @@ export const usePlayerStore = defineStore('player', () => {
   const error = ref<string | null>(null)
 
   // Computed
+  const playerId = computed(() => profile.value?.player_id || 'default')
   const totalXP = computed(() => profile.value?.xp || 0)
   const playerLevel = computed(() => profile.value?.level || 0)
+  const displayName = computed(() => profile.value?.display_name || profile.value?.player_id || 'Player')
   const unlockedAchievements = computed(() =>
     achievements.value.filter(a => a.unlocked)
   )
@@ -131,6 +134,22 @@ export const usePlayerStore = defineStore('player', () => {
     }
   }
 
+  async function setDisplayName(newName: string): Promise<boolean> {
+    try {
+      const response = await api.post('/api/profile/display-name', {
+        player_id: 'default',
+        display_name: newName,
+      })
+      if (response.data.success && profile.value) {
+        profile.value.display_name = response.data.display_name
+      }
+      return response.data.success
+    } catch (e) {
+      console.error('Failed to set display name:', e)
+      return false
+    }
+  }
+
   return {
     // State
     profile,
@@ -139,8 +158,10 @@ export const usePlayerStore = defineStore('player', () => {
     error,
 
     // Computed
+    playerId,
     totalXP,
     playerLevel,
+    displayName,
     unlockedAchievements,
     inProgressAchievements,
 
@@ -149,5 +170,6 @@ export const usePlayerStore = defineStore('player', () => {
     loadAchievements,
     recordEmotionalFeedback,
     recordSatisfaction,
+    setDisplayName,
   }
 })

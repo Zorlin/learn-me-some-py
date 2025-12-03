@@ -45,6 +45,33 @@ function handleInput(event: Event) {
   emit('update:code', target.value)
 }
 
+function scrollCursorIntoView(textarea: HTMLTextAreaElement) {
+  // Create a temporary element to measure cursor position
+  const lineHeight = 24 // 1.5rem = 24px
+  const padding = 16 // 1rem padding
+
+  // Get current line number from cursor position
+  const textBeforeCursor = textarea.value.substring(0, textarea.selectionStart)
+  const currentLine = textBeforeCursor.split('\n').length
+
+  // Calculate desired scroll position to show cursor with some margin
+  const cursorY = (currentLine - 1) * lineHeight
+  const viewportHeight = textarea.clientHeight - padding * 2
+  const currentScrollTop = textarea.scrollTop
+
+  // If cursor is below visible area, scroll down
+  if (cursorY > currentScrollTop + viewportHeight - lineHeight * 2) {
+    textarea.scrollTop = cursorY - viewportHeight + lineHeight * 3
+  }
+  // If cursor is above visible area, scroll up
+  else if (cursorY < currentScrollTop + lineHeight) {
+    textarea.scrollTop = Math.max(0, cursorY - lineHeight)
+  }
+
+  // Sync the highlight and line numbers
+  handleScroll({ target: textarea } as unknown as Event)
+}
+
 function handleKeydown(event: KeyboardEvent) {
   const target = event.target as HTMLTextAreaElement
   const start = target.selectionStart
@@ -94,8 +121,18 @@ function handleKeydown(event: KeyboardEvent) {
 
     requestAnimationFrame(() => {
       target.selectionStart = target.selectionEnd = start + 1 + indent.length + extraIndent.length
+      scrollCursorIntoView(target)
     })
   }
+}
+
+function handlePaste() {
+  // After paste, scroll to cursor position
+  requestAnimationFrame(() => {
+    if (editorRef.value) {
+      scrollCursorIntoView(editorRef.value)
+    }
+  })
 }
 
 function handleScroll(event: Event) {
@@ -164,6 +201,7 @@ onMounted(() => {
           @input="handleInput"
           @keydown="handleKeydown"
           @scroll="handleScroll"
+          @paste="handlePaste"
         />
       </div>
     </div>

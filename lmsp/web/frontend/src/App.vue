@@ -10,11 +10,14 @@
 
 import { onMounted, onUnmounted, ref } from 'vue'
 import { useGamepadStore } from '@/stores/gamepad'
+import { useSearchStore } from '@/stores/search'
 import GamepadStatus from '@/components/input/GamepadStatus.vue'
 import AchievementPopup from '@/components/progress/AchievementPopup.vue'
 import GamepadOverlay from '@/components/ui/GamepadOverlay.vue'
+import SearchOverlay from '@/components/ui/SearchOverlay.vue'
 
 const gamepadStore = useGamepadStore()
+const searchStore = useSearchStore()
 const showAchievement = ref(false)
 const currentAchievement = ref<{name: string, description: string, tier: string} | null>(null)
 
@@ -65,6 +68,13 @@ function handleAchievement(event: CustomEvent) {
             Home
           </router-link>
           <router-link
+            to="/concepts"
+            class="nav-link gamepad-focusable px-3 py-2 rounded-lg text-text-secondary hover:text-white hover:bg-oled-panel transition-all"
+            tabindex="0"
+          >
+            Concepts
+          </router-link>
+          <router-link
             to="/challenges"
             class="nav-link gamepad-focusable px-3 py-2 rounded-lg text-text-secondary hover:text-white hover:bg-oled-panel transition-all"
             tabindex="0"
@@ -85,6 +95,13 @@ function handleAchievement(event: CustomEvent) {
           >
             Settings
           </router-link>
+          <button
+            class="search-btn gamepad-focusable px-3 py-2 rounded-lg text-text-secondary hover:text-white hover:bg-oled-panel transition-all"
+            @click="searchStore.open()"
+            title="Search (⌘K)"
+          >
+            🔍
+          </button>
           <GamepadStatus />
         </nav>
       </div>
@@ -110,6 +127,9 @@ function handleAchievement(event: CustomEvent) {
 
     <!-- Gamepad Button Hints (visible in gamepad mode) -->
     <GamepadOverlay />
+
+    <!-- Universal Search Overlay -->
+    <SearchOverlay />
 
     <!-- Footer - flex-shrink-0 keeps it at natural size, not fixed for proper screenshots -->
     <footer class="app-footer flex-shrink-0 bg-oled-black border-t border-oled-border py-2">

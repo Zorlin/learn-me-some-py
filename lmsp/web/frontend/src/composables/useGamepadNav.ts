@@ -534,11 +534,30 @@ export function useGamepadNav(options: GamepadNavOptions = {}) {
         const adjustedMag = (cursorMag - STICK_DEADZONE) / (1 - STICK_DEADZONE)
         const speed = CURSOR_BASE_SPEED * adjustedMag * adjustedMag * cursorSpeed // Quadratic for better feel
 
-        // Move cursor
-        cursorX.value = Math.max(0, Math.min(window.innerWidth,
-          cursorX.value + (cursorStickX / cursorMag) * speed * adjustedMag))
-        cursorY.value = Math.max(0, Math.min(window.innerHeight,
-          cursorY.value + (cursorStickY / cursorMag) * speed * adjustedMag))
+        // Calculate new cursor position
+        const newX = cursorX.value + (cursorStickX / cursorMag) * speed * adjustedMag
+        const newY = cursorY.value + (cursorStickY / cursorMag) * speed * adjustedMag
+
+        // Scroll page when cursor hits edges
+        const SCROLL_MARGIN = 50
+        const SCROLL_SPEED = 8
+
+        if (newY > window.innerHeight - SCROLL_MARGIN && window.scrollY < document.body.scrollHeight - window.innerHeight) {
+          window.scrollBy(0, SCROLL_SPEED * adjustedMag)
+        } else if (newY < SCROLL_MARGIN && window.scrollY > 0) {
+          window.scrollBy(0, -SCROLL_SPEED * adjustedMag)
+        }
+
+        if (newX > window.innerWidth - SCROLL_MARGIN) {
+          // Horizontal scroll if applicable
+          window.scrollBy(SCROLL_SPEED * adjustedMag, 0)
+        } else if (newX < SCROLL_MARGIN) {
+          window.scrollBy(-SCROLL_SPEED * adjustedMag, 0)
+        }
+
+        // Clamp cursor to viewport
+        cursorX.value = Math.max(0, Math.min(window.innerWidth, newX))
+        cursorY.value = Math.max(0, Math.min(window.innerHeight, newY))
 
         updateCursor()
       }
