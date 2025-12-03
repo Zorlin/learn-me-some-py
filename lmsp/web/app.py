@@ -231,19 +231,30 @@ def get_suggested_lessons_for_challenge(challenge_id: str) -> list[dict]:
             keywords.update(challenge_id.lower().replace('_', ' ').split())
             keywords.update(challenge.name.lower().replace('_', ' ').split())
 
-            # Common concept keywords to look for
+            # Common concept keywords to look for (values must be actual concept IDs!)
             concept_keywords = {
-                'greeting': ['strings', 'variables', 'print'],
-                'hello': ['print', 'strings'],
+                'greeting': ['strings', 'variables', 'print_function'],
+                'hello': ['print_function', 'strings'],
                 'math': ['basic_operators', 'numbers', 'types'],
                 'temperature': ['basic_operators', 'variables', 'types'],
-                'converter': ['basic_operators', 'types'],
+                'converter': ['basic_operators', 'types', 'type_conversion'],
                 'calculator': ['basic_operators', 'numbers'],
                 'list': ['lists'],
                 'dict': ['dictionaries'],
-                'loop': ['for_loops', 'while_loops'],
-                'function': ['functions'],
+                'loop': ['for_loops', 'while_loops', 'for_loops_basics'],
+                'function': ['functions', 'def_return'],
                 'class': ['classes'],
+                # String operations
+                'name': ['strings', 'variables', 'len_function'],
+                'length': ['strings', 'len_function'],
+                'len': ['strings', 'len_function'],
+                'string': ['strings', 'string_methods'],
+                'format': ['strings', 'string_methods'],
+                'print': ['print_function', 'strings'],
+                # Input operations
+                'input': ['input_function', 'variables'],
+                'guess': ['input_function', 'if_else', 'while_loops'],
+                'number': ['numbers', 'types', 'type_conversion'],
             }
 
             # Find matching concepts
@@ -342,26 +353,46 @@ def get_suggested_lessons_for_challenge(challenge_id: str) -> list[dict]:
     return suggestions
 
 
-def get_mastery_hint(concept_id: str, current_mastery: int) -> str:
+def get_mastery_hint(concept_id: str, current_mastery: int, is_lesson: bool = False) -> str:
     """
     Get a 60-140 char hint for the next mastery stage.
 
-    Mastery levels:
-    0 -> 1: Complete the starter challenge
-    1 -> 2: Complete intermediate or do starter faster
-    2 -> 3: Complete mastery challenge or speedrun intermediate
-    3 -> 4: Complete all challenges with speed bonuses
+    For concept lessons (is_lesson=True):
+    - The lesson IS the content, no challenge needed to start
+
+    For old-style concepts:
+    - Mastery levels tied to challenge completion
     """
+    # For concept lessons - the lesson IS the content
+    if is_lesson:
+        loader = get_lesson_loader()
+        lesson = loader.get(concept_id)
+        name = lesson.name if lesson else concept_id
+
+        if current_mastery == 0:
+            if lesson and lesson.try_it:
+                return f"Read the lesson and try the interactive exercise!"
+            return f"Read this lesson to learn about {name}."
+        elif current_mastery == 1:
+            return f"Good start! Practice more to solidify your understanding of {name}."
+        elif current_mastery == 2:
+            return f"Getting stronger! Keep practicing {name} concepts."
+        elif current_mastery == 3:
+            return f"Almost there! One more review to master {name}."
+        else:  # mastery == 4
+            return f"You've mastered {name}! Return for spaced repetition bonuses."
+
+    # Old-style concept (from concept_dag with challenge associations)
     concept = concept_dag.concepts.get(concept_id)
     if not concept:
-        return "Complete challenges to increase mastery."
+        return "Keep practicing to increase mastery."
 
     name = concept.name
 
     if current_mastery == 0:
         if concept.challenge_starter:
             return f"Complete '{concept.challenge_starter}' to begin learning {name}."
-        return f"Start with a {name} challenge to unlock this concept."
+        return f"Complete related challenges to learn {name}."
 
     elif current_mastery == 1:
         if concept.challenge_intermediate:
@@ -705,7 +736,7 @@ async def submit_code(request: Request):
             "tests_total": 0,
         }, status_code=400)
 
-    # Handle concept lesson validation (simpler path, no XP/mastery tracking yet)
+    # Handle concept lesson validation (with XP tracking, same as challenges)
     if lesson_id:
         loader = get_lesson_loader()
         lesson = loader.get(lesson_id)
@@ -717,15 +748,20 @@ async def submit_code(request: Request):
                 "tests_total": 0,
             }, status_code=404)
 
-        # Use pytest validation if configured, same as challenges
+        # Use pytest validation - REQUIRED for all concepts
         if lesson.validation_type == "pytest" and lesson.test_file:
             pytest_validator = PytestValidator(CONCEPTS_DIR, timeout_seconds=30)
             result = pytest_validator.validate(code, lesson_id, lesson.test_file)
         else:
-            # Legacy: just run the code
-            result = code_validator.validate(code, [])
+            # Concept missing pytest validation - return error
+            return JSONResponse({
+                "success": False,
+                "error": f"Concept '{lesson_id}' missing pytest validation. Add [validation] section with type='pytest' and test_file.",
+                "tests_passing": 0,
+                "tests_total": 0,
+            }, status_code=500)
 
-        return JSONResponse({
+        response_data = {
             "success": result.success,
             "tests_passing": result.tests_passing,
             "tests_total": result.tests_total,
@@ -741,7 +777,44 @@ async def submit_code(request: Request):
                 }
                 for tr in result.test_results
             ],
-        })
+        }
+
+        # Award XP on success (concepts award XP based on level)
+        if result.success:
+            db = get_database()
+            lesson_key = f"concept:{lesson_id}"
+
+            # Check if already completed
+            completions = get_player_completions(player_id)
+            already_completed = lesson_key in completions
+
+            # XP based on level: Level 0 = 10 XP, Level 1 = 15 XP, etc.
+            base_xp = 10 + (lesson.level * 5)
+
+            if already_completed:
+                # Repeat completion: reduced XP
+                xp_earned = max(2, base_xp // 5)
+                xp_reason = f"Concept review: {lesson.name} (+{xp_earned} XP)"
+            else:
+                xp_earned = base_xp
+                xp_reason = f"Concept mastered: {lesson.name} (+{xp_earned} XP)"
+
+            # Record completion and award XP
+            db.record_completion(player_id, lesson_key, 0)  # No solve time tracked for concepts yet
+            db.add_player_xp(player_id, xp_earned)
+            db.record_xp_event(
+                player_id=player_id,
+                xp_amount=xp_earned,
+                reason=xp_reason,
+                challenge_id=lesson_key,
+                solve_time=0
+            )
+
+            response_data["xp_earned"] = xp_earned
+            response_data["xp_reason"] = xp_reason
+            response_data["total_xp"] = get_player_xp(player_id)
+
+        return JSONResponse(response_data)
 
     # Handle challenge validation (full path with XP/mastery tracking)
     try:
@@ -965,10 +1038,28 @@ async def submit_code(request: Request):
                 if intervention.generated_challenge:
                     response_data["director_generated_challenge"] = intervention.generated_challenge
 
-                # Include suggested concept lessons when struggling
-                suggested_lessons = get_suggested_lessons_for_challenge(challenge_id)
-                if suggested_lessons:
-                    response_data["director_intervention"]["suggested_lessons"] = suggested_lessons
+                # Build unified suggestions list: struggles + concepts
+                suggestions = []
+
+                # Add the detected struggle as first item
+                suggestions.append({
+                    "item_type": "struggle",
+                    "id": f"struggle_{intervention.type}",
+                    "name": intervention.reason,
+                    "content": intervention.content,
+                    "category": "Detected Issue",
+                    "level": 0,
+                    "time_to_read": 0,
+                    "has_try_it": False,
+                })
+
+                # Add concept lessons
+                concept_lessons = get_suggested_lessons_for_challenge(challenge_id)
+                for lesson in concept_lessons:
+                    lesson["item_type"] = "concept"
+                    suggestions.append(lesson)
+
+                response_data["director_intervention"]["suggested_lessons"] = suggestions
 
         # Even without a full intervention, suggest lessons after multiple failures
         elif not result.success:
@@ -981,6 +1072,9 @@ async def submit_code(request: Request):
             if recent_failures >= 2:
                 suggested_lessons = get_suggested_lessons_for_challenge(challenge_id)
                 if suggested_lessons:
+                    # Tag each as a concept
+                    for lesson in suggested_lessons:
+                        lesson["item_type"] = "concept"
                     response_data["suggested_lessons"] = suggested_lessons
                     response_data["suggestion_reason"] = "review_after_failures"
 
@@ -1225,14 +1319,13 @@ async def get_recommendations(player_id: str = "default"):
     # Get player's completions to filter out already-done challenges
     completions = db.get_completions(player_id)
 
-    # Collect all available challenges with their metadata
-    available_challenges = []
-    for cid, concept in concept_dag.concepts.items():
-        if not concept.challenge_starter:
-            continue
+    # Collect all available items (challenges AND concept lessons)
+    available_items = []
+
+    # 1. Load challenges directly from challenge_loader
+    for challenge_id in challenge_loader.list_challenges():
         try:
-            challenge = challenge_loader.load(concept.challenge_starter)
-            challenge_id = concept.challenge_starter
+            challenge = challenge_loader.load(challenge_id)
 
             # Check if this challenge has been completed
             is_completed = challenge_id in completions
@@ -1249,23 +1342,57 @@ async def get_recommendations(player_id: str = "default"):
                 )
                 needs_review = retention.get("needs_review", False)
 
-            available_challenges.append({
+            available_items.append({
                 "id": challenge_id,
-                "concept_id": cid,
-                "concept_name": concept.name,
-                "level": concept.level,
-                "concepts": [cid],
-                "mastery": mastery.get(cid, 0),
+                "type": "challenge",
+                "concept_id": challenge_id,  # Use challenge ID as concept for mastery tracking
+                "concept_name": challenge.name,
+                "level": challenge.level,
+                "concepts": [challenge_id],
+                "mastery": mastery.get(challenge_id, 0),
                 "is_completed": is_completed,
                 "needs_review": needs_review,
             })
-        except (FileNotFoundError, Exception) as e:
-            # Skip challenges with loading errors (broken TOML, missing files, etc.)
+        except Exception:
             continue
 
-    # Score each challenge for flow state fit
-    scored_challenges = []
-    for ch in available_challenges:
+    # 2. Load concept lessons
+    lesson_loader = get_lesson_loader()
+    for lesson in lesson_loader.get_all():
+        try:
+            lesson_id = lesson.id
+
+            # Check if lesson has been completed (use concept completions from db)
+            is_completed = lesson_id in completions
+            needs_review = False
+
+            if is_completed:
+                comp = completions[lesson_id]
+                retention = calculate_retention_score(
+                    completion_count=comp.count,
+                    last_completed=comp.last_completed,
+                    best_time=comp.best_time,
+                    expected_time=30.0 * (1 + lesson.level * 0.3),  # Lessons are quicker
+                )
+                needs_review = retention.get("needs_review", False)
+
+            available_items.append({
+                "id": lesson_id,
+                "type": "concept",
+                "concept_id": lesson_id,
+                "concept_name": lesson.name,
+                "level": lesson.level,
+                "concepts": [lesson_id],
+                "mastery": mastery.get(lesson_id, 0),
+                "is_completed": is_completed,
+                "needs_review": needs_review,
+            })
+        except Exception:
+            continue
+
+    # Score each item for flow state fit
+    scored_items = []
+    for ch in available_items:
         # Skip completed challenges unless they need review (spaced repetition)
         if ch["is_completed"] and not ch["needs_review"]:
             continue
@@ -1291,30 +1418,37 @@ async def get_recommendations(player_id: str = "default"):
         if ch["concept_id"] in flow.get("avoid_concepts", []):
             score -= 0.3
 
-        scored_challenges.append((score, ch))
+        scored_items.append((score, ch))
 
     # Sort by score (highest first)
-    scored_challenges.sort(key=lambda x: x[0], reverse=True)
+    scored_items.sort(key=lambda x: x[0], reverse=True)
 
     # Pick the best match
-    if scored_challenges:
-        best_score, best_challenge = scored_challenges[0]
-        challenge_id = best_challenge["id"]
-        concept_id = best_challenge["concept_id"]
-        concept_name = best_challenge["concept_name"]
+    if scored_items:
+        best_score, best_item = scored_items[0]
+        item_id = best_item["id"]
+        item_type = best_item["type"]
+        concept_id = best_item["concept_id"]
+        concept_name = best_item["concept_name"]
         confidence = min(0.95, best_score)
     else:
-        # Fallback: hello_world for complete beginners
-        challenge_id = "hello_world"
-        concept_id = "print_function"
-        concept_name = "Print Function"
+        # Fallback: hello_world challenge for complete beginners
+        item_id = "hello_world"
+        item_type = "challenge"
+        concept_id = "hello_world"
+        concept_name = "Hello World"
         confidence = 0.5
 
     # Build the response with rich flow context
+    # action tells the frontend where to navigate
+    action = "concept" if item_type == "concept" else "challenge"
+
     return JSONResponse({
-        "action": "challenge",
+        "action": action,
+        "type": item_type,
         "concept": concept_name,
-        "challenge_id": challenge_id,
+        "challenge_id": item_id,  # Keep for backwards compat
+        "item_id": item_id,
         "reason": flow["reason"],
         "confidence": round(confidence, 2),
         # Flow state context for UI
@@ -1326,9 +1460,9 @@ async def get_recommendations(player_id: str = "default"):
         },
         # For learning/debugging
         "alternatives": [
-            {"id": ch["id"], "concept": ch["concept_name"], "score": round(sc, 2)}
-            for sc, ch in scored_challenges[1:4]  # Top 3 alternatives
-        ] if len(scored_challenges) > 1 else [],
+            {"id": ch["id"], "type": ch["type"], "concept": ch["concept_name"], "score": round(sc, 2)}
+            for sc, ch in scored_items[1:4]  # Top 3 alternatives
+        ] if len(scored_items) > 1 else [],
     })
 
 
@@ -1373,8 +1507,8 @@ async def get_skill_tree(player_id: str = "default", include: str = "both"):
             level_lessons = lessons_by_level.get(lesson.level, [])
             x_index = level_lessons.index(lesson) if lesson in level_lessons else 0
 
-            # Get mastery hint
-            mastery_hint = get_mastery_hint(concept_id, int(mastery))
+            # Get mastery hint (is_lesson=True for concept lessons)
+            mastery_hint = get_mastery_hint(concept_id, int(mastery), is_lesson=True)
 
             # Determine state based on prerequisites mastery
             prereqs = lesson.prerequisites or []
@@ -1420,10 +1554,10 @@ async def get_skill_tree(player_id: str = "default", include: str = "both"):
 
     # Build nodes for challenges
     if include in ("challenges", "both"):
-        challenge_ids = challenge_loader.list_challenges()
+        raw_challenge_ids = set(challenge_loader.list_challenges())  # IDs without ch_ prefix
         # Load actual challenge objects, skip any with parse errors
         challenges = []
-        for cid in challenge_ids:
+        for cid in raw_challenge_ids:
             try:
                 challenges.append(challenge_loader.load(cid))
             except Exception as e:
@@ -1499,7 +1633,11 @@ async def get_skill_tree(player_id: str = "default", include: str = "both"):
                 "mastery_hint": mastery_hint,
                 "needs_review": needs_review if is_completed else False,
                 "description": f"🎮 {challenge.points} XP challenge",
-                "prerequisites": [f"ch_{p}" for p in (challenge.prerequisites or [])],
+                # Prerequisites can be challenge IDs OR concept IDs - normalize them
+                "prerequisites": [
+                    f"ch_{p}" if p in raw_challenge_ids else p
+                    for p in (challenge.prerequisites or [])
+                ],
                 "unlocks": [],
                 "challenges": {
                     "starter": challenge.id,
@@ -1510,9 +1648,11 @@ async def get_skill_tree(player_id: str = "default", include: str = "both"):
                 "state": state,
             })
 
-            # Create edges from challenge prerequisites
+            # Create edges from prerequisites (can be challenge or concept IDs)
             for prereq in (challenge.prerequisites or []):
-                edges.append({"from": f"ch_{prereq}", "to": challenge_id})
+                # Normalize: if it's a challenge ID, add ch_ prefix
+                from_id = f"ch_{prereq}" if prereq in raw_challenge_ids else prereq
+                edges.append({"from": from_id, "to": challenge_id})
 
     # Filter edges to only include valid node pairs
     valid_edges = [e for e in edges if e["from"] in node_ids and e["to"] in node_ids]
@@ -1589,30 +1729,51 @@ async def get_lessons(player_id: str = "default"):
     """
     Get all concept lessons grouped by category.
 
-    Returns a summary suitable for the lesson browser.
+    Returns a summary suitable for the lesson browser, with full spaced
+    repetition progress data (same as challenges).
     """
     loader = get_lesson_loader()
     db = get_database()
 
-    # Get player's lesson progress
-    # TODO: Add lesson_progress table to database
-    # For now, return lesson list without progress
+    # Get player's completions (concepts use "concept:" prefix)
+    all_completions = db.get_completions(player_id)
+    concept_completions = {
+        key.replace("concept:", ""): comp
+        for key, comp in all_completions.items()
+        if key.startswith("concept:")
+    }
 
     categories = {}
     for category in loader.get_categories():
         lessons = loader.get_by_category(category)
-        categories[category] = [
-            {
+        category_lessons = []
+
+        for l in lessons:
+            lesson_data = {
                 "id": l.id,
                 "name": l.name,
                 "level": l.level,
                 "time_to_read": l.time_to_read,
                 "difficulty": l.difficulty,
                 "bonus": l.bonus,
-                "status": "unseen",  # TODO: Load from DB
             }
-            for l in lessons
-        ]
+
+            # Add progress data if lesson has been completed (same as challenges)
+            if l.id in concept_completions:
+                comp = concept_completions[l.id]
+                progress = calculate_retention_score(
+                    completion_count=comp.count,
+                    last_completed=comp.last_completed,
+                    best_time=comp.best_time,
+                    expected_time=float(l.time_to_read),  # Use read time as expected
+                )
+                lesson_data["progress"] = progress
+            else:
+                lesson_data["progress"] = None
+
+            category_lessons.append(lesson_data)
+
+        categories[category] = category_lessons
 
     return JSONResponse({
         "categories": categories,
