@@ -63,7 +63,7 @@ const router = useRouter()
 const gamepadStore = useGamepadStore()
 
 const treeData = ref<SkillTreeData | null>(null)
-const selectedNodeIndex = ref(0)
+const selectedNodeIndex = ref(-1)  // -1 = nothing selected initially
 const isLoading = ref(true)
 const viewBox = ref({ x: 0, y: 0, width: 1600, height: 1200 })
 const showDetails = ref(false)
@@ -217,6 +217,14 @@ function isEdgeConnectedToSelected(edge: SkillEdge): boolean {
   return edge.from === selectedId || edge.to === selectedId
 }
 
+// Check if this is THE edge between prereq and selected locked node
+// This is the specific edge we want to highlight blue
+function isPrereqEdge(edge: SkillEdge): boolean {
+  if (!activePrereqId.value || !selectedNode.value) return false
+  // The edge goes FROM prereq TO the selected locked node
+  return edge.from === activePrereqId.value && edge.to === selectedNode.value.id
+}
+
 // Computed filtered nodes (based on filter mode) - MUST come before selectedNode and nodesByLevel
 const filteredNodes = computed(() => {
   if (!treeData.value) return []
@@ -233,7 +241,17 @@ const filteredEdges = computed(() => {
 
 const selectedNode = computed(() => {
   if (filteredNodes.value.length === 0) return null
+  if (selectedNodeIndex.value < 0) return null  // -1 = nothing selected
   return filteredNodes.value[selectedNodeIndex.value]
+})
+
+// Computed: Get the unlocker prereq ID for the currently selected locked node
+// Used to highlight the path to the prereq when a locked node is selected
+const activePrereqId = computed(() => {
+  if (!selectedNode.value) return null
+  if (selectedNode.value.state !== 'locked') return null
+  const unlocker = getUnlockerNode(selectedNode.value)
+  return unlocker?.id || null
 })
 
 // Get nodes grouped by level for navigation
@@ -266,7 +284,28 @@ async function loadSkillTree() {
     treeData.value = response.data
     if (treeData.value) {
       layoutNodes(treeData.value.nodes)
-      centerOnNode(0)
+
+      // Find the last completed node (highest mastery_percent > 0) to center on
+      // Prefer higher levels, then higher mastery within same level
+      let bestNodeIndex = 0
+      let bestScore = -1
+      treeData.value.nodes.forEach((node, index) => {
+        if (node.mastery_percent > 0) {
+          // Score = level * 1000 + mastery_percent (prioritize higher levels)
+          const score = node.level * 1000 + node.mastery_percent
+          if (score > bestScore) {
+            bestScore = score
+            bestNodeIndex = index
+          }
+        }
+      })
+
+      // Center on the best completed node (or first node if nothing completed)
+      centerOnNode(bestNodeIndex)
+
+      // Keep nothing selected until user interacts
+      selectedNodeIndex.value = -1
+      showDetails.value = false
     }
   } catch (e) {
     console.error('Failed to load skill tree:', e)
@@ -282,6 +321,7 @@ watch(filterMode, () => {
     selectedNodeIndex.value = 0
   }
 })
+
 
 function layoutNodes(nodes: SkillNode[]) {
   const levels: Map<number, SkillNode[]> = new Map()
@@ -347,10 +387,13 @@ function getEdgeColor(edge: SkillEdge): string {
 }
 
 // Pan handling - click to drag
+const didDrag = ref(false)
+
 function handleMouseDown(e: MouseEvent) {
   // Don't start drag if clicking on a node
   if ((e.target as Element).closest('.skill-node')) return
   isDragging.value = true
+  didDrag.value = false
   dragStart.value = { x: e.clientX, y: e.clientY }
 }
 
@@ -360,14 +403,27 @@ function handleMouseMove(e: MouseEvent) {
   const dx = e.clientX - dragStart.value.x
   const dy = e.clientY - dragStart.value.y
 
+  // Mark as dragged if moved more than a few pixels
+  if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+    didDrag.value = true
+  }
+
   viewBox.value.x -= dx * 2
   viewBox.value.y -= dy * 2
 
   dragStart.value = { x: e.clientX, y: e.clientY }
 }
 
-function handleMouseUp() {
+function handleMouseUp(e: MouseEvent) {
+  const wasDragging = isDragging.value
   isDragging.value = false
+
+  // If we didn't drag and clicked on empty space, deselect
+  if (wasDragging && !didDrag.value) {
+    if (!(e.target as Element).closest('.skill-node')) {
+      deselectNode()
+    }
+  }
 }
 
 // Zoom handling
@@ -379,8 +435,20 @@ function handleWheel(e: WheelEvent) {
 }
 
 // Gamepad navigation - uses CORRECT button names from store
+// Select first node when nothing is selected (for initial navigation)
+function selectFirstNode() {
+  if (!treeData.value || filteredNodes.value.length === 0) return
+  selectedNodeIndex.value = 0
+  centerOnNode(0)
+}
+
 function navigateUp() {
-  if (!treeData.value || !selectedNode.value) return
+  if (!treeData.value) return
+  // If nothing selected, select first node
+  if (!selectedNode.value) {
+    selectFirstNode()
+    return
+  }
   const currentLevel = selectedNode.value.level
   if (currentLevel <= 0) return
 
@@ -405,7 +473,12 @@ function navigateUp() {
 }
 
 function navigateDown() {
-  if (!treeData.value || !selectedNode.value) return
+  if (!treeData.value) return
+  // If nothing selected, select first node
+  if (!selectedNode.value) {
+    selectFirstNode()
+    return
+  }
   const currentLevel = selectedNode.value.level
   const maxLevel = Math.max(...Array.from(nodesByLevel.value.keys()))
   if (currentLevel >= maxLevel) return
@@ -431,7 +504,12 @@ function navigateDown() {
 }
 
 function navigateLeft() {
-  if (!treeData.value || !selectedNode.value) return
+  if (!treeData.value) return
+  // If nothing selected, select first node
+  if (!selectedNode.value) {
+    selectFirstNode()
+    return
+  }
   const currentLevel = selectedNode.value.level
   const levelIndices = nodesByLevel.value.get(currentLevel)
   if (!levelIndices || levelIndices.length <= 1) return
@@ -444,7 +522,12 @@ function navigateLeft() {
 }
 
 function navigateRight() {
-  if (!treeData.value || !selectedNode.value) return
+  if (!treeData.value) return
+  // If nothing selected, select first node
+  if (!selectedNode.value) {
+    selectFirstNode()
+    return
+  }
   const currentLevel = selectedNode.value.level
   const levelIndices = nodesByLevel.value.get(currentLevel)
   if (!levelIndices || levelIndices.length <= 1) return
@@ -457,6 +540,10 @@ function navigateRight() {
 }
 
 function selectCurrentNode() {
+  // If nothing selected, select first node
+  if (!selectedNode.value) {
+    selectFirstNode()
+  }
   showDetails.value = true
 }
 
@@ -558,6 +645,36 @@ function selectNodeById(nodeId: string) {
 function clickNode(index: number) {
   selectedNodeIndex.value = index
   showDetails.value = true
+}
+
+// Get the first unmastered prerequisite node (for "Start here to unlock" suggestion)
+function getUnlockerNode(node: SkillNode): SkillNode | null {
+  if (!treeData.value || !node.prerequisites.length) return null
+
+  // Find the first prerequisite that isn't mastered
+  for (const prereqId of node.prerequisites) {
+    const prereqNode = treeData.value.nodes.find(n => n.id === prereqId)
+    if (prereqNode && prereqNode.state !== 'mastered') {
+      return prereqNode
+    }
+  }
+
+  // All prereqs mastered? Return first one anyway for review
+  const firstPrereqId = node.prerequisites[0]
+  return treeData.value.nodes.find(n => n.id === firstPrereqId) || null
+}
+
+// Navigate to the unlocker node with smooth pan animation
+function navigateToUnlocker(node: SkillNode) {
+  const unlocker = getUnlockerNode(node)
+  if (unlocker) {
+    selectNodeById(unlocker.id)
+  }
+}
+
+function deselectNode() {
+  selectedNodeIndex.value = -1
+  showDetails.value = false
 }
 
 // Track previous button state for edge detection
@@ -804,11 +921,14 @@ onUnmounted(() => {
           v-for="(edge, i) in filteredEdges"
           :key="`edge-${i}`"
           :d="getEdgePath(edge)"
-          :stroke="isEdgeConnectedToSelected(edge) ? '#ffffff' : getEdgeColor(edge)"
+          :stroke="isPrereqEdge(edge) ? '#3b82f6' : isEdgeConnectedToSelected(edge) ? '#ffffff' : getEdgeColor(edge)"
           :stroke-width="isEdgeConnectedToSelected(edge) ? 4 : 2"
           fill="none"
           :stroke-opacity="selectedNode ? (isEdgeConnectedToSelected(edge) ? 0.9 : 0.15) : 0.4"
-          :class="{ 'edge-highlighted': isEdgeConnectedToSelected(edge) }"
+          :class="{
+            'edge-highlighted': isEdgeConnectedToSelected(edge),
+            'edge-prereq': isPrereqEdge(edge)
+          }"
         />
       </g>
 
@@ -968,7 +1088,10 @@ onUnmounted(() => {
               :style="{ width: `${selectedNode.mastery_percent}%`, background: getMasteryColor(selectedNode.mastery_percent, selectedNode.state === 'mastered') }"
             />
           </div>
-          <div v-if="selectedNode.mastery_hint" class="mastery-hint mt-3">
+          <div
+            v-if="selectedNode.mastery_hint && !(selectedNode.state !== 'locked' && selectedNode.mastery_hint.toLowerCase().includes('unlock'))"
+            class="mastery-hint mt-3"
+          >
             <span class="hint-icon">💡</span>
             <span>{{ selectedNode.mastery_hint }}</span>
           </div>
@@ -1004,43 +1127,103 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <!-- Action - Normal unlocked button -->
-        <button
-          v-if="selectedNode.state !== 'locked' && selectedNode.challenges.starter"
-          class="start-btn mt-6"
-          @click="startChallenge"
-        >
-          <span class="gamepad-hint-button a">A</span>
-          Start Challenge
-        </button>
-
-        <!-- Action - Locked but available to force-start -->
-        <div v-else-if="selectedNode.state === 'locked' && selectedNode.challenges.starter" class="mt-6">
+        <!-- Action buttons for CONCEPTS -->
+        <template v-if="selectedNode.type === 'concept'">
+          <!-- Concept - Start/Review Lesson (always shown unless locked) -->
           <button
-            class="force-start-btn"
-            @mousedown="startHold"
-            @mouseup="cancelHold"
-            @mouseleave="cancelHold"
-            @touchstart.prevent="startHold"
-            @touchend="cancelHold"
-            @touchcancel="cancelHold"
+            v-if="selectedNode.state !== 'locked'"
+            class="start-btn mt-6"
+            @click="router.push(`/concept/${selectedNode.id}`)"
           >
-            <!-- Progress fill -->
-            <div class="force-progress" :style="{ width: `${holdProgress}%` }" />
-            <span class="force-content">
-              <span class="gamepad-hint-button a">A</span>
-              <span>{{ isHolding ? 'Hold...' : 'Try Anyway' }}</span>
-            </span>
+            <span class="gamepad-hint-button a">A</span>
+            {{ selectedNode.state === 'mastered' ? 'Review Lesson' : 'Start Lesson' }}
           </button>
-          <div class="force-hint">
-            Not recommended yet — but you can give it a go!
-          </div>
-        </div>
 
-        <!-- No challenge available -->
-        <div v-else-if="selectedNode.state === 'locked'" class="locked-msg mt-6">
-          Complete prerequisites to unlock
-        </div>
+          <!-- Concept - Locked: Show clickable suggestion to unlock -->
+          <div v-else class="locked-section mt-6">
+            <div class="locked-suggestion" v-if="getUnlockerNode(selectedNode)">
+              <div class="suggestion-label">Start here to unlock:</div>
+              <button
+                class="suggestion-card"
+                @click="navigateToUnlocker(selectedNode)"
+              >
+                <span class="suggestion-icon">{{ getUnlockerNode(selectedNode)?.type === 'concept' ? '📚' : '🎮' }}</span>
+                <span class="suggestion-name">{{ getUnlockerNode(selectedNode)?.name }}</span>
+                <span class="suggestion-arrow">→</span>
+              </button>
+            </div>
+            <div v-else class="locked-msg">
+              Complete prerequisites to unlock
+            </div>
+          </div>
+        </template>
+
+        <!-- Action buttons for CHALLENGES -->
+        <template v-else>
+          <!-- Challenge - Normal unlocked button -->
+          <button
+            v-if="selectedNode.state !== 'locked' && selectedNode.challenges.starter"
+            class="start-btn mt-6"
+            @click="startChallenge"
+          >
+            <span class="gamepad-hint-button a">A</span>
+            {{ selectedNode.state === 'mastered' ? 'Play Again' : 'Start Challenge' }}
+          </button>
+
+          <!-- Challenge - Locked but available to force-start -->
+          <div v-else-if="selectedNode.state === 'locked' && selectedNode.challenges.starter" class="mt-6">
+            <!-- Clickable suggestion to unlock -->
+            <div class="locked-suggestion" v-if="getUnlockerNode(selectedNode)">
+              <div class="suggestion-label">Start here to unlock:</div>
+              <button
+                class="suggestion-card"
+                @click="navigateToUnlocker(selectedNode)"
+              >
+                <span class="suggestion-icon">{{ getUnlockerNode(selectedNode)?.type === 'concept' ? '📚' : '🎮' }}</span>
+                <span class="suggestion-name">{{ getUnlockerNode(selectedNode)?.name }}</span>
+                <span class="suggestion-arrow">→</span>
+              </button>
+            </div>
+
+            <button
+              class="force-start-btn mt-3"
+              @mousedown="startHold"
+              @mouseup="cancelHold"
+              @mouseleave="cancelHold"
+              @touchstart.prevent="startHold"
+              @touchend="cancelHold"
+              @touchcancel="cancelHold"
+            >
+              <!-- Progress fill -->
+              <div class="force-progress" :style="{ width: `${holdProgress}%` }" />
+              <span class="force-content">
+                <span class="gamepad-hint-button a">A</span>
+                <span>{{ isHolding ? 'Hold...' : 'Try Anyway' }}</span>
+              </span>
+            </button>
+            <div class="force-hint">
+              Not recommended yet — but you can give it a go!
+            </div>
+          </div>
+
+          <!-- Challenge - No starter available -->
+          <div v-else-if="selectedNode.state === 'locked'" class="locked-section mt-6">
+            <div class="locked-suggestion" v-if="getUnlockerNode(selectedNode)">
+              <div class="suggestion-label">Start here to unlock:</div>
+              <button
+                class="suggestion-card"
+                @click="navigateToUnlocker(selectedNode)"
+              >
+                <span class="suggestion-icon">{{ getUnlockerNode(selectedNode)?.type === 'concept' ? '📚' : '🎮' }}</span>
+                <span class="suggestion-name">{{ getUnlockerNode(selectedNode)?.name }}</span>
+                <span class="suggestion-arrow">→</span>
+              </button>
+            </div>
+            <div v-else class="locked-msg">
+              Complete prerequisites to unlock
+            </div>
+          </div>
+        </template>
       </div>
     </Transition>
 
@@ -1415,6 +1598,64 @@ onUnmounted(() => {
   color: var(--text-muted);
   font-style: italic;
   font-size: 0.875rem;
+}
+
+/* Locked section with suggestion card */
+.locked-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.locked-suggestion {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.suggestion-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.suggestion-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  background: var(--oled-muted);
+  border: 2px solid var(--accent-primary);
+  color: var(--text-primary);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.suggestion-card:hover {
+  background: rgba(0, 255, 136, 0.15);
+  transform: translateX(4px);
+}
+
+.suggestion-icon {
+  font-size: 1.25rem;
+}
+
+.suggestion-name {
+  flex: 1;
+  text-align: left;
+}
+
+.suggestion-arrow {
+  color: var(--accent-primary);
+  font-size: 1.25rem;
+  transition: transform 0.2s ease;
+}
+
+.suggestion-card:hover .suggestion-arrow {
+  transform: translateX(4px);
 }
 
 /* Force-start button for locked challenges - hollow with green border */
