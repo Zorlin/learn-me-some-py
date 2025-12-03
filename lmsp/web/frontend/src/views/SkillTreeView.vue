@@ -4,6 +4,7 @@
  * =========================
  *
  * Uses the WHOLE page. Full gamepad navigation.
+ * Click-to-drag panning. Floating details panel.
  */
 
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
@@ -57,6 +58,10 @@ const isLoading = ref(true)
 const viewBox = ref({ x: 0, y: 0, width: 1600, height: 1200 })
 const showDetails = ref(false)
 
+// Drag state
+const isDragging = ref(false)
+const dragStart = ref({ x: 0, y: 0 })
+
 // Level colors
 const levelColors: Record<number, string> = {
   0: '#00ff88',
@@ -81,18 +86,6 @@ const selectedNode = computed(() => {
   return treeData.value.nodes[selectedNodeIndex.value]
 })
 
-// Sort nodes for navigation: by level, then by x position
-const sortedNodeIndices = computed(() => {
-  if (!treeData.value) return []
-  return treeData.value.nodes
-    .map((node, index) => ({ node, index }))
-    .sort((a, b) => {
-      if (a.node.level !== b.node.level) return a.node.level - b.node.level
-      return a.node.position.x - b.node.position.x
-    })
-    .map(item => item.index)
-})
-
 // Get nodes grouped by level for navigation
 const nodesByLevel = computed(() => {
   if (!treeData.value) return new Map<number, number[]>()
@@ -104,7 +97,7 @@ const nodesByLevel = computed(() => {
     levels.get(node.level)!.push(index)
   })
   // Sort each level by x position
-  levels.forEach((indices, level) => {
+  levels.forEach((indices) => {
     indices.sort((a, b) => {
       const nodeA = treeData.value!.nodes[a]
       const nodeB = treeData.value!.nodes[b]
@@ -121,7 +114,6 @@ async function loadSkillTree() {
     treeData.value = response.data
     if (treeData.value) {
       layoutNodes(treeData.value.nodes)
-      // Center view on first node
       centerOnNode(0)
     }
   } catch (e) {
@@ -162,7 +154,6 @@ function centerOnNode(index: number) {
   const node = treeData.value.nodes[index]
   if (!node) return
 
-  // Center the viewbox on this node
   viewBox.value.x = node.position.x - viewBox.value.width / 2
   viewBox.value.y = node.position.y - viewBox.value.height / 2
 }
@@ -195,17 +186,47 @@ function getEdgeColor(edge: SkillEdge): string {
   return stateColors[toNode.state] || '#333'
 }
 
-// Gamepad navigation
+// Pan handling - click to drag
+function handleMouseDown(e: MouseEvent) {
+  // Don't start drag if clicking on a node
+  if ((e.target as Element).closest('.skill-node')) return
+  isDragging.value = true
+  dragStart.value = { x: e.clientX, y: e.clientY }
+}
+
+function handleMouseMove(e: MouseEvent) {
+  if (!isDragging.value) return
+
+  const dx = e.clientX - dragStart.value.x
+  const dy = e.clientY - dragStart.value.y
+
+  viewBox.value.x -= dx * 2
+  viewBox.value.y -= dy * 2
+
+  dragStart.value = { x: e.clientX, y: e.clientY }
+}
+
+function handleMouseUp() {
+  isDragging.value = false
+}
+
+// Zoom handling
+function handleWheel(e: WheelEvent) {
+  e.preventDefault()
+  const scale = e.deltaY > 0 ? 1.1 : 0.9
+  viewBox.value.width *= scale
+  viewBox.value.height *= scale
+}
+
+// Gamepad navigation - uses CORRECT button names from store
 function navigateUp() {
   if (!treeData.value || !selectedNode.value) return
   const currentLevel = selectedNode.value.level
   if (currentLevel <= 0) return
 
-  // Find nodes in the level above
   const aboveIndices = nodesByLevel.value.get(currentLevel - 1)
   if (!aboveIndices || aboveIndices.length === 0) return
 
-  // Find the closest node by x position
   const currentX = selectedNode.value.position.x
   let closestIndex = aboveIndices[0]
   let closestDist = Infinity
@@ -295,18 +316,28 @@ function goBack() {
   }
 }
 
-// Watch gamepad buttons
-watch(() => gamepadStore.buttons, (buttons, prevButtons) => {
+function clickNode(index: number) {
+  selectedNodeIndex.value = index
+  showDetails.value = true
+}
+
+// Track previous button state for edge detection
+const prevButtonState = ref<Record<string, boolean>>({})
+
+// Watch gamepad buttons - CORRECT NAMES: DPadUp, DPadDown, DPadLeft, DPadRight (NO HYPHENS)
+watch(() => gamepadStore.buttons, (buttons) => {
   if (isLoading.value) return
 
-  // D-pad navigation
-  if (buttons['DPad-Up'] && !prevButtons?.['DPad-Up']) navigateUp()
-  if (buttons['DPad-Down'] && !prevButtons?.['DPad-Down']) navigateDown()
-  if (buttons['DPad-Left'] && !prevButtons?.['DPad-Left']) navigateLeft()
-  if (buttons['DPad-Right'] && !prevButtons?.['DPad-Right']) navigateRight()
+  const prev = prevButtonState.value
+
+  // D-pad navigation - edge detection (only trigger on button down)
+  if (buttons.DPadUp && !prev.DPadUp) navigateUp()
+  if (buttons.DPadDown && !prev.DPadDown) navigateDown()
+  if (buttons.DPadLeft && !prev.DPadLeft) navigateLeft()
+  if (buttons.DPadRight && !prev.DPadRight) navigateRight()
 
   // A to select/confirm
-  if (buttons.A && !prevButtons?.A) {
+  if (buttons.A && !prev.A) {
     if (showDetails.value) {
       startChallenge()
     } else {
@@ -315,9 +346,12 @@ watch(() => gamepadStore.buttons, (buttons, prevButtons) => {
   }
 
   // B to go back
-  if (buttons.B && !prevButtons?.B) {
+  if (buttons.B && !prev.B) {
     goBack()
   }
+
+  // Update previous state
+  prevButtonState.value = { ...buttons }
 }, { deep: true })
 
 // Keyboard navigation
@@ -413,8 +447,14 @@ onUnmounted(() => {
     <svg
       v-else-if="treeData"
       class="skill-tree-svg"
+      :class="{ dragging: isDragging }"
       :viewBox="`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`"
       preserveAspectRatio="xMidYMid meet"
+      @mousedown="handleMouseDown"
+      @mousemove="handleMouseMove"
+      @mouseup="handleMouseUp"
+      @mouseleave="handleMouseUp"
+      @wheel="handleWheel"
     >
       <defs>
         <pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse">
@@ -422,13 +462,6 @@ onUnmounted(() => {
         </pattern>
         <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
           <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
-          <feMerge>
-            <feMergeNode in="coloredBlur"/>
-            <feMergeNode in="SourceGraphic"/>
-          </feMerge>
-        </filter>
-        <filter id="selected-glow" x="-100%" y="-100%" width="300%" height="300%">
-          <feGaussianBlur stdDeviation="8" result="coloredBlur"/>
           <feMerge>
             <feMergeNode in="coloredBlur"/>
             <feMergeNode in="SourceGraphic"/>
@@ -477,17 +510,16 @@ onUnmounted(() => {
             [node.state]: true,
             selected: index === selectedNodeIndex
           }"
-          @click="selectedNodeIndex = index; showDetails = true"
+          @click.stop="clickNode(index)"
         >
           <!-- Selection ring -->
           <circle
             v-if="index === selectedNodeIndex"
-            :r="getNodeRadius(node) + 12"
+            :r="getNodeRadius(node) + 10"
             fill="none"
             stroke="#ffffff"
-            stroke-width="3"
-            stroke-dasharray="8 4"
-            filter="url(#selected-glow)"
+            stroke-width="2"
+            stroke-dasharray="6 4"
           >
             <animateTransform
               attributeName="transform"
@@ -556,74 +588,80 @@ onUnmounted(() => {
       </g>
     </svg>
 
-    <!-- Selected Node Details Panel -->
-    <Transition name="slide-up">
-      <div v-if="showDetails && selectedNode" class="details-panel">
-        <div class="details-content">
-          <div class="details-header">
-            <div class="flex items-center gap-4">
-              <div
-                class="level-badge"
-                :style="{ borderColor: levelColors[selectedNode.level], color: levelColors[selectedNode.level] }"
-              >
-                L{{ selectedNode.level }}
-              </div>
-              <div>
-                <h2 class="text-xl font-bold">{{ selectedNode.name }}</h2>
-                <div class="text-sm capitalize" :style="{ color: stateColors[selectedNode.state] }">
-                  {{ selectedNode.state }}
-                </div>
+    <!-- Floating Details Panel (right side) -->
+    <Transition name="slide">
+      <div v-if="showDetails && selectedNode" class="node-details oled-panel">
+        <div class="details-header">
+          <div class="flex items-center gap-3">
+            <div
+              class="level-badge"
+              :style="{ borderColor: levelColors[selectedNode.level], color: levelColors[selectedNode.level] }"
+            >
+              L{{ selectedNode.level }}
+            </div>
+            <div>
+              <h3 class="text-lg font-bold">{{ selectedNode.name }}</h3>
+              <div class="text-sm capitalize" :style="{ color: stateColors[selectedNode.state] }">
+                {{ selectedNode.state }}
               </div>
             </div>
-            <button class="close-btn" @click="showDetails = false">
-              <span class="gamepad-hint-button b">B</span>
-            </button>
           </div>
+          <button class="close-btn" @click="showDetails = false">×</button>
+        </div>
 
-          <p class="text-text-secondary mt-3">{{ selectedNode.description }}</p>
+        <p class="text-text-secondary text-sm mt-3">{{ selectedNode.description }}</p>
 
-          <!-- Mastery -->
-          <div class="mastery-section mt-4">
-            <div class="flex justify-between text-sm mb-2">
-              <span class="text-text-muted">Mastery Progress</span>
-              <span :style="{ color: stateColors[selectedNode.state] }">
-                {{ selectedNode.mastery }}/4 ({{ selectedNode.mastery_percent }}%)
-              </span>
-            </div>
-            <div class="progress-bar">
-              <div
-                class="progress-fill"
-                :style="{ width: `${selectedNode.mastery_percent}%`, background: stateColors[selectedNode.state] }"
-              />
-            </div>
-            <div v-if="selectedNode.mastery_hint" class="mastery-hint mt-3">
-              <span class="hint-icon">💡</span>
-              <span>{{ selectedNode.mastery_hint }}</span>
-            </div>
+        <!-- Mastery -->
+        <div class="mastery-section mt-4">
+          <div class="flex justify-between text-sm mb-2">
+            <span class="text-text-muted">Mastery Progress</span>
+            <span :style="{ color: stateColors[selectedNode.state] }">
+              {{ selectedNode.mastery }}/4 ({{ selectedNode.mastery_percent }}%)
+            </span>
           </div>
-
-          <!-- Prerequisites -->
-          <div v-if="selectedNode.prerequisites.length > 0" class="mt-4">
-            <div class="text-sm text-text-muted mb-2">Prerequisites</div>
-            <div class="flex flex-wrap gap-2">
-              <span v-for="prereq in selectedNode.prerequisites" :key="prereq" class="prereq-tag">
-                {{ prereq }}
-              </span>
-            </div>
+          <div class="progress-bar">
+            <div
+              class="progress-fill"
+              :style="{ width: `${selectedNode.mastery_percent}%`, background: stateColors[selectedNode.state] }"
+            />
           </div>
-
-          <!-- Action -->
-          <button
-            v-if="selectedNode.state !== 'locked' && selectedNode.challenges.starter"
-            class="start-btn mt-6"
-            @click="startChallenge"
-          >
-            <span class="gamepad-hint-button a">A</span>
-            Start Challenge
-          </button>
-          <div v-else-if="selectedNode.state === 'locked'" class="locked-msg mt-6">
-            Complete prerequisites to unlock
+          <div v-if="selectedNode.mastery_hint" class="mastery-hint mt-3">
+            <span class="hint-icon">💡</span>
+            <span>{{ selectedNode.mastery_hint }}</span>
           </div>
+        </div>
+
+        <!-- Prerequisites -->
+        <div v-if="selectedNode.prerequisites.length > 0" class="mt-4">
+          <div class="text-sm text-text-muted mb-2">Prerequisites</div>
+          <div class="flex flex-wrap gap-2">
+            <span v-for="prereq in selectedNode.prerequisites" :key="prereq" class="prereq-tag">
+              {{ prereq }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Unlocks -->
+        <div v-if="selectedNode.unlocks.length > 0" class="mt-4">
+          <div class="text-sm text-text-muted mb-2">Unlocks</div>
+          <div class="flex flex-wrap gap-2">
+            <span v-for="unlock in selectedNode.unlocks" :key="unlock" class="unlock-tag">
+              {{ unlock }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Action -->
+        <button
+          v-if="selectedNode.state !== 'locked' && selectedNode.challenges.starter"
+          class="start-btn mt-6"
+          @click="startChallenge"
+        >
+          <span class="gamepad-hint-button a">A</span>
+          Start Challenge
+        </button>
+        <div v-else-if="selectedNode.state === 'locked'" class="locked-msg mt-6">
+          Complete prerequisites to unlock
         </div>
       </div>
     </Transition>
@@ -641,6 +679,10 @@ onUnmounted(() => {
       <div class="hint-item">
         <span class="gamepad-hint-button b">B</span>
         <span>Back</span>
+      </div>
+      <div class="hint-item">
+        <span class="hint-key">Drag</span>
+        <span>Pan</span>
       </div>
     </div>
   </div>
@@ -718,6 +760,11 @@ onUnmounted(() => {
   flex: 1;
   width: 100%;
   height: 100%;
+  cursor: grab;
+}
+
+.skill-tree-svg.dragging {
+  cursor: grabbing;
 }
 
 .skill-node {
@@ -740,24 +787,15 @@ onUnmounted(() => {
   opacity: 0.5;
 }
 
-.details-panel {
+/* Floating details panel - RIGHT SIDE */
+.node-details {
   position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  bottom: 5rem;
+  right: 1.5rem;
+  width: 20rem;
   z-index: 30;
-  background: linear-gradient(to top, #000 0%, #000 80%, transparent 100%);
-  padding: 2rem;
-  padding-top: 4rem;
-}
-
-.details-content {
-  max-width: 600px;
-  margin: 0 auto;
-  background: var(--oled-panel);
-  border: 1px solid var(--oled-border);
-  border-radius: 1rem;
-  padding: 1.5rem;
+  max-height: calc(100vh - 10rem);
+  overflow-y: auto;
 }
 
 .details-header {
@@ -767,8 +805,8 @@ onUnmounted(() => {
 }
 
 .level-badge {
-  width: 3rem;
-  height: 3rem;
+  width: 2.5rem;
+  height: 2.5rem;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -776,14 +814,20 @@ onUnmounted(() => {
   background: var(--oled-black);
   border: 3px solid;
   font-weight: bold;
-  font-size: 0.875rem;
+  font-size: 0.75rem;
 }
 
 .close-btn {
-  padding: 0.5rem;
-  border-radius: 0.5rem;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: var(--oled-muted);
   color: var(--text-muted);
+  font-size: 1.25rem;
+  line-height: 1;
 }
 
 .close-btn:hover {
@@ -828,18 +872,26 @@ onUnmounted(() => {
   font-size: 0.75rem;
 }
 
+.unlock-tag {
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  background: rgba(0, 255, 136, 0.2);
+  color: var(--accent-primary);
+  font-size: 0.75rem;
+}
+
 .start-btn {
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.75rem;
-  padding: 1rem;
-  border-radius: 0.75rem;
+  padding: 0.875rem;
+  border-radius: 0.5rem;
   background: var(--accent-primary);
   color: #000;
   font-weight: bold;
-  font-size: 1.125rem;
+  font-size: 1rem;
 }
 
 .start-btn:hover {
@@ -848,9 +900,10 @@ onUnmounted(() => {
 
 .locked-msg {
   text-align: center;
-  padding: 1rem;
+  padding: 0.875rem;
   color: var(--text-muted);
   font-style: italic;
+  font-size: 0.875rem;
 }
 
 .controls-hint {
@@ -906,15 +959,15 @@ onUnmounted(() => {
   border-color: rgba(239, 68, 68, 0.5);
 }
 
-/* Transitions */
-.slide-up-enter-active,
-.slide-up-leave-active {
+/* Transitions - slide from right */
+.slide-enter-active,
+.slide-leave-active {
   transition: transform 0.3s ease, opacity 0.3s ease;
 }
 
-.slide-up-enter-from,
-.slide-up-leave-to {
-  transform: translateY(100%);
+.slide-enter-from,
+.slide-leave-to {
+  transform: translateX(20px);
   opacity: 0;
 }
 </style>
