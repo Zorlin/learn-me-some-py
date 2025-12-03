@@ -1,0 +1,375 @@
+# Level 4: min/max with key parameter
+# Find extremes in complex data structures
+# Prerequisite for: data analysis, optimization
+
+[concept]
+id = "min_max_key"
+name = "min() and max() with key="
+level = 4
+category = "functional"
+prerequisites = ["lambda", "lists_basics", "comprehensions"]
+unlocks = ["sorted_key", "optimization_patterns"]
+
+[description]
+brief = "Find the minimum or maximum using custom comparison logic"
+detailed = """
+min() and max() can find extremes in lists:
+```python
+numbers = [3, 1, 4, 1, 5]
+min(numbers)  # 1
+max(numbers)  # 5
+```
+
+But what if you want to find the PLAYER with the LOWEST HP?
+That's where the `key=` parameter comes in!
+
+```python
+players = [
+    {"name": "Alice", "hp": 50},
+    {"name": "Bob", "hp": 30},
+    {"name": "Charlie", "hp": 80}
+]
+
+weakest = min(players, key=lambda p: p["hp"])
+# {"name": "Bob", "hp": 30}
+```
+
+The `key=` parameter tells Python HOW to compare the items.
+"""
+
+[syntax]
+basic = """
+min(iterable, key=function)
+max(iterable, key=function)
+"""
+
+with_lambda = """
+min(items, key=lambda item: item.attribute)
+max(items, key=lambda item: item["field"])
+"""
+
+with_default = """
+# If list might be empty, provide default
+min(items, key=lambda x: x.value, default=None)
+```
+"""
+
+[examples]
+simple_numbers = """
+# Without key: Compare values directly
+numbers = [3, 1, 4, 1, 5]
+print(min(numbers))  # 1
+print(max(numbers))  # 5
+"""
+
+tuples = """
+# Find tuple with smallest/largest second element
+pairs = [(1, 100), (2, 50), (3, 200)]
+
+# Without key: Compares first element
+min(pairs)  # (1, 100)
+
+# With key: Compares second element
+min(pairs, key=lambda p: p[1])  # (2, 50)
+max(pairs, key=lambda p: p[1])  # (3, 200)
+"""
+
+dictionaries = """
+# Find player with lowest/highest HP
+players = [
+    {"name": "Alice", "hp": 75, "level": 10},
+    {"name": "Bob", "hp": 50, "level": 8},
+    {"name": "Charlie", "hp": 90, "level": 12}
+]
+
+weakest = min(players, key=lambda p: p["hp"])
+# {"name": "Bob", "hp": 50, "level": 8}
+
+strongest = max(players, key=lambda p: p["hp"])
+# {"name": "Charlie", "hp": 90, "level": 12}
+
+highest_level = max(players, key=lambda p: p["level"])
+# {"name": "Charlie", "hp": 90, "level": 12}
+```
+"""
+
+strings = """
+# Find shortest/longest string
+words = ["hello", "hi", "hey", "greetings"]
+
+shortest = min(words, key=len)  # "hi"
+longest = max(words, key=len)   # "greetings"
+
+# Find alphabetically first/last
+first = min(words)  # "greetings" (g comes first)
+last = max(words)   # "hi" (h comes last)
+```
+"""
+
+custom_objects = """
+# Find closest/farthest enemy
+import math
+
+enemies = [
+    {"name": "Goblin", "x": 5, "y": 3},
+    {"name": "Orc", "x": 10, "y": 8},
+    {"name": "Dragon", "x": 2, "y": 1}
+]
+
+player_x, player_y = 0, 0
+
+def distance(enemy):
+    return math.sqrt((enemy["x"] - player_x)**2 + (enemy["y"] - player_y)**2)
+
+closest = min(enemies, key=distance)
+# {"name": "Dragon", "x": 2, "y": 1}
+
+farthest = max(enemies, key=distance)
+# {"name": "Orc", "x": 10, "y": 8}
+```
+"""
+
+[common_patterns]
+game_ai = """
+# Find best target (lowest HP enemy)
+def find_target(enemies):
+    living = [e for e in enemies if e.hp > 0]
+    if not living:
+        return None
+    return min(living, key=lambda e: e.hp)
+
+# Find most dangerous enemy (highest damage)
+def find_threat(enemies):
+    return max(enemies, key=lambda e: e.damage, default=None)
+```
+"""
+
+optimization = """
+# Find best deal (lowest price per unit)
+items = [
+    {"name": "Small Potion", "price": 10, "heal": 20},
+    {"name": "Medium Potion", "price": 25, "heal": 60},
+    {"name": "Large Potion", "price": 50, "heal": 150}
+]
+
+best_deal = min(items, key=lambda i: i["price"] / i["heal"])
+# Small Potion: 0.5 gold per HP (best deal!)
+```
+"""
+
+[common_mistakes]
+forgetting_key = """
+# WRONG: Comparing dict objects directly
+players = [{"name": "Alice", "hp": 50}, {"name": "Bob", "hp": 30}]
+# min(players)  # ERROR: Can't compare dicts!
+
+# RIGHT: Tell Python what to compare
+min(players, key=lambda p: p["hp"])  # Works!
+```
+"""
+
+returning_wrong_thing = """
+# GOTCHA: Returns the WHOLE item, not just the key value!
+players = [{"name": "Alice", "hp": 50}, {"name": "Bob", "hp": 30}]
+
+weakest = min(players, key=lambda p: p["hp"])
+print(weakest)  # {"name": "Bob", "hp": 30} - the full dict!
+# NOT just 30!
+
+# If you want just the HP:
+weakest_hp = min(players, key=lambda p: p["hp"])["hp"]
+# OR
+weakest_hp = min(p["hp"] for p in players)
+```
+"""
+
+empty_iterable = """
+# WRONG: Crashes on empty list
+enemies = []
+# target = min(enemies, key=lambda e: e.hp)  # ValueError!
+
+# RIGHT: Provide default
+target = min(enemies, key=lambda e: e.hp, default=None)
+if target:
+    print(f"Targeting {target.name}")
+else:
+    print("No enemies to target")
+
+# OR: Check first
+if enemies:
+    target = min(enemies, key=lambda e: e.hp)
+```
+"""
+
+[gotchas]
+returns_item_not_key = """
+min() and max() return the ITEM, not the key value!
+
+```python
+players = [("Alice", 100), ("Bob", 150)]
+winner = max(players, key=lambda p: p[1])
+# winner is ("Bob", 150), not 150!
+```
+"""
+
+multiple_mins = """
+If multiple items have the same minimum value, returns the FIRST one:
+
+```python
+numbers = [3, 1, 4, 1, 5]
+print(min(numbers))  # 1 (the first one)
+```
+"""
+
+comparison_consistency = """
+The key function should return comparable values:
+
+```python
+# WRONG: Can't compare None with int
+items = [{"value": 10}, {"value": None}, {"value": 20}]
+# min(items, key=lambda i: i["value"])  # ERROR if None!
+
+# RIGHT: Handle None
+min(items, key=lambda i: i["value"] if i["value"] is not None else float('inf'))
+```
+"""
+
+[advanced_usage]
+with_operator = """
+For simple attribute/item access, use operator module:
+
+import operator
+
+# Instead of:
+min(items, key=lambda i: i["price"])
+
+# Use:
+min(items, key=operator.itemgetter("price"))
+
+# For attributes:
+min(objects, key=operator.attrgetter("hp"))
+```
+"""
+
+multiple_criteria = """
+Compare by multiple fields using tuples:
+
+```python
+# Sort by level (descending), then by name (ascending)
+players = [
+    {"name": "Bob", "level": 10},
+    {"name": "Alice", "level": 10},
+    {"name": "Charlie", "level": 5}
+]
+
+# Highest level, but if tied, alphabetically first
+best = max(players, key=lambda p: (p["level"], -ord(p["name"][0])))
+```
+"""
+
+negative_for_max = """
+Find max by using min with negated key:
+
+```python
+# These are equivalent:
+max(numbers)
+-min(-x for x in numbers)
+
+# Useful when function only provides min:
+def find_best_player(players, key_func):
+    return min(players, key=key_func)
+
+# To find max HP, negate the key:
+strongest = find_best_player(players, key=lambda p: -p["hp"])
+```
+"""
+
+[gamepad_tutorial]
+text = """
+🎮 MIN/MAX MODE:
+- Type "min(" or "max("
+- RB suggests key=lambda pattern
+- Auto-completes common patterns:
+  - min(items, key=lambda i: i["__"])
+  - min(items, key=lambda i: i.__)
+
+Example flow:
+1. Type "min(enemies"
+2. RB → suggests ", key=lambda e: e["
+3. Type "hp"
+4. RB → auto-closes with "])"
+"""
+
+[challenges]
+starter = "min_max_simple_list"
+intermediate = "min_max_dict_key"
+mastery = "min_max_game_logic"
+
+[fun_facts]
+any_iterable = "Works with any iterable: lists, tuples, generators, sets!"
+multiple_iterables = "Can compare multiple iterables: min([1, 2], [3], [4, 5, 6], key=len)"
+sorted_relation = "sorted() also uses key= parameter - same concept!"
+
+[fun_factor]
+type = "optimization"
+description = "Find the best, worst, closest, farthest - anything!"
+examples = [
+    "min(enemies, key=lambda e: distance(e))",
+    "max(items, key=lambda i: i['value'])",
+    "min(paths, key=len)"
+]
+
+[adaptive]
+weakness_signals = [
+    "forgetting_key_parameter",
+    "expecting_key_value_not_item",
+    "not_handling_empty"
+]
+strength_indicators = [
+    "appropriate_key_usage",
+    "handling_edge_cases",
+    "readable_lambda_keys"
+]
+
+[real_world]
+game_ai = "AI systems: Find closest target, biggest threat, best loot"
+optimization = "Optimization: Find cheapest route, fastest algorithm, best deal"
+data_analysis = "Data analysis: Find outliers, extremes, best/worst performers"
+
+[comparison_with_sort]
+when_min_max = """
+Use min()/max() when you only need ONE extreme:
+- Fastest: O(n) - single pass
+- Returns one item
+- Less memory
+
+```python
+strongest = max(players, key=lambda p: p.hp)
+```
+"""
+
+when_sorted = """
+Use sorted() when you need MULTIPLE items or ALL items ranked:
+- Slower: O(n log n)
+- Returns full sorted list
+- More memory
+
+```python
+# Top 3 players
+top_3 = sorted(players, key=lambda p: p.hp, reverse=True)[:3]
+```
+"""
+
+[performance]
+efficiency = """
+min() and max() are O(n) - single pass through the list
+Much faster than sorting when you only need one extreme!
+
+```python
+# Fast: O(n)
+strongest = max(players, key=lambda p: p.hp)
+
+# Slow: O(n log n)
+strongest = sorted(players, key=lambda p: p.hp)[-1]
+```
+"""

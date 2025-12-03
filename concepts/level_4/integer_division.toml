@@ -1,0 +1,399 @@
+# Level 4: Integer Division
+# Floor division // and understanding division in Python
+# Prerequisite for: modular arithmetic, grid coordinates
+
+[concept]
+id = "integer_division"
+name = "Integer Division: // and int()"
+level = 4
+category = "operators"
+prerequisites = ["types_int_str", "operators"]
+unlocks = ["modular_arithmetic", "grid_systems"]
+
+[description]
+brief = "Divide and get a whole number result, no decimals"
+detailed = """
+Python has TWO division operators:
+- `/` (regular division) always gives a float: 7 / 2 = 3.5
+- `//` (floor division) gives an integer: 7 // 2 = 3
+
+Floor division ROUNDS DOWN to the nearest whole number.
+
+```python
+# Regular division
+7 / 2   # 3.5
+10 / 3  # 3.3333...
+
+# Floor division
+7 // 2   # 3 (not 3.5!)
+10 // 3  # 3 (not 3.333...)
+```
+
+Think of it like splitting items evenly:
+- You have 10 potions and 3 players
+- Each player gets 10 // 3 = 3 potions
+- There are 10 % 3 = 1 potions left over
+"""
+
+[syntax]
+floor_division = """
+result = numerator // denominator
+"""
+
+with_modulo = """
+# Common pattern: quotient and remainder
+quotient = total // divisor
+remainder = total % divisor
+
+# Or both at once:
+quotient, remainder = divmod(total, divisor)
+```
+"""
+
+converting_float = """
+# Alternative: Convert float division to int
+result = int(7 / 2)  # 3
+
+# But // is more explicit and efficient!
+result = 7 // 2  # 3 (preferred)
+```
+"""
+
+[examples]
+basic = """
+print(10 // 3)   # 3
+print(10 / 3)    # 3.3333...
+
+print(7 // 2)    # 3
+print(7 / 2)     # 3.5
+
+print(15 // 4)   # 3
+print(15 / 4)    # 3.75
+"""
+
+negative_numbers = """
+# Floor division always rounds DOWN (toward negative infinity)
+print(7 // 2)    # 3
+print(-7 // 2)   # -4 (not -3!)
+
+print(10 // 3)   # 3
+print(-10 // 3)  # -4 (not -3!)
+
+# This surprises beginners!
+```
+"""
+
+game_examples = """
+# Distribute gold evenly among players
+total_gold = 100
+num_players = 3
+
+gold_per_player = total_gold // num_players  # 33
+leftover = total_gold % num_players           # 1
+
+print(f"Each player gets {gold_per_player} gold")
+print(f"Treasury keeps {leftover} gold")
+
+# Calculate grid position
+pixel_x = 145
+tile_size = 32
+tile_x = pixel_x // tile_size  # 4 (which tile?)
+offset_x = pixel_x % tile_size  # 17 (position within tile)
+
+# Calculate pages
+total_items = 47
+items_per_page = 10
+num_pages = (total_items + items_per_page - 1) // items_per_page  # 5
+# Or: import math; math.ceil(total_items / items_per_page)
+```
+"""
+
+[common_patterns]
+grid_coordinates = """
+# Convert pixel position to grid coordinates
+def pixel_to_grid(pixel_x, pixel_y, tile_size):
+    grid_x = pixel_x // tile_size
+    grid_y = pixel_y // tile_size
+    return grid_x, grid_y
+
+# Convert grid coordinates to pixel position
+def grid_to_pixel(grid_x, grid_y, tile_size):
+    pixel_x = grid_x * tile_size
+    pixel_y = grid_y * tile_size
+    return pixel_x, pixel_y
+```
+"""
+
+distribute_evenly = """
+# Split items among players
+def distribute(total_items, num_players):
+    items_each = total_items // num_players
+    leftover = total_items % num_players
+    return items_each, leftover
+
+# Or use divmod:
+items_each, leftover = divmod(total_items, num_players)
+```
+"""
+
+pagination = """
+# Calculate page number
+def get_page(item_index, items_per_page):
+    return item_index // items_per_page
+
+# Calculate which item on page
+def get_page_position(item_index, items_per_page):
+    return item_index % items_per_page
+
+# Item 23 with 10 items per page:
+page = 23 // 10      # Page 2
+position = 23 % 10   # Position 3 on that page
+```
+"""
+
+time_conversion = """
+# Convert seconds to minutes and seconds
+total_seconds = 125
+
+minutes = total_seconds // 60  # 2
+seconds = total_seconds % 60   # 5
+
+print(f"{minutes}:{seconds:02d}")  # "2:05"
+
+# Or:
+minutes, seconds = divmod(total_seconds, 60)
+```
+"""
+
+[common_mistakes]
+using_wrong_division = """
+# WRONG: Using / when you need //
+players = 3
+gold = 10
+per_player = gold / players  # 3.3333... (float!)
+
+# Each player can't get 3.333 gold coins!
+
+# RIGHT: Use //
+per_player = gold // players  # 3 (int!)
+```
+"""
+
+negative_surprise = """
+# GOTCHA: Negative numbers round DOWN, not toward zero!
+print(-7 // 2)   # -4, not -3!
+
+# If you want rounding toward zero:
+import math
+print(math.trunc(-7 / 2))  # -3
+
+# Or:
+print(int(-7 / 2))  # -3
+```
+"""
+
+float_input = """
+# Be careful: // with floats gives float!
+print(10.0 // 3)    # 3.0 (float, not int!)
+print(10 // 3.0)    # 3.0 (float, not int!)
+print(10.0 // 3.0)  # 3.0 (float, not int!)
+
+# If you need int:
+print(int(10.0 // 3))  # 3 (int)
+```
+"""
+
+division_by_zero = """
+# WRONG: Division by zero crashes!
+# result = 10 // 0  # ZeroDivisionError!
+
+# RIGHT: Check first
+if divisor != 0:
+    result = numerator // divisor
+else:
+    result = 0  # or handle error
+```
+"""
+
+[int_vs_floor_division]
+difference = """
+**int()** - Converts float to int by truncating (cutting off decimals)
+**//** - Floor division (rounds down)
+
+For positive numbers, they're the same:
+```python
+int(7 / 2)  # 3
+7 // 2      # 3
+```
+
+For negative numbers, they differ:
+```python
+int(-7 / 2)  # -3 (truncate toward zero)
+-7 // 2      # -4 (round down toward negative infinity)
+```
+
+**Use // when** you want floor division (most common)
+**Use int()** when you want truncation toward zero
+"""
+
+[divmod_function]
+usage = """
+divmod() returns both quotient and remainder at once:
+
+```python
+quotient, remainder = divmod(10, 3)
+# quotient = 3, remainder = 1
+
+# Equivalent to:
+quotient = 10 // 3
+remainder = 10 % 3
+```
+
+Useful when you need both values!
+"""
+
+examples = """
+# Time conversion
+minutes, seconds = divmod(125, 60)  # 2 minutes, 5 seconds
+
+# Pagination
+page, position = divmod(item_index, items_per_page)
+
+# Currency conversion
+dollars, cents = divmod(total_cents, 100)
+```
+"""
+
+[gotchas]
+always_rounds_down = """
+Floor division ALWAYS rounds DOWN (toward negative infinity):
+
+```python
+7 // 2    # 3 (down from 3.5)
+-7 // 2   # -4 (down from -3.5)
+```
+
+NOT toward zero! That's int(x / y).
+"""
+
+result_type = """
+Result type depends on inputs:
+- int // int → int
+- float // anything → float
+- anything // float → float
+
+```python
+10 // 3      # 3 (int)
+10.0 // 3    # 3.0 (float!)
+10 // 3.0    # 3.0 (float!)
+```
+"""
+
+[gamepad_tutorial]
+text = """
+🎮 INTEGER DIVISION MODE:
+- Type number
+- Press / twice quickly → //
+- Or: D-pad DOWN while on / → converts to //
+- RB suggests // when context implies integer result
+
+Pattern recognition:
+- "gold / players" → suggests //
+- "pixels / tile_size" → suggests //
+- "items / per_page" → suggests //
+"""
+
+[challenges]
+starter = "integer_division_basic"
+intermediate = "integer_division_grid"
+mastery = "integer_division_game_logic"
+
+[fun_facts]
+python2_vs_3 = "Python 2 used / for integer division with ints! Python 3 changed this."
+always_available = "// works in basically every programming language (though syntax varies)"
+modulo_pair = "// and % are a natural pair - quotient and remainder!"
+
+[fun_factor]
+type = "practical"
+description = "Essential for grid systems, distribution, and game math"
+examples = [
+    "pixel // tile_size",
+    "gold // num_players",
+    "time // 60"
+]
+
+[adaptive]
+weakness_signals = [
+    "using_regular_division_for_counts",
+    "surprised_by_negative_results",
+    "not_handling_division_by_zero"
+]
+strength_indicators = [
+    "appropriate_use_of_floor_division",
+    "using_divmod_when_appropriate",
+    "understanding_rounding_behavior"
+]
+
+[real_world]
+grid_systems = "Essential for tile-based games, spreadsheets, pixel art"
+resource_distribution = "Dividing items, currency, XP among players/entities"
+time_conversion = "Converting seconds to minutes/hours"
+pagination = "Calculating page numbers in UIs"
+
+[relationship_to_modulo]
+complementary = """
+// and % are complementary operations:
+
+```python
+total = 17
+chunk_size = 5
+
+num_chunks = total // chunk_size  # 3 full chunks
+leftover = total % chunk_size     # 2 items left over
+
+# Verify: num_chunks * chunk_size + leftover == total
+# 3 * 5 + 2 == 17 ✓
+```
+"""
+
+reconstruction = """
+You can reconstruct the original from quotient and remainder:
+
+```python
+original = quotient * divisor + remainder
+
+# Example:
+17 = (17 // 5) * 5 + (17 % 5)
+17 = 3 * 5 + 2
+17 = 15 + 2
+17 = 17 ✓
+```
+"""
+
+[performance]
+faster_than_conversion = """
+// is faster than int(x / y):
+
+```python
+# Slower: two operations (division + conversion)
+result = int(x / y)
+
+# Faster: one operation
+result = x // y
+```
+
+Not a huge difference, but // is also more explicit!
+"""
+
+[math_background]
+floor_function = """
+The // operator is equivalent to the mathematical floor function:
+
+```python
+import math
+
+7 // 2 == math.floor(7 / 2)  # True
+```
+
+"Floor" means round down to the nearest integer.
+"""

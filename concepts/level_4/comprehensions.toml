@@ -1,0 +1,342 @@
+# Level 4: Comprehensions
+# Build lists, dicts, and sets in one elegant line
+# Prerequisite for: generators, functional programming
+
+[concept]
+id = "comprehensions"
+name = "Comprehensions: Build Collections in One Line"
+level = 4
+category = "intermediate"
+prerequisites = ["lists_basics", "for_loops", "conditionals"]
+unlocks = ["generators", "lambda", "functional_patterns"]
+
+[description]
+brief = "Create lists, dicts, and sets using compact, readable syntax"
+detailed = """
+Comprehensions let you build collections in one line instead of multiple:
+
+**Old way (loop):**
+```python
+numbers = []
+for i in range(5):
+    numbers.append(i * 2)
+# [0, 2, 4, 6, 8]
+```
+
+**New way (comprehension):**
+```python
+numbers = [i * 2 for i in range(5)]
+# [0, 2, 4, 6, 8]
+```
+
+Same result, less code, more readable!
+
+Think of comprehensions as a pattern you repeat:
+`[what_to_collect for item in source if condition]`
+"""
+
+[types]
+list_comprehension = """
+Build a list from an iterable:
+```python
+# Basic
+squares = [x * x for x in range(5)]
+# [0, 1, 4, 9, 16]
+
+# With condition
+evens = [x for x in range(10) if x % 2 == 0]
+# [0, 2, 4, 6, 8]
+
+# With transformation and condition
+even_squares = [x * x for x in range(10) if x % 2 == 0]
+# [0, 4, 16, 36, 64]
+```
+"""
+
+dict_comprehension = """
+Build a dictionary from an iterable:
+```python
+# Basic
+squares_dict = {x: x * x for x in range(5)}
+# {0: 0, 1: 1, 2: 4, 3: 9, 4: 16}
+
+# From two lists
+names = ["Alice", "Bob", "Charlie"]
+scores = [85, 92, 78]
+grade_book = {name: score for name, score in zip(names, scores)}
+# {"Alice": 85, "Bob": 92, "Charlie": 78}
+
+# With condition
+passing = {name: score for name, score in zip(names, scores) if score >= 80}
+# {"Alice": 85, "Bob": 92}
+```
+"""
+
+set_comprehension = """
+Build a set (unique values only):
+```python
+# Remove duplicates while transforming
+numbers = [1, 2, 2, 3, 3, 3, 4, 4, 4, 4]
+unique_squares = {x * x for x in numbers}
+# {1, 4, 9, 16}
+
+# Filter characters
+text = "Hello World!"
+unique_letters = {char.lower() for char in text if char.isalpha()}
+# {'h', 'e', 'l', 'o', 'w', 'r', 'd'}
+```
+"""
+
+[syntax]
+basic_pattern = """
+[expression for item in iterable]
+"""
+
+with_condition = """
+[expression for item in iterable if condition]
+"""
+
+nested = """
+[expression for item1 in iterable1 for item2 in iterable2]
+"""
+
+multiple_conditions = """
+[expression for item in iterable if condition1 if condition2]
+# Both conditions must be True
+"""
+
+[examples]
+game_inventory = """
+# Get all weapon names
+items = [
+    {"name": "Sword", "type": "weapon", "damage": 10},
+    {"name": "Shield", "type": "armor", "defense": 5},
+    {"name": "Bow", "type": "weapon", "damage": 7},
+]
+
+weapons = [item["name"] for item in items if item["type"] == "weapon"]
+# ["Sword", "Bow"]
+
+damage_map = {item["name"]: item["damage"] for item in items if "damage" in item}
+# {"Sword": 10, "Bow": 7}
+"""
+
+coordinate_grid = """
+# Generate a 3x3 grid of coordinates
+grid = [(x, y) for x in range(3) for y in range(3)]
+# [(0,0), (0,1), (0,2), (1,0), (1,1), (1,2), (2,0), (2,1), (2,2)]
+
+# Only coordinates where x == y (diagonal)
+diagonal = [(x, y) for x in range(3) for y in range(3) if x == y]
+# [(0,0), (1,1), (2,2)]
+"""
+
+string_processing = """
+# Extract numbers from mixed string
+text = "Player 1 scored 100 points, Player 2 scored 85"
+numbers = [int(word) for word in text.split() if word.isdigit()]
+# [1, 100, 2, 85]
+
+# Uppercase all words longer than 3 characters
+words = "the quick brown fox jumps".split()
+emphasized = [word.upper() for word in words if len(word) > 3]
+# ['QUICK', 'BROWN', 'JUMPS']
+```
+"""
+
+flattening = """
+# Flatten a nested list
+nested = [[1, 2], [3, 4], [5, 6]]
+flat = [item for sublist in nested for item in sublist]
+# [1, 2, 3, 4, 5, 6]
+
+# With filtering
+flat_evens = [item for sublist in nested for item in sublist if item % 2 == 0]
+# [2, 4, 6]
+"""
+
+[common_mistakes]
+too_complex = """
+# WRONG: Too complex to read
+result = [x * y for x in range(10) if x % 2 == 0 for y in range(10) if y % 3 == 0 if x + y < 10]
+
+# RIGHT: Break into multiple steps or use regular loops
+evens = [x for x in range(10) if x % 2 == 0]
+threes = [y for y in range(10) if y % 3 == 0]
+result = [x * y for x in evens for y in threes if x + y < 10]
+
+# OR: Use regular loop when logic is complex
+result = []
+for x in range(10):
+    if x % 2 == 0:
+        for y in range(10):
+            if y % 3 == 0 and x + y < 10:
+                result.append(x * y)
+```
+"""
+
+modifying_source = """
+# WRONG: Trying to modify the source while comprehending
+numbers = [1, 2, 3, 4, 5]
+# Don't do this - creates new list, doesn't modify numbers
+[x * 2 for x in numbers]
+
+# RIGHT: Assign to create new list
+doubled = [x * 2 for x in numbers]
+
+# OR: Use loop to modify in place (if needed)
+for i in range(len(numbers)):
+    numbers[i] *= 2
+```
+"""
+
+unnecessary_comprehension = """
+# WRONG: Comprehension when you don't need transformation
+has_sword = [item for item in inventory if item == "sword"]
+if has_sword:  # Checking if list is not empty
+    print("Has sword")
+
+# RIGHT: Use 'in' operator
+if "sword" in inventory:
+    print("Has sword")
+
+# WRONG: Creating list just to check condition
+any_positive = len([x for x in numbers if x > 0]) > 0
+
+# RIGHT: Use any() built-in
+any_positive = any(x > 0 for x in numbers)
+```
+"""
+
+[gotchas]
+generator_vs_list = """
+[] creates a list comprehension (stored in memory)
+() creates a generator expression (computed on demand)
+
+```python
+# List: All computed immediately
+numbers_list = [x * x for x in range(1000000)]  # Uses memory!
+
+# Generator: Computed as needed
+numbers_gen = (x * x for x in range(1000000))   # Lazy!
+```
+"""
+
+order_matters = """
+The order of 'for' clauses matters:
+
+```python
+# This:
+[(x, y) for x in range(3) for y in range(2)]
+# [(0,0), (0,1), (1,0), (1,1), (2,0), (2,1)]
+
+# Is equivalent to:
+result = []
+for x in range(3):
+    for y in range(2):
+        result.append((x, y))
+```
+"""
+
+if_position = """
+'if' at the end is a FILTER
+'if' in the middle is a TERNARY (conditional expression)
+
+```python
+# Filter: Only include evens
+[x for x in range(10) if x % 2 == 0]
+# [0, 2, 4, 6, 8]
+
+# Ternary: Transform based on condition
+[x if x % 2 == 0 else -x for x in range(5)]
+# [0, -1, 2, -3, 4]
+```
+"""
+
+[performance]
+when_faster = """
+Comprehensions are often faster than loops because:
+- Optimized at the C level
+- Don't need to repeatedly call .append()
+- More efficient memory allocation
+
+Good for: Simple transformations and filters
+"""
+
+when_slower = """
+Use regular loops when:
+- Logic is complex (multiple conditions, nested logic)
+- You need to break early
+- You're doing side effects (print, file writes)
+- Readability would suffer
+"""
+
+[gamepad_tutorial]
+text = """
+🎮 COMPREHENSION MODE:
+- Press [ to start list comprehension template
+- Press { to start dict comprehension template
+- RB suggests the expression based on context
+- D-pad RIGHT to add 'for' clause
+- D-pad DOWN to add 'if' filter
+- A to complete the comprehension
+
+Template flow:
+1. [ → [__ for __ in __]
+2. Fill in expression (what to collect)
+3. Fill in variable name
+4. Fill in source iterable
+5. Optional: D-pad DOWN for 'if' filter
+"""
+
+[challenges]
+starter = "comprehension_simple_transform"
+intermediate = "comprehension_with_filter"
+mastery = "comprehension_dict_nested"
+
+[fun_facts]
+pythonic = "Comprehensions are considered 'Pythonic' - the Python way of doing things!"
+generator_expressions = "Use () instead of [] for memory-efficient generator expressions"
+walrus = "Python 3.8+ supports walrus operator := in comprehensions for assignment"
+
+[fun_factor]
+type = "elegance"
+description = "Feel like a Python wizard writing one-liners that do complex things"
+examples = [
+    "[enemy.damage for enemy in enemies if enemy.hp > 0]",
+    "{player.name: player.score for player in players}",
+    "{item for item in inventory if item.rarity == 'legendary'}"
+]
+
+[adaptive]
+weakness_signals = [
+    "overly_complex_comprehension",
+    "unnecessary_comprehension",
+    "confusing_nested_loops"
+]
+strength_indicators = [
+    "readable_comprehensions",
+    "appropriate_use",
+    "dict_comprehension_mastery"
+]
+
+[when_to_use]
+perfect_for = """
+✓ Simple transformations: [x * 2 for x in numbers]
+✓ Filtering: [x for x in items if condition]
+✓ Building dicts/sets from data
+✓ Mapping operations (transform each item)
+"""
+
+use_loop_instead = """
+✗ Complex logic (multiple steps)
+✗ Side effects (printing, file I/O)
+✗ Multiple variables to update
+✗ Need to break early
+✗ Hurts readability
+"""
+
+[real_world]
+data_processing = "Comprehensions shine in data processing: filtering, transforming, mapping"
+api_responses = "Perfect for parsing API responses: [user['name'] for user in api_data['users']]"
+game_logic = "Great for game state: [enemy for enemy in enemies if enemy.visible and enemy.hp > 0]"

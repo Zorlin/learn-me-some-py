@@ -120,7 +120,7 @@ Level 3 (Functions)      Level 4 (Intermediate) Level 5 (Classes)
 
 ```
 learn-me-some-py/
-├── src/
+├── lmsp/               # Main Python package
 │   ├── game/           # Core game loop, state, rendering
 │   ├── input/          # Gamepad, radial typing, touch, keyboard
 │   ├── python/         # Concept graph, challenges, validation
@@ -130,7 +130,9 @@ learn-me-some-py/
 │   └── introspection/  # Screenshot, video, wireframe, mosaic
 ├── concepts/           # TOML definitions for each level
 ├── challenges/         # Challenge sets themed by use case
-└── assets/             # Radial layouts, sounds, themes
+├── tests/              # pytest test suite
+├── assets/             # Radial layouts, sounds, themes
+└── pyproject.toml      # Python package configuration
 ```
 
 ## Challenge Format
@@ -165,21 +167,53 @@ project_themes = ["api", "database", "game_state"]  # What projects use this?
 
 ## Getting Started
 
-```bash
-# Build
-cargo build --release
+### Installation
 
-# Run with keyboard
-./target/release/lmsp
+```bash
+# Clone the repository
+git clone <repo-url>
+cd learn-me-some-py
+
+# Install the package in development mode
+pip install -e .
+
+# Or install with all development dependencies
+pip install -e ".[dev]"
+```
+
+### Running LMSP
+
+```bash
+# Run with keyboard (default)
+python -m lmsp
 
 # Run with controller
-./target/release/lmsp --input gamepad
+python -m lmsp --input gamepad
 
 # Run with AI player
-./target/release/lmsp --player-zero
+python -m lmsp --player-zero
 
 # Start multiplayer session
-./target/release/lmsp --multiplayer --mode coop
+python -m lmsp --multiplayer --mode coop
+```
+
+### Development & Testing
+
+```bash
+# Run the test suite
+pytest tests/ -v
+
+# Run tests with coverage
+pytest tests/ --cov=lmsp --cov-report=html
+
+# Run a specific test
+pytest tests/test_game.py -v
+
+# Lint the code
+ruff check .
+
+# Format the code
+ruff format .
 ```
 
 ## Philosophy

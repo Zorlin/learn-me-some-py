@@ -1,0 +1,570 @@
+# Level 5: Magic Methods (Dunder Methods)
+# Make your objects work with Python's built-in operations
+
+[concept]
+id = "magic_methods"
+name = "Magic Methods: Operator Overloading"
+level = 5
+category = "classes"
+prerequisites = ["classes", "operators", "dunder_methods_basics"]
+unlocks = ["custom_containers", "context_managers", "numeric_types"]
+
+[description]
+brief = "Special methods that let your objects work with +, [], len(), str(), etc."
+detailed = """
+Magic methods (dunder methods - double underscore) let you define how your
+objects behave with Python's built-in operations. They're the secret behind
+everything from `+` to `len()` to `with` statements.
+
+```python
+class Vector:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+    def __add__(self, other):
+        \"\"\"Enable v1 + v2\"\"\"
+        return Vector(self.x + other.x, self.y + other.y)
+
+    def __mul__(self, scalar):
+        \"\"\"Enable v * 3\"\"\"
+        return Vector(self.x * scalar, self.y * scalar)
+
+    def __len__(self):
+        \"\"\"Enable len(v)\"\"\"
+        return 2  # Vector has 2 components
+
+    def __str__(self):
+        \"\"\"Enable str(v) and print(v)\"\"\"
+        return f"Vector({self.x}, {self.y})"
+
+    def __repr__(self):
+        \"\"\"Enable repr(v) - for debugging\"\"\"
+        return f"Vector(x={self.x}, y={self.y})"
+
+    def __eq__(self, other):
+        \"\"\"Enable v1 == v2\"\"\"
+        return self.x == other.x and self.y == other.y
+
+v1 = Vector(1, 2)
+v2 = Vector(3, 4)
+
+print(v1 + v2)      # Vector(4, 6)
+print(v1 * 3)       # Vector(3, 6)
+print(len(v1))      # 2
+print(v1 == v2)     # False
+```
+
+Your objects now behave like built-in types!
+"""
+
+[key_concepts]
+categories = """
+Magic methods fall into categories:
+
+**String representation:**
+- `__str__` - User-friendly: str(obj), print(obj)
+- `__repr__` - Debug: repr(obj), interactive shell
+
+**Arithmetic:**
+- `__add__` (+), `__sub__` (-), `__mul__` (*), `__truediv__` (/)
+- `__pow__` (**), `__mod__` (%), `__floordiv__` (//)
+
+**Comparison:**
+- `__eq__` (==), `__ne__` (!=), `__lt__` (<), `__le__` (<=)
+- `__gt__` (>), `__ge__` (>=)
+
+**Container:**
+- `__len__` - len(obj)
+- `__getitem__` - obj[key]
+- `__setitem__` - obj[key] = value
+- `__delitem__` - del obj[key]
+- `__contains__` - item in obj
+- `__iter__` - for item in obj
+
+**Context manager:**
+- `__enter__` / `__exit__` - with obj:
+
+**Callable:**
+- `__call__` - obj()
+"""
+
+string_representation = """
+__str__ for users, __repr__ for developers:
+
+```python
+class Card:
+    def __init__(self, rank, suit):
+        self.rank = rank
+        self.suit = suit
+
+    def __str__(self):
+        \"\"\"User-friendly representation.\"\"\"
+        return f"{self.rank} of {self.suit}"
+
+    def __repr__(self):
+        \"\"\"Unambiguous, developer-friendly representation.\"\"\"
+        return f"Card(rank={self.rank!r}, suit={self.suit!r})"
+
+card = Card("Ace", "Spades")
+print(str(card))   # Ace of Spades
+print(repr(card))  # Card(rank='Ace', suit='Spades')
+print(card)        # Ace of Spades (uses __str__)
+```
+
+Rule: `repr()` should be unambiguous, `str()` should be readable.
+"""
+
+arithmetic_operators = """
+Define how objects work with math operators:
+
+```python
+class Money:
+    def __init__(self, amount, currency="USD"):
+        self.amount = amount
+        self.currency = currency
+
+    def __add__(self, other):
+        if self.currency != other.currency:
+            raise ValueError("Cannot add different currencies")
+        return Money(self.amount + other.amount, self.currency)
+
+    def __sub__(self, other):
+        if self.currency != other.currency:
+            raise ValueError("Cannot subtract different currencies")
+        return Money(self.amount - other.amount, self.currency)
+
+    def __mul__(self, scalar):
+        return Money(self.amount * scalar, self.currency)
+
+    def __str__(self):
+        return f"${self.amount:.2f} {self.currency}"
+
+price = Money(19.99)
+tax = Money(1.99)
+total = price + tax       # Money(21.98, 'USD')
+doubled = price * 2       # Money(39.98, 'USD')
+print(total)              # $21.98 USD
+```
+"""
+
+comparison_operators = """
+Define how objects compare:
+
+```python
+class Score:
+    def __init__(self, points):
+        self.points = points
+
+    def __eq__(self, other):
+        return self.points == other.points
+
+    def __lt__(self, other):
+        return self.points < other.points
+
+    def __le__(self, other):
+        return self.points <= other.points
+
+    # __gt__ and __ge__ are automatically derived from __lt__ and __le__
+    # __ne__ is automatically derived from __eq__
+
+scores = [Score(100), Score(50), Score(75)]
+sorted_scores = sorted(scores)  # Works because of __lt__!
+print(Score(50) == Score(50))   # True
+print(Score(50) < Score(100))   # True
+```
+"""
+
+container_emulation = """
+Make objects act like lists/dicts:
+
+```python
+class Inventory:
+    def __init__(self):
+        self._items = {}
+
+    def __getitem__(self, key):
+        \"\"\"Enable inventory[item].\"\"\"
+        return self._items.get(key, 0)
+
+    def __setitem__(self, key, value):
+        \"\"\"Enable inventory[item] = count.\"\"\"
+        self._items[key] = value
+
+    def __delitem__(self, key):
+        \"\"\"Enable del inventory[item].\"\"\"
+        del self._items[key]
+
+    def __contains__(self, key):
+        \"\"\"Enable 'item in inventory'.\"\"\"
+        return key in self._items
+
+    def __len__(self):
+        \"\"\"Enable len(inventory).\"\"\"
+        return len(self._items)
+
+    def __iter__(self):
+        \"\"\"Enable 'for item in inventory'.\"\"\"
+        return iter(self._items)
+
+inv = Inventory()
+inv["sword"] = 1
+inv["potion"] = 5
+print(inv["sword"])        # 1
+print("shield" in inv)     # False
+print(len(inv))            # 2
+for item in inv:
+    print(item)
+```
+"""
+
+[patterns]
+functools_total_ordering = """
+Implement just __eq__ and __lt__, get all comparisons:
+
+```python
+from functools import total_ordering
+
+@total_ordering
+class Grade:
+    def __init__(self, score):
+        self.score = score
+
+    def __eq__(self, other):
+        return self.score == other.score
+
+    def __lt__(self, other):
+        return self.score < other.score
+
+    # __le__, __gt__, __ge__, __ne__ are automatically added!
+
+print(Grade(90) > Grade(80))   # True (derived from __lt__ and __eq__)
+print(Grade(90) >= Grade(90))  # True
+```
+"""
+
+callable_objects = """
+Make objects callable like functions:
+
+```python
+class Multiplier:
+    def __init__(self, factor):
+        self.factor = factor
+
+    def __call__(self, value):
+        \"\"\"Enable obj(value).\"\"\"
+        return value * self.factor
+
+double = Multiplier(2)
+triple = Multiplier(3)
+
+print(double(5))   # 10
+print(triple(5))   # 15
+
+# Useful for stateful functions!
+```
+"""
+
+context_managers = """
+Enable `with` statements:
+
+```python
+class Timer:
+    def __enter__(self):
+        \"\"\"Called when entering 'with' block.\"\"\"
+        self.start = time.time()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        \"\"\"Called when exiting 'with' block.\"\"\"
+        self.end = time.time()
+        print(f"Elapsed: {self.end - self.start:.2f}s")
+        return False  # Don't suppress exceptions
+
+with Timer():
+    # Your code here
+    time.sleep(1)
+# Output: Elapsed: 1.00s
+```
+"""
+
+[common_mistakes]
+str_without_repr = """
+WRONG (hard to debug):
+```python
+class User:
+    def __str__(self):
+        return self.name
+
+user = User()
+print([user])  # [<__main__.User object at 0x...>]  # No __repr__!
+```
+
+RIGHT:
+```python
+class User:
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return f"User(name={self.name!r}, id={self.id})"
+
+print([user])  # [User(name='Alice', id=1)]  # Much better!
+```
+"""
+
+returning_wrong_type = """
+WRONG (operations should return new objects):
+```python
+class Point:
+    def __add__(self, other):
+        self.x += other.x  # Modifies self!
+        self.y += other.y
+        return self  # Returns modified self
+
+p1 = Point(1, 2)
+p2 = Point(3, 4)
+p3 = p1 + p2  # p1 is now modified!
+```
+
+RIGHT:
+```python
+class Point:
+    def __add__(self, other):
+        return Point(self.x + other.x, self.y + other.y)  # New object
+
+p1 = Point(1, 2)
+p2 = Point(3, 4)
+p3 = p1 + p2  # p1 unchanged
+```
+"""
+
+forgetting_return_notimplemented = """
+WRONG (breaks symmetric operations):
+```python
+class MyNumber:
+    def __add__(self, other):
+        if not isinstance(other, MyNumber):
+            raise TypeError("Can only add MyNumber")
+        return MyNumber(self.value + other.value)
+
+# This fails:
+result = 1 + MyNumber(2)  # TypeError!
+```
+
+RIGHT (return NotImplemented for unsupported types):
+```python
+class MyNumber:
+    def __add__(self, other):
+        if isinstance(other, MyNumber):
+            return MyNumber(self.value + other.value)
+        return NotImplemented  # Let Python try other.__radd__
+
+    def __radd__(self, other):
+        if isinstance(other, int):
+            return MyNumber(other + self.value)
+        return NotImplemented
+
+result = 1 + MyNumber(2)  # Works! Calls MyNumber.__radd__(1)
+```
+"""
+
+[when_to_use]
+perfect_for = [
+    "Numeric types (Vector, Complex, Money)",
+    "Container types (custom lists, dicts)",
+    "Domain objects that have natural operators",
+    "Context managers (resource management)",
+]
+
+avoid_for = [
+    "When operations aren't intuitive",
+    "Surprising behavior (+ shouldn't delete files!)",
+    "Complex operations (use named methods)",
+]
+
+[gotchas]
+radd_rmul = """
+Right-hand operators for commutativity:
+
+```python
+class Vector:
+    def __mul__(self, scalar):
+        return Vector(self.x * scalar, self.y * scalar)
+
+    def __rmul__(self, scalar):
+        \"\"\"Called when: scalar * vector\"\"\"
+        return self.__mul__(scalar)  # Delegate to __mul__
+
+v = Vector(1, 2)
+print(v * 3)    # Calls __mul__
+print(3 * v)    # Calls __rmul__
+```
+
+Without __rmul__, `3 * v` fails!
+"""
+
+bool_vs_len = """
+`__bool__` takes priority over `__len__` for truthiness:
+
+```python
+class Container:
+    def __len__(self):
+        return 0
+
+    def __bool__(self):
+        return True
+
+c = Container()
+print(bool(c))    # True (uses __bool__)
+print(len(c))     # 0
+
+if c:  # Uses __bool__
+    print("Container is truthy")
+```
+
+If `__bool__` is not defined, Python uses `__len__() != 0`.
+"""
+
+[gamepad_tutorial]
+text = """
+🎮 MAGIC METHODS CHALLENGE MODE:
+- RT: Visualize operator to magic method mapping
+- LT: Show all available magic methods for context
+- Y: Generate magic method template
+- B: Add corresponding right-hand operator (__radd__, etc.)
+- A: Test operator in interactive mode
+- D-pad: Navigate between related magic methods
+"""
+
+[challenges]
+starter = "magic_methods_str_repr"
+intermediate = "magic_methods_arithmetic"
+mastery = "magic_methods_container"
+expert = "magic_methods_lmsp_skill_system"
+
+[fun_factor]
+type = "classes"
+description = "Make your objects feel like built-in types"
+examples = [
+    "Vector math: v1 + v2, v * 3",
+    "Game inventory: inv['sword'], 'potion' in inv",
+    "Custom numbers: money1 + money2",
+]
+
+[adaptive]
+weakness_signals = [
+    "missing_repr",
+    "modifying_self_in_operators",
+    "not_returning_notimplemented",
+    "unintuitive_operator_definitions",
+]
+strength_indicators = [
+    "appropriate_magic_method_usage",
+    "proper_return_values",
+    "implementing_both_sides_of_operators",
+    "good_str_and_repr",
+]
+
+[fun_facts]
+why_dunder = """
+"Dunder" = Double UNDERscore. Python uses double underscores to avoid
+naming conflicts with user code. You're unlikely to accidentally name
+something `__add__`, but might use `add`.
+"""
+
+python_data_model = """
+Magic methods are documented in the Python Data Model:
+https://docs.python.org/3/reference/datamodel.html
+
+There are over 80 magic methods! You don't need to know them all,
+but understanding common ones makes your objects feel native.
+"""
+
+operator_module = """
+Python's `operator` module provides functions for all operators:
+
+```python
+import operator
+
+operator.add(a, b)       # Calls a.__add__(b)
+operator.getitem(obj, i) # Calls obj.__getitem__(i)
+operator.contains(obj, x) # Calls obj.__contains__(x)
+
+# Useful for functional programming!
+```
+"""
+
+[real_world]
+numpy = "Arrays use magic methods for vector operations"
+pandas = "DataFrames use magic methods for data manipulation"
+pathlib = "Path objects use __truediv__ for / operator"
+datetime = "Date arithmetic via __add__ and __sub__"
+
+[see_also]
+concepts = ["classes", "operators", "decorators", "protocols"]
+stdlib = ["functools.total_ordering", "operator", "abc"]
+patterns = ["operator_overloading", "fluent_interfaces"]
+
+[complete_reference]
+construction = """
+- `__init__(self, ...)` - Constructor
+- `__new__(cls, ...)` - Object creation (before __init__)
+- `__del__(self)` - Destructor (rarely used)
+"""
+
+representation = """
+- `__str__(self)` - str(obj), print(obj)
+- `__repr__(self)` - repr(obj), debugging
+- `__format__(self, spec)` - f"{obj:spec}"
+- `__bytes__(self)` - bytes(obj)
+"""
+
+arithmetic = """
+- `__add__`, `__sub__`, `__mul__`, `__truediv__`
+- `__floordiv__`, `__mod__`, `__pow__`
+- `__and__`, `__or__`, `__xor__` (bitwise)
+- `__lshift__`, `__rshift__`
+"""
+
+right_hand = """
+- `__radd__`, `__rsub__`, `__rmul__`, etc.
+- Called when left operand doesn't support operation
+"""
+
+in_place = """
+- `__iadd__` (+=), `__isub__` (-=), `__imul__` (*=), etc.
+- Can modify in place for mutable objects
+"""
+
+unary = """
+- `__neg__` (-obj), `__pos__` (+obj), `__abs__` (abs(obj))
+- `__invert__` (~obj)
+"""
+
+comparison = """
+- `__eq__`, `__ne__`, `__lt__`, `__le__`, `__gt__`, `__ge__`
+"""
+
+container = """
+- `__len__`, `__getitem__`, `__setitem__`, `__delitem__`
+- `__contains__`, `__iter__`, `__reversed__`
+"""
+
+attributes = """
+- `__getattr__`, `__setattr__`, `__delattr__`
+- `__getattribute__` (low-level, careful!)
+- `__dir__` - dir(obj)
+"""
+
+callable = """
+- `__call__(self, ...)` - Makes object callable
+"""
+
+context_manager = """
+- `__enter__`, `__exit__` - with statement
+"""
+
+descriptor = """
+- `__get__`, `__set__`, `__delete__` - Descriptor protocol
+"""
