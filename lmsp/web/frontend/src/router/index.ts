@@ -40,6 +40,16 @@ const router = createRouter({
       name: 'settings',
       component: () => import('@/views/SettingsView.vue'),
     },
+    {
+      path: '/achievements',
+      name: 'achievements',
+      component: () => import('@/views/AchievementsView.vue'),
+    },
+    {
+      path: '/xp-analytics',
+      name: 'xp-analytics',
+      component: () => import('@/views/XpAnalyticsView.vue'),
+    },
   ],
 })
 

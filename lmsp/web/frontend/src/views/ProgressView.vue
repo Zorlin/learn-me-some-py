@@ -2,9 +2,13 @@
 import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePlayerStore } from '@/stores/player'
+import { useGamepadNav } from '@/composables/useGamepadNav'
 
 const router = useRouter()
 const playerStore = usePlayerStore()
+
+// Enable gamepad navigation
+useGamepadNav({ onBack: () => router.push('/') })
 
 onMounted(async () => {
   await Promise.all([
@@ -47,18 +51,24 @@ function openSkillTree() {
             </div>
             <div class="text-sm text-text-secondary">Level</div>
           </div>
-          <div class="text-center">
+          <button
+            class="text-center stat-link gamepad-focusable rounded-lg p-2 -m-2"
+            @click="router.push('/xp-analytics')"
+          >
             <div class="text-4xl font-bold text-accent-secondary">
               {{ playerStore.profile.xp }}
             </div>
             <div class="text-sm text-text-secondary">XP</div>
-          </div>
-          <div class="text-center">
+          </button>
+          <button
+            class="text-center stat-link gamepad-focusable rounded-lg p-2 -m-2"
+            @click="router.push('/achievements')"
+          >
             <div class="text-4xl font-bold text-tier-gold">
               {{ playerStore.profile.achievements_unlocked }}
             </div>
             <div class="text-sm text-text-secondary">Achievements</div>
-          </div>
+          </button>
           <div class="text-center">
             <div class="text-4xl font-bold">
               {{ Object.keys(playerStore.profile.mastery_levels).length }}
@@ -205,5 +215,23 @@ function openSkillTree() {
 
 .link-arrow {
   @apply text-2xl text-accent-primary;
+}
+
+.stat-link {
+  @apply transition-all duration-200 cursor-pointer;
+  background: transparent;
+  border: none;
+}
+
+.stat-link:hover {
+  transform: scale(1.05);
+}
+
+.stat-link:nth-of-type(1):hover {
+  @apply bg-accent-secondary/10;
+}
+
+.stat-link:nth-of-type(2):hover {
+  @apply bg-tier-gold/10;
 }
 </style>
