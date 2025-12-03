@@ -1,17 +1,17 @@
-# Level 1: For Loops
-# Prerequisite for: list comprehensions, advanced iteration
+# Level 1: For Loops Basics
 
 [concept]
 id = "for_loops_basics"
-name = "For Loops: Do Something Repeatedly"
+name = "For Loops: Repeat Things"
 level = 1
-prerequisites = ["if_else_basics"]
-unlocks = ["lists_basics", "while_loops", "for_loops_advanced"]
+category = "control_flow"
+order = 2
 
-[description]
-brief = "Repeat code for each item in a sequence"
-detailed = """
-A for loop lets you do the same thing multiple times without copy-pasting code.
+[content]
+lesson = """
+## Stop Copy-Pasting!
+
+A for loop lets you do the same thing multiple times:
 
 ```python
 # Without a loop (tedious!)
@@ -24,65 +24,86 @@ for i in range(1, 4):
     print(f"Player {i}")
 ```
 
-For loops are your best friend for repetitive tasks.
-"""
+## The range() Function
 
-[examples]
-basic = """
-# Loop through numbers
+`range()` generates sequences of numbers:
+
+```python
+range(5)        # 0, 1, 2, 3, 4 (starts at 0!)
+range(1, 6)     # 1, 2, 3, 4, 5 (stops BEFORE 6!)
+range(0, 10, 2) # 0, 2, 4, 6, 8 (step by 2)
+```
+
+## Loop Through Numbers
+
+```python
 for num in range(5):
-    print(num)  # Prints 0, 1, 2, 3, 4
+    print(num)
+# Output: 0, 1, 2, 3, 4
+```
 
-# Loop through a string
+## Loop Through Strings
+
+```python
 for letter in "HELLO":
-    print(letter)  # Prints H, E, L, L, O
+    print(letter)
+# Output: H, E, L, L, O (one per line)
+```
+
+## The Loop Variable
+
+The variable after `for` gets each value:
+
+```python
+for fruit in ["apple", "banana", "cherry"]:
+    print(f"I like {fruit}")
+# I like apple
+# I like banana
+# I like cherry
+```
+
+## Common Gotcha: Off By One
+
+```python
+# WRONG: range(5) goes 0-4, not 1-5!
+for i in range(5):
+    print(i)  # 0, 1, 2, 3, 4
+
+# RIGHT: range(1, 6) goes 1-5
+for i in range(1, 6):
+    print(i)  # 1, 2, 3, 4, 5
+```
+
+## The Underscore Trick
+
+If you don't need the loop variable:
+
+```python
+# Just do something 3 times
+for _ in range(3):
+    print("Hip hip hooray!")
+```
 """
 
-advanced = """
-# Loop with both index and value
-fruits = ["apple", "banana", "cherry"]
-for index, fruit in enumerate(fruits):
-    print(f"{index}: {fruit}")
+[content.try_it]
+prompt = "Print the numbers 1 through 5 using a for loop"
+starter = '''
+# Use a for loop to print 1, 2, 3, 4, 5
 
-# Loop in reverse
-for i in range(10, 0, -1):
-    print(i)  # Countdown from 10 to 1
-"""
+'''
+solution = '''
+# Use a for loop to print 1, 2, 3, 4, 5
+for i in range(1, 6):
+    print(i)
+'''
 
-[syntax]
-range_function = "range(5) gives 0,1,2,3,4. range(1,6) gives 1,2,3,4,5"
-for_in = "for item in sequence: (must end with colon)"
-indentation = "Loop body MUST be indented"
+[connections]
+prerequisites = ["if_else", "basic_operators"]
+enables = ["while_loops_basics", "for_loops", "lists"]
+used_in = []
+see_also = ["while_loops_basics"]
 
-[common_mistakes]
-range_off_by_one = "range(5) stops at 4, not 5! It's 0,1,2,3,4"
-modifying_list = "Don't change a list while looping over it - make a copy first"
-unused_variable = "If you don't use loop variable, use underscore: for _ in range(5):"
-
-[fun_facts]
-enumerate_magic = "enumerate() gives you index + value at once"
-zip_parallel = "zip(list1, list2) loops two lists together"
-break_continue = "break exits loop early, continue skips to next iteration"
-
-[gamepad_tutorial]
-text = """
-🎮 LOOP BUILDER:
-- Press A to start for loop
-- D-pad RIGHT to set range
-- Hold RB to see loop variable value during execution
-- Press Y to add break/continue
-"""
-
-[challenges]
-starter = "fizz_buzz"
-intermediate = ""
-mastery = ""
-
-[fun_factor]
-type = "repetition"
-description = "Like a hamster wheel, but productive"
-examples = ["countdown timer", "score calculator", "pattern drawer"]
-
-[adaptive]
-weakness_signals = ["off_by_one", "modify_during_iteration", "infinite_loop_attempt"]
-strength_indicators = ["clean_iteration", "appropriate_range", "enumerate_usage"]
+[meta]
+time_to_read = 50
+difficulty = "beginner"
+tags = ["loops", "iteration", "control_flow"]

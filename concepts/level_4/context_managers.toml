@@ -1,19 +1,17 @@
 # Level 4: Context Managers
-# Prerequisite for: resource management, clean code
 
 [concept]
 id = "context_managers"
-name = "Context Managers: Automatic Resource Cleanup"
+name = "Context Managers: Auto-Cleanup"
 level = 4
 category = "resource_management"
-prerequisites = ["file_io", "exceptions", "classes"]
-unlocks = ["custom_context_managers", "resource_pools", "transaction_management"]
+order = 5
 
-[description]
-brief = "Automatically set up and tear down resources with 'with' statement"
-detailed = """
-Context managers ensure resources are properly cleaned up, even if errors occur.
-It's like auto-save in games - you never forget to save progress.
+[content]
+lesson = """
+## Never Forget to Clean Up
+
+Context managers ensure resources are properly released:
 
 ```python
 with open('save.json', 'w') as f:
@@ -21,62 +19,39 @@ with open('save.json', 'w') as f:
 # File automatically closed, even if error occurs!
 ```
 
-Context managers handle:
-- File opening/closing
-- Lock acquiring/releasing
-- Database connections
-- Temporary state changes
-"""
+## The `with` Statement
 
-[syntax]
-basic = """
-with context_manager as variable:
-    # Use resource
-    pass
-# Resource automatically cleaned up
-"""
+```python
+# Good - auto-closes
+with open('file.txt', 'r') as f:
+    data = f.read()
+# File is closed here
 
-multiple = """
-with open('in.txt') as f_in, open('out.txt', 'w') as f_out:
+# Bad - might not close on error
+f = open('file.txt', 'r')
+data = f.read()
+f.close()  # Easy to forget!
+```
+
+## Multiple Resources
+
+```python
+with open('input.txt') as f_in, open('output.txt', 'w') as f_out:
     data = f_in.read()
-    f_out.write(data)
-"""
+    f_out.write(data.upper())
+# Both files closed automatically
+```
 
-nested = """
-with outer() as o:
-    with inner() as i:
-        # Use both
-        pass
-"""
+## Create Your Own
 
-no_variable = """
-with lock:  # Don't need to use the object
-    # Critical section
-    pass
-"""
+Using `@contextmanager` decorator:
 
-[examples]
-basic = """
-# File handling (most common use)
-with open('game.log', 'a') as log:
-    log.write('Player entered dungeon\n')
-# File automatically closed
-
-# Same as:
-log = open('game.log', 'a')
-try:
-    log.write('Player entered dungeon\n')
-finally:
-    log.close()
-"""
-
-advanced = """
+```python
 from contextlib import contextmanager
 import time
 
 @contextmanager
 def timer(name):
-    '''Context manager to time code blocks'''
     start = time.time()
     print(f"Starting {name}...")
     try:
@@ -91,50 +66,11 @@ with timer("world generation"):
 # Output:
 # Starting world generation...
 # world generation took 0.1002s
-"""
+```
 
-real_world = """
-from contextlib import contextmanager
-import json
+## Class-Based Context Manager
 
-class GameState:
-    def __init__(self, save_file):
-        self.save_file = save_file
-        self.data = {}
-
-    @contextmanager
-    def transaction(self):
-        '''Save game state only if no errors occur'''
-        # Load current state
-        try:
-            with open(self.save_file) as f:
-                original = json.load(f)
-        except FileNotFoundError:
-            original = {}
-
-        self.data = original.copy()
-
-        try:
-            yield self.data  # Let user modify data
-            # If we get here, save was successful
-            with open(self.save_file, 'w') as f:
-                json.dump(self.data, f, indent=2)
-        except Exception:
-            # Error occurred, restore original
-            self.data = original
-            raise
-
-# Usage
-game = GameState('save.json')
-with game.transaction() as state:
-    state['level'] = 5
-    state['hp'] = 100
-    # If error occurs here, save is rolled back
-# State saved only if no errors
-"""
-
-[creating_context_managers]
-class_based = """
+```python
 class FileLogger:
     def __init__(self, filename):
         self.filename = filename
@@ -147,120 +83,40 @@ class FileLogger:
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self.file:
             self.file.close()
-        # Return False to propagate exceptions
-        return False
+        return False  # Don't suppress exceptions
 
 with FileLogger('game.log') as log:
-    log.write('Event logged\n')
+    log.write('Event logged\\n')
+```
+
+## Common Uses
+
+- File handling
+- Database connections
+- Thread locks
+- Temporary settings changes
+- Transaction rollback on error
 """
 
-function_based = """
-from contextlib import contextmanager
+[content.try_it]
+prompt = "Use a context manager to safely write to a file"
+starter = '''
+# Write "Hello, World!" to hello.txt using 'with'
 
-@contextmanager
-def temp_setting(key, value):
-    '''Temporarily change a setting'''
-    old_value = settings.get(key)
-    settings[key] = value
-    try:
-        yield
-    finally:
-        settings[key] = old_value
+'''
+solution = '''
+with open('hello.txt', 'w') as f:
+    f.write("Hello, World!")
+# File automatically closed
+'''
 
-with temp_setting('debug_mode', True):
-    # Debug mode enabled
-    run_test()
-# Debug mode restored
-"""
+[connections]
+prerequisites = ["file_io", "exceptions"]
+enables = []
+used_in = []
+see_also = ["file_io", "decorators"]
 
-[common_mistakes]
-forgetting_exit = """
-# WRONG: Missing __exit__
-class Broken:
-    def __enter__(self):
-        return self
-    # Missing __exit__!
-
-# RIGHT: Both required
-class Works:
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        # Cleanup here
-        return False
-"""
-
-swallowing_exceptions = """
-# WRONG: __exit__ returns True (swallows exceptions)
-class Broken:
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.cleanup()
-        return True  # Exception hidden!
-
-# RIGHT: Return False or None
-class Works:
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.cleanup()
-        return False  # Exception propagates
-"""
-
-not_using_with = """
-# WRONG: Manual cleanup (easy to forget!)
-f = open('file.txt')
-try:
-    data = f.read()
-finally:
-    f.close()
-
-# RIGHT: Automatic cleanup
-with open('file.txt') as f:
-    data = f.read()
-"""
-
-[dunder_methods]
-enter = "__enter__(self) - Set up resource, return it"
-exit = "__exit__(self, exc_type, exc_val, exc_tb) - Clean up, return False"
-
-[contextlib_utilities]
-contextmanager = "@contextmanager - Decorator to create context managers from generators"
-closing = "closing(obj) - Calls obj.close() on exit"
-suppress = "suppress(*exceptions) - Suppress specific exceptions"
-redirect_stdout = "redirect_stdout(file) - Redirect print() output"
-
-[gotchas]
-exit_always_runs = "__exit__ runs even if exception occurs"
-return_value = "__enter__ return value is what 'as' captures"
-exception_info = "__exit__ gets exception info if one occurred"
-nested_order = "Nested context managers exit in reverse order (LIFO)"
-
-[gamepad_tutorial]
-text = """
-🎮 CONTEXT MANAGER MODE:
-- Press Y to wrap code in 'with' statement
-- Press A to create custom context manager
-- Press X to convert try/finally to 'with'
-- RB suggests context manager opportunities
-- LB shows resource lifecycle
-- Hold LT to see cleanup guarantees
-"""
-
-[challenges]
-starter = "context_manager"
-intermediate = ""
-mastery = ""
-
-[fun_facts]
-pythonic = "'with' is the Pythonic way to manage resources"
-lock_pattern = "threading.Lock() is a context manager"
-database = "Database connections use context managers for transactions"
-custom_easy = "@contextmanager makes creating context managers super easy!"
-
-[fun_factor]
-type = "safety"
-description = "Never leak resources or forget cleanup"
-examples = ["Auto-save system", "Temporary god mode", "Transaction rollback"]
-
-[adaptive]
-weakness_signals = ["missing_exit", "swallowed_exceptions", "manual_cleanup"]
-strength_indicators = ["proper_with_usage", "custom_managers", "clean_patterns"]
+[meta]
+time_to_read = 55
+difficulty = "intermediate"
+tags = ["context_managers", "with", "resources"]

@@ -1,16 +1,17 @@
 # Level 0: The print() Function
-# The first thing every Python programmer learns!
 
 [concept]
 id = "print_function"
 name = "print(): Say Hello to Python"
 level = 0
-prerequisites = []
+category = "basics"
+order = 0
 
-[description]
-brief = "Make Python talk to you!"
-detailed = """
-print() is your first superpower. It displays text on the screen.
+[content]
+lesson = """
+## Your First Superpower
+
+`print()` displays text on the screen. It's how you make Python talk!
 
 ```python
 print("Hello, World!")    # Output: Hello, World!
@@ -19,50 +20,51 @@ print(42)                 # Output: 42
 ```
 
 You can print text (strings), numbers, or anything Python knows about.
+
+## The Rules
+
+**Strings need quotes!** Either "double" or 'single' quotes work.
+
+```python
+print("Hello")     # Correct
+print(Hello)       # Error! Python looks for a variable named Hello
+```
+
+**Don't forget parentheses!**
+
+```python
+print("Hi")        # Correct
+print "Hi"         # Error! This was old Python 2 syntax
+```
+
+## Pro Tip
+
+You can print multiple things separated by commas:
+
+```python
+print("Hello", "World")   # Output: Hello World
+print("Score:", 100)      # Output: Score: 100
+```
 """
 
-[syntax]
-basic = 'print("your message")'
-multiple = 'print("Hello", "there")  # Prints: Hello there'
-empty = 'print()  # Just prints a blank line'
+[content.try_it]
+prompt = "Make Python say your favorite game's name"
+starter = '''
+# Print your favorite game's name
+print()
+'''
+solution = '''
+# Print your favorite game's name
+print("Minecraft")
+'''
 
-[gotchas]
-quotes = """
-Strings need quotes! Either "double" or 'single' quotes work.
+[connections]
+prerequisites = []
+enables = ["variables", "strings"]
+used_in = ["personal_greeting", "hello_world"]
+see_also = ["strings"]
 
-✓ print("Hello")     # Correct
-✗ print(Hello)       # Error! Python looks for a variable named Hello
-"""
-parentheses = """
-Don't forget the parentheses! In Python 3, print is a function.
-
-✓ print("Hi")        # Correct
-✗ print "Hi"         # Error! This was Python 2 syntax
-"""
-
-[gamepad_tutorial]
-text = """
-🎮 CONTROLLER MODE:
-- Press A on "print" to auto-complete print()
-- Press Y to insert a string template: print("___")
-- Press RB for print() variations
-"""
-
-[challenges]
-starter = "hello_world"
-intermediate = "personal_greeting"
-mastery = ""
-
-[fun_factor]
-type = "output"
-description = "Your voice in the code! See results instantly."
-examples = ["game messages", "debug info", "story text"]
-
-[adaptive]
-weakness_signals = ["missing_quotes", "missing_parentheses", "syntax_error"]
-strength_indicators = ["clean_syntax", "creative_messages"]
-
-[fun_facts]
-history = '"Hello, World!" has been the first program for generations of programmers.'
-power = "print() can display anything Python can represent - text, numbers, even complex data!"
-tradition = "Every programming language has a way to output text. You just learned Python's!"
+[meta]
+time_to_read = 30
+difficulty = "beginner"
+tags = ["output", "basics", "first-program"]

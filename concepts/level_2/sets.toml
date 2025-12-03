@@ -1,127 +1,118 @@
 # Level 2: Sets
-# Prerequisite for: deduplication, membership testing, set operations
 
 [concept]
-id = "sets_basics"
-name = "Sets: No Duplicates Allowed"
+id = "sets"
+name = "Sets: Unique Items Only"
 level = 2
-prerequisites = ["lists_basics", "dictionaries_basics"]
+category = "collections"
+order = 5
 
-[description]
-brief = "Unordered collections that automatically remove duplicates"
-detailed = """
-A set is like a bag of unique marbles - you can't have two identical ones.
-Sets are great for "is this in here?" checks and removing duplicates.
+[content]
+lesson = """
+## No Duplicates Allowed
+
+A set automatically removes duplicates. Great for tracking unique things.
 
 ```python
-unique_items = {1, 2, 3, 2, 1}  # Duplicates ignored
-print(unique_items)              # {1, 2, 3}
+numbers = {1, 2, 3, 2, 1}  # Duplicates removed!
+print(numbers)             # {1, 2, 3}
+```
 
-# Empty set (must use set(), not {})
+## Creating Sets
+
+```python
+# With curly braces (but NOT empty - that's a dict!)
+colors = {"red", "green", "blue"}
+
+# Empty set (must use set())
 empty = set()
-empty.add(5)
-print(empty)                     # {5}
+
+# From a list (removes duplicates)
+names = ["alice", "bob", "alice"]
+unique_names = set(names)  # {"alice", "bob"}
+```
+
+## Adding and Removing
+
+```python
+visited = {"forest", "cave"}
+
+# Add one item
+visited.add("town")
+
+# Remove (error if missing)
+visited.remove("cave")
+
+# Remove (no error if missing)
+visited.discard("mountain")  # Silent if not found
+```
+
+## Fast Membership Testing
+
+Sets are **super fast** at checking "is this in here?":
+
+```python
+valid_commands = {"go", "look", "take", "quit"}
+
+command = input("Command: ")
+if command in valid_commands:  # Instant lookup!
+    print("Valid!")
+```
+
+For large collections, `in` with sets is much faster than lists.
+
+## Set Operations
+
+```python
+players_a = {"alice", "bob", "carol"}
+players_b = {"bob", "dave", "eve"}
+
+# Who plays both? (intersection)
+both = players_a & players_b  # {"bob"}
+
+# All players (union)
+all_players = players_a | players_b  # {"alice", "bob", "carol", "dave", "eve"}
+
+# Only in A (difference)
+only_a = players_a - players_b  # {"alice", "carol"}
+```
+
+## Watch Out!
+
+```python
+# Empty set is NOT {} (that's a dict!)
+empty_dict = {}
+empty_set = set()
+
+# No indexing!
+s = {1, 2, 3}
+s[0]  # TypeError! Sets have no order
 ```
 """
 
-[methods]
-add = "Add single item: my_set.add(item)"
-update = "Add multiple items: my_set.update([1, 2, 3])"
-remove = "Remove item (error if missing): my_set.remove(item)"
-discard = "Remove item (silent if missing): my_set.discard(item)"
-pop = "Remove and return arbitrary item: my_set.pop()"
-clear = "Remove all items: my_set.clear()"
+[content.try_it]
+prompt = "Remove duplicates from a list of scores"
+starter = '''
+scores = [100, 85, 90, 85, 100, 95, 85]
 
-[operations]
-union = "Combine sets: {1, 2} | {2, 3} → {1, 2, 3}"
-intersection = "Common items: {1, 2} & {2, 3} → {2}"
-difference = "Items in first, not second: {1, 2} - {2, 3} → {1}"
-symmetric_difference = "Items in either, not both: {1, 2} ^ {2, 3} → {1, 3}"
+# Convert to set to get unique scores
 
-[gotchas]
-no_order = """
-Sets have NO order - you can't do my_set[0]:
-s = {3, 1, 2}
-# s[0]  # TypeError! No indexing
+'''
+solution = '''
+scores = [100, 85, 90, 85, 100, 95, 85]
 
-Use for loops to iterate:
-for item in s:
-    print(item)  # Order not guaranteed!
-"""
-empty_set_syntax = """
-Empty sets are tricky:
-✓ set()   # Empty set
-✗ {}      # Empty DICTIONARY!
-
-With items:
-✓ {1, 2}  # Set
-"""
-sets_need_immutables = """
-Set items must be immutable:
-✓ {1, 2, "text", (3, 4)}        # OK
-✗ {[1, 2], {"key": "value"}}    # ERROR! Lists/dicts not allowed
-"""
-
-[gamepad_tutorial]
-text = """
-🎮 EASY MODE:
-- Press Y to check membership with 'in'
-- Press RB to suggest set operations
-- D-pad UP to see set methods
-- Hold RT to see "fast membership" demo
-"""
-
-[challenges]
-starter = ""
-intermediate = ""
-mastery = ""
-
-[fun_factor]
-type = "unique_collection"
-description = "Like collecting unique items or tracking visited locations"
-examples = ["unique achievements", "visited rooms", "active players", "tag system"]
-
-[adaptive]
-weakness_signals = ["trying_to_index", "using_list_for_membership", "mutable_items"]
-strength_indicators = ["membership_testing", "deduplication", "set_operations"]
-
-[examples]
-basic = '''
-# Remove duplicates from a list
-scores = [100, 85, 90, 85, 100, 95]
+# Convert to set to get unique scores
 unique_scores = set(scores)
-print(unique_scores)  # {100, 85, 90, 95}
-
-# Fast membership testing
-visited = {"forest", "cave", "town"}
-if "cave" in visited:
-    print("Already been there!")
+print(unique_scores)
 '''
 
-advanced = '''
-# Players in different game modes
-casual_players = {"alice", "bob", "carol"}
-ranked_players = {"bob", "dave", "eve"}
+[connections]
+prerequisites = ["lists", "dictionaries"]
+enables = []
+used_in = []
+see_also = ["lists", "dictionaries"]
 
-# Who plays both?
-both_modes = casual_players & ranked_players
-print(both_modes)  # {'bob'}
-
-# All unique players
-all_players = casual_players | ranked_players
-print(all_players)  # {'alice', 'bob', 'carol', 'dave', 'eve'}
-
-# Casual-only players
-casual_only = casual_players - ranked_players
-print(casual_only)  # {'alice', 'carol'}
-'''
-
-[common_mistakes]
-mistake_1 = "Using {} for empty set instead of set() - {} creates a dictionary!"
-mistake_2 = "Trying to index sets like lists: my_set[0] doesn't work"
-mistake_3 = "Putting mutable items (lists, dicts) in sets"
-
-[fun_facts]
-fact_1 = "Sets use hash tables - checking 'if x in my_set' is super fast!"
-fact_2 = "Set operations (union, intersection) are way faster than list equivalents"
-fact_3 = "Math set theory is built into Python - Venn diagrams are code!"
+[meta]
+time_to_read = 50
+difficulty = "beginner"
+tags = ["collections", "sets", "unique"]

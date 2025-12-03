@@ -1,72 +1,25 @@
 # Level 4: Algorithms
-# Prerequisite for: efficient code, problem solving
 
 [concept]
 id = "algorithms"
-name = "Algorithms: Solve Problems Efficiently"
+name = "Algorithms: Problem-Solving Recipes"
 level = 4
 category = "problem_solving"
-prerequisites = ["functions", "loops", "lists"]
-unlocks = ["optimization", "data_structures", "performance"]
+order = 2
 
-[description]
-brief = "Common patterns for solving problems efficiently"
-detailed = """
-Algorithms are recipes for solving problems. Learn the classics
-and you'll recognize patterns everywhere in game development.
+[content]
+lesson = """
+## Recipes for Solving Problems
+
+Algorithms are step-by-step recipes. Learn the classics
+and you'll recognize patterns everywhere.
+
+## Binary Search
+
+Find items in a sorted list super fast:
 
 ```python
-# Binary search - find item in sorted list quickly
 def binary_search(items, target):
-    left, right = 0, len(items) - 1
-    while left <= right:
-        mid = (left + right) // 2
-        if items[mid] == target:
-            return mid
-        elif items[mid] < target:
-            left = mid + 1
-        else:
-            right = mid - 1
-    return -1
-```
-
-Algorithms help with:
-- Searching efficiently
-- Sorting data
-- Pathfinding (A*, Dijkstra)
-- Optimization problems
-"""
-
-[syntax]
-iterative = """
-def algorithm(input):
-    # Use loops
-    while condition:
-        # Process
-    return result
-"""
-
-recursive = """
-def algorithm(input):
-    # Base case
-    if base_condition:
-        return base_result
-    # Recursive case
-    return algorithm(smaller_input)
-"""
-
-[common_algorithms]
-binary_search = "Search sorted list in O(log n)"
-quicksort = "Sort list in O(n log n) average"
-bfs = "Breadth-first search for graphs"
-dfs = "Depth-first search for graphs"
-dijkstra = "Shortest path in weighted graph"
-dynamic_programming = "Break problem into subproblems, cache results"
-
-[examples]
-binary_search = """
-def binary_search(items, target):
-    '''Find target in sorted list, return index or -1'''
     left, right = 0, len(items) - 1
 
     while left <= right:
@@ -81,34 +34,19 @@ def binary_search(items, target):
 
     return -1  # Not found
 
-# O(log n) - much faster than linear search for large lists
+# O(log n) - searches 1 million items in ~20 steps!
 scores = [100, 250, 500, 1000, 2500, 5000]
 index = binary_search(scores, 1000)  # Returns 3
-"""
+```
 
-quicksort = """
-def quicksort(items):
-    '''Sort list using quicksort algorithm'''
-    if len(items) <= 1:
-        return items
+## Breadth-First Search (BFS)
 
-    pivot = items[len(items) // 2]
-    left = [x for x in items if x < pivot]
-    middle = [x for x in items if x == pivot]
-    right = [x for x in items if x > pivot]
+Find shortest paths in graphs:
 
-    return quicksort(left) + middle + quicksort(right)
-
-scores = [64, 34, 25, 12, 22, 11, 90]
-sorted_scores = quicksort(scores)
-# [11, 12, 22, 25, 34, 64, 90]
-"""
-
-bfs = """
+```python
 from collections import deque
 
 def bfs_shortest_path(graph, start, goal):
-    '''Find shortest path in unweighted graph'''
     queue = deque([(start, [start])])
     visited = {start}
 
@@ -123,9 +61,9 @@ def bfs_shortest_path(graph, start, goal):
                 visited.add(neighbor)
                 queue.append((neighbor, path + [neighbor]))
 
-    return None  # No path found
+    return None
 
-# Map as graph
+# Dungeon map
 dungeon = {
     'entrance': ['hallway'],
     'hallway': ['entrance', 'room1', 'room2'],
@@ -136,193 +74,60 @@ dungeon = {
 
 path = bfs_shortest_path(dungeon, 'entrance', 'boss')
 # ['entrance', 'hallway', 'room1', 'boss']
+```
+
+## Big O Notation
+
+How algorithms scale:
+
+| Notation | Name | Example |
+|----------|------|---------|
+| O(1) | Constant | Dict lookup |
+| O(log n) | Logarithmic | Binary search |
+| O(n) | Linear | Simple loop |
+| O(n log n) | Linearithmic | Good sorting |
+| O(n²) | Quadratic | Nested loops |
+
+## Python's Built-in Sort
+
+Python's `sort()` is highly optimized - use it!
+
+```python
+# Timsort: O(n log n)
+items.sort()
+items.sort(key=lambda x: x.value)
+```
 """
 
-real_world = """
-from typing import List, Dict, Tuple, Optional
-from dataclasses import dataclass
-from heapq import heappush, heappop
+[content.try_it]
+prompt = "Write a simple linear search that returns the index of an item, or -1 if not found"
+starter = '''
+def linear_search(items, target):
+    # Find target in items, return its index
+    # Return -1 if not found
+    pass
 
-@dataclass
-class Node:
-    x: int
-    y: int
+print(linear_search([5, 3, 8, 1], 8))  # Should print 2
+print(linear_search([5, 3, 8, 1], 9))  # Should print -1
+'''
+solution = '''
+def linear_search(items, target):
+    for i, item in enumerate(items):
+        if item == target:
+            return i
+    return -1
 
-    def __hash__(self):
-        return hash((self.x, self.y))
+print(linear_search([5, 3, 8, 1], 8))  # 2
+print(linear_search([5, 3, 8, 1], 9))  # -1
+'''
 
-    def __eq__(self, other):
-        return self.x == other.x and self.y == other.y
+[connections]
+prerequisites = ["functions", "for_loops", "lists"]
+enables = ["graphs_and_dags"]
+used_in = []
+see_also = ["sorted_function"]
 
-def manhattan_distance(a: Node, b: Node) -> int:
-    '''Heuristic for A* pathfinding'''
-    return abs(a.x - b.x) + abs(a.y - b.y)
-
-def a_star(
-    start: Node,
-    goal: Node,
-    is_walkable: callable
-) -> Optional[List[Node]]:
-    '''A* pathfinding algorithm'''
-
-    # Priority queue: (f_score, node)
-    open_set = [(0, start)]
-    came_from: Dict[Node, Node] = {}
-
-    # Cost from start to node
-    g_score = {start: 0}
-
-    # Estimated total cost
-    f_score = {start: manhattan_distance(start, goal)}
-
-    while open_set:
-        current = heappop(open_set)[1]
-
-        if current == goal:
-            # Reconstruct path
-            path = [current]
-            while current in came_from:
-                current = came_from[current]
-                path.append(current)
-            return list(reversed(path))
-
-        # Check neighbors (4-directional)
-        for dx, dy in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
-            neighbor = Node(current.x + dx, current.y + dy)
-
-            if not is_walkable(neighbor.x, neighbor.y):
-                continue
-
-            tentative_g = g_score[current] + 1
-
-            if neighbor not in g_score or tentative_g < g_score[neighbor]:
-                came_from[neighbor] = current
-                g_score[neighbor] = tentative_g
-                f_score[neighbor] = tentative_g + manhattan_distance(neighbor, goal)
-                heappush(open_set, (f_score[neighbor], neighbor))
-
-    return None  # No path
-
-# Example usage
-def is_walkable(x, y):
-    # Check if position is valid
-    return 0 <= x < 10 and 0 <= y < 10
-
-path = a_star(Node(0, 0), Node(9, 9), is_walkable)
-"""
-
-[sorting_algorithms]
-bubble_sort = "O(n²) - Simple but slow, repeatedly swap adjacent"
-insertion_sort = "O(n²) - Good for small or nearly sorted"
-quicksort = "O(n log n) average - Divide and conquer"
-mergesort = "O(n log n) guaranteed - Stable sort"
-timsort = "Python's built-in sort - hybrid algorithm"
-
-[search_algorithms]
-linear_search = "O(n) - Check each item"
-binary_search = "O(log n) - Divide sorted list in half"
-hash_lookup = "O(1) average - Use dictionary"
-
-[graph_algorithms]
-bfs = "Shortest path in unweighted graph"
-dfs = "Explore deeply, good for maze generation"
-dijkstra = "Shortest path with weighted edges"
-a_star = "Shortest path with heuristic (faster)"
-
-[common_mistakes]
-wrong_base_case = """
-# WRONG: Missing or wrong base case
-def countdown(n):
-    print(n)
-    countdown(n - 1)  # Never stops!
-
-# RIGHT: Proper base case
-def countdown(n):
-    if n <= 0:
-        return
-    print(n)
-    countdown(n - 1)
-"""
-
-inefficient = """
-# WRONG: Inefficient algorithm
-def is_prime_slow(n):
-    for i in range(2, n):  # Checks all numbers!
-        if n % i == 0:
-            return False
-    return True
-
-# RIGHT: Optimize
-def is_prime_fast(n):
-    if n < 2:
-        return False
-    for i in range(2, int(n**0.5) + 1):  # Only check to sqrt(n)
-        if n % i == 0:
-            return False
-    return True
-"""
-
-not_handling_empty = """
-# WRONG: Doesn't handle empty input
-def max_value(items):
-    max_val = items[0]  # Error if empty!
-    for item in items:
-        if item > max_val:
-            max_val = item
-    return max_val
-
-# RIGHT: Handle edge cases
-def max_value(items):
-    if not items:
-        return None
-    max_val = items[0]
-    for item in items:
-        if item > max_val:
-            max_val = item
-    return max_val
-"""
-
-[complexity]
-constant = "O(1) - Same time regardless of input size"
-logarithmic = "O(log n) - Halves problem each step (binary search)"
-linear = "O(n) - Proportional to input size"
-linearithmic = "O(n log n) - Good sorting algorithms"
-quadratic = "O(n²) - Nested loops over input"
-exponential = "O(2^n) - Explodes quickly (avoid!)"
-
-[gotchas]
-recursion_limit = "Python has recursion limit (~1000) - use iteration for deep recursion"
-sorting_stability = "Stable sorts preserve order of equal elements"
-average_vs_worst = "Quicksort is O(n log n) average, O(n²) worst case"
-python_sort = "Python's sort() is highly optimized - use it!"
-
-[gamepad_tutorial]
-text = """
-🎮 ALGORITHM MODE:
-- Press Y to suggest algorithm for problem
-- Press A to step through algorithm
-- Press X to analyze complexity
-- RB suggests optimizations
-- LB shows visualization
-- Hold LT to compare algorithms
-"""
-
-[challenges]
-starter = ""
-intermediate = ""
-mastery = ""
-
-[fun_facts]
-timsort = "Python's sort uses Timsort, invented by Tim Peters in 2002"
-big_o = "Big O notation describes how algorithm scales"
-np_complete = "Some problems have no known efficient solution (NP-complete)"
-memoization = "Cache results of expensive functions (dynamic programming)"
-
-[fun_factor]
-type = "optimization"
-description = "Make your code blazing fast"
-examples = ["Fast searches", "Smart pathfinding", "Efficient sorting"]
-
-[adaptive]
-weakness_signals = ["wrong_complexity", "missing_base_case", "inefficient_loops"]
-strength_indicators = ["optimal_algorithms", "clean_implementation", "good_analysis"]
+[meta]
+time_to_read = 65
+difficulty = "intermediate"
+tags = ["algorithms", "problem_solving", "efficiency"]

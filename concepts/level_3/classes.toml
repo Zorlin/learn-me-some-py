@@ -1,19 +1,17 @@
 # Level 3: Classes
-# Prerequisite for: dataclasses, inheritance, game entities
 
 [concept]
 id = "classes"
 name = "Classes: Build Your Own Types"
 level = 3
 category = "oop"
-prerequisites = ["functions", "dictionaries"]
-unlocks = ["dataclasses", "inheritance", "game_entities", "adaptive_engine"]
+order = 4
 
-[description]
-brief = "Create custom objects with data and behavior bundled together"
-detailed = """
-A class is like a blueprint for creating game entities. It bundles
-data (attributes) and behavior (methods) into one package.
+[content]
+lesson = """
+## Blueprints for Objects
+
+A class bundles data (attributes) and behavior (methods) together:
 
 ```python
 class Player:
@@ -23,195 +21,107 @@ class Player:
 
     def take_damage(self, damage):
         self.hp -= damage
-        return self.hp > 0  # Still alive?
 
 hero = Player("Alice", 100)
 hero.take_damage(30)  # hp is now 70
 ```
 
-Classes let you:
-- Model real-world concepts (Player, Enemy, Item)
-- Bundle related data and functions
-- Create multiple instances from one blueprint
-"""
+## The __init__ Method
 
-[syntax]
-basic = """
-class ClassName:
-    def __init__(self, param1, param2):
-        self.attribute1 = param1
-        self.attribute2 = param2
+`__init__` is the constructor - it runs when you create an instance:
 
-    def method_name(self):
-        return self.attribute1
-"""
-
-instance_creation = """
-# Create an instance
-obj = ClassName(value1, value2)
-
-# Access attributes
-print(obj.attribute1)
-
-# Call methods
-result = obj.method_name()
-"""
-
-[examples]
-basic = """
+```python
 class Enemy:
     def __init__(self, name, hp):
-        self.name = name
+        self.name = name    # Instance attribute
         self.hp = hp
-        self.alive = True
-
-    def take_damage(self, damage):
-        self.hp -= damage
-        if self.hp <= 0:
-            self.alive = False
+        self.alive = True   # Can set defaults too
 
 goblin = Enemy("Goblin", 50)
-goblin.take_damage(30)
-print(goblin.hp)  # 20
-"""
+print(goblin.name)  # "Goblin"
+```
 
-advanced = """
-class Inventory:
-    def __init__(self, max_size=10):
-        self.items = []
-        self.max_size = max_size
+## Methods Need self
 
-    def add_item(self, item):
-        if len(self.items) < self.max_size:
-            self.items.append(item)
-            return True
-        return False  # Inventory full
+Every method's first parameter is `self` - the instance itself:
 
-    def remove_item(self, item):
-        if item in self.items:
-            self.items.remove(item)
-            return True
-        return False  # Item not found
-
-    def count(self):
-        return len(self.items)
-
-player_inv = Inventory(max_size=5)
-player_inv.add_item("Sword")
-player_inv.add_item("Potion")
-print(player_inv.count())  # 2
-"""
-
-real_world = """
-class GameState:
+```python
+class Counter:
     def __init__(self):
-        self.score = 0
-        self.level = 1
-        self.player_hp = 100
+        self.count = 0
 
-    def earn_points(self, points):
-        self.score += points
-        if self.score >= self.level * 1000:
-            self.level_up()
+    def increment(self):       # self is required!
+        self.count += 1
 
-    def level_up(self):
-        self.level += 1
-        self.player_hp = 100  # Restore health
-        print(f"Level up! Now level {self.level}")
+    def get_count(self):
+        return self.count
 
-    def save_state(self):
-        return {
-            'score': self.score,
-            'level': self.level,
-            'hp': self.player_hp
-        }
+c = Counter()
+c.increment()
+print(c.get_count())  # 1
+```
 
-game = GameState()
-game.earn_points(1500)
-"""
+## Creating Multiple Instances
 
-[common_mistakes]
-forgetting_self = """
+Each instance has its own data:
+
+```python
+player1 = Player("Alice", 100)
+player2 = Player("Bob", 80)
+
+player1.take_damage(20)
+print(player1.hp)  # 80
+print(player2.hp)  # 80 (unchanged!)
+```
+
+## Common Mistakes
+
+```python
 # WRONG: Missing self
 class Broken:
     def __init__(name):  # Missing self!
-        name = name  # This won't work
+        name = name
 
-# RIGHT: Always include self
-class Works:
-    def __init__(self, name):
-        self.name = name
-"""
-
-init_typo = """
-# WRONG: Wrong initializer name
+# WRONG: Wrong spelling
 class Broken:
     def _init_(self):  # Should be __init__ (double underscores)
         pass
 
-# RIGHT: Double underscores
-class Works:
-    def __init__(self):
-        pass
+# WRONG: Forgetting self.
+class Broken:
+    def __init__(self, hp):
+        hp = hp  # Should be self.hp = hp
+```
 """
 
-class_vs_instance = """
-# WRONG: Mixing class and instance
-class Player:
-    hp = 100  # Class attribute (shared by all!)
+[content.try_it]
+prompt = "Create a simple Item class with name and value attributes"
+starter = '''
+# Create a class Item with name and value
+# Add a method describe() that returns "name: worth value gold"
 
-    def damage(self):
-        hp -= 10  # Wrong! Should be self.hp
+'''
+solution = '''
+# Create a class Item with name and value
+class Item:
+    def __init__(self, name, value):
+        self.name = name
+        self.value = value
 
-# RIGHT: Use instance attributes
-class Player:
-    def __init__(self):
-        self.hp = 100  # Instance attribute
+    def describe(self):
+        return f"{self.name}: worth {self.value} gold"
 
-    def damage(self):
-        self.hp -= 10  # Correct!
-"""
+sword = Item("Iron Sword", 50)
+print(sword.describe())  # "Iron Sword: worth 50 gold"
+'''
 
-[special_methods]
-init = "__init__(self, ...) - Constructor, runs when creating instance"
-str = "__str__(self) - Returns string representation (for print())"
-repr = "__repr__(self) - Returns developer-friendly representation"
-len = "__len__(self) - Makes len(obj) work"
-eq = "__eq__(self, other) - Makes obj1 == obj2 work"
+[connections]
+prerequisites = ["functions", "dictionaries"]
+enables = ["dataclasses", "magic_methods"]
+used_in = []
+see_also = ["functions", "scope"]
 
-[gotchas]
-self_always = "Every method needs self as first parameter"
-self_access = "Use self.attribute to access attributes in methods"
-class_vs_instance_vars = "Variables defined in class body are shared by all instances!"
-mutable_defaults = "Don't use mutable defaults in __init__: def __init__(self, items=[])"
-
-[gamepad_tutorial]
-text = """
-🎮 CLASS MODE:
-- Press Y to create a new class
-- Press A to create an instance
-- Press X to add a method
-- RB suggests method names based on class purpose
-- LB shows class structure
-- Hold RT while pressing A to auto-complete __init__
-"""
-
-[challenges]
-starter = "inventory_system"
-intermediate = ""
-mastery = ""
-
-[fun_facts]
-everything_is_object = "In Python, EVERYTHING is an object - even functions and classes!"
-dunder_methods = "__init__ and __str__ are 'dunder' (double underscore) methods"
-inheritance_preview = "Classes can inherit from other classes (coming in Level 5)"
-dataclass_preview = "Python 3.7+ has @dataclass decorator for simpler classes"
-
-[fun_factor]
-type = "modeling"
-description = "Create game entities with personality"
-examples = ["Player class", "Enemy with AI", "Item with effects"]
-
-[adaptive]
-weakness_signals = ["forgetting_self", "init_typo", "class_instance_confusion"]
-strength_indicators = ["clean_classes", "good_encapsulation", "proper_methods"]
+[meta]
+time_to_read = 60
+difficulty = "intermediate"
+tags = ["oop", "classes", "objects"]

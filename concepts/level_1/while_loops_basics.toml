@@ -1,85 +1,109 @@
-# Level 1: While Loops
-# Prerequisite for: game loops, event handling
+# Level 1: While Loops Basics
 
 [concept]
 id = "while_loops_basics"
-name = "While Loops: Keep Going Until Done"
+name = "While Loops: Until Done"
 level = 1
-prerequisites = ["if_else_basics", "for_loops_basics"]
-unlocks = ["game_loop", "while_loops_advanced"]
+category = "control_flow"
+order = 3
 
-[description]
-brief = "Repeat code while a condition is True"
-detailed = """
-While loops keep going until something changes. Unlike for loops (which loop
-a specific number of times), while loops run until their condition becomes False.
+[content]
+lesson = """
+## Keep Going Until...
+
+While loops keep running until a condition becomes False:
 
 ```python
 lives = 3
 while lives > 0:
-    print(f"Lives remaining: {lives}")
+    print(f"Lives: {lives}")
     lives -= 1
 print("Game Over!")
+
+# Output:
+# Lives: 3
+# Lives: 2
+# Lives: 1
+# Game Over!
 ```
 
-Perfect for game loops, user input, and "until done" situations.
+## For vs While
+
+- **For loops**: When you know how many times (loop 10 times)
+- **While loops**: Until something happens (until player quits)
+
+## The Classic Pattern
+
+```python
+count = 5
+while count > 0:
+    print(count)
+    count -= 1  # DON'T FORGET THIS!
+print("Blast off!")
+```
+
+## ⚠️ DANGER: Infinite Loops!
+
+If the condition never becomes False, the loop runs FOREVER:
+
+```python
+# INFINITE LOOP - DON'T DO THIS!
+x = 5
+while x > 0:
+    print(x)
+    # Forgot to decrease x! Loop never ends!
+```
+
+## Breaking Out Early
+
+Use `break` to exit a loop immediately:
+
+```python
+while True:  # Looks infinite, but...
+    answer = input("Type 'quit' to exit: ")
+    if answer == "quit":
+        break  # Exits the loop!
+print("Goodbye!")
+```
+
+## Skip to Next Iteration
+
+Use `continue` to skip the rest of the current iteration:
+
+```python
+count = 0
+while count < 5:
+    count += 1
+    if count == 3:
+        continue  # Skip printing 3
+    print(count)
+# Output: 1, 2, 4, 5 (no 3!)
+```
 """
 
-[examples]
-basic = """
-# Count down
+[content.try_it]
+prompt = "Count down from 5 to 1 using a while loop"
+starter = '''
+# Count down: 5, 4, 3, 2, 1, then print "Blast off!"
+count = 5
+
+'''
+solution = '''
+# Count down: 5, 4, 3, 2, 1, then print "Blast off!"
 count = 5
 while count > 0:
     print(count)
     count -= 1
 print("Blast off!")
-"""
+'''
 
-advanced = """
-# User input loop
-password = ""
-while password != "secret":
-    password = input("Enter password: ")
-    if password != "secret":
-        print("Wrong! Try again.")
-print("Access granted!")
-"""
+[connections]
+prerequisites = ["if_else", "for_loops_basics"]
+enables = ["while_loops"]
+used_in = ["guess_my_number"]
+see_also = ["for_loops_basics"]
 
-[syntax]
-condition = "while condition: (must end with colon)"
-infinite_loop = "while True: runs forever (use break to exit)"
-update_variable = "MUST change something in loop or it never ends!"
-
-[common_mistakes]
-infinite_loop = "Forgot to update loop variable = infinite loop! Always change the condition."
-wrong_condition = "while x = 5: is WRONG. Use while x == 5: (double equals)"
-off_by_one = "while x >= 0 includes 0, while x > 0 stops before 0"
-
-[fun_facts]
-break_exit = "Use 'break' to exit loop early"
-continue_skip = "Use 'continue' to skip rest of loop and start next iteration"
-while_true = "while True: with a break inside is a common pattern for menu loops"
-else_clause = "while loops can have else: that runs when loop finishes normally (no break)"
-
-[gamepad_tutorial]
-text = """
-🎮 LOOP CONTROLLER:
-- Press A to start while loop
-- RT (analog) to show loop condition status
-- Press B to insert break statement
-- LT to slow down loop execution (for debugging)
-"""
-
-[challenges]
-starter = "guess_my_number"
-intermediate = ""
-mastery = ""
-
-[fun_factor]
-type = "loop"
-description = "The engine of every game - keeps it running until player quits"
-examples = ["game main loop", "retry until success", "input validator"]
-
-[adaptive]
-weakness_signals = ["infinite_loop", "condition_never_changes", "break_in_wrong_place"]
-strength_indicators = ["clean_exit_condition", "appropriate_break_usage", "proper_update"]
+[meta]
+time_to_read = 50
+difficulty = "beginner"
+tags = ["loops", "iteration", "control_flow"]

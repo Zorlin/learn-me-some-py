@@ -1,188 +1,142 @@
 # Level 2: Boolean Logic
-# Prerequisite for: conditionals, filtering, validation
 
 [concept]
 id = "boolean_logic"
-name = "Boolean Logic: True, False, and Combinations"
+name = "Boolean Logic: and, or, not"
 level = 2
-prerequisites = ["variables", "if_elif_else"]
+category = "control_flow"
+order = 9
 
-[description]
-brief = "Combine conditions with and, or, not"
-detailed = """
-Boolean logic lets you combine multiple conditions. Essential for game logic
-like "if player has key AND door is locked" or "if HP low OR mana low".
+[content]
+lesson = """
+## Combining Conditions
+
+Boolean logic lets you combine multiple conditions. Essential for game logic!
 
 ```python
 has_key = True
 door_locked = True
 
 if has_key and door_locked:
-    print("You can unlock the door!")
+    print("You unlock the door!")
+```
 
-hp = 30
-mana = 10
+## The Three Operators
 
-if hp < 50 or mana < 20:
-    print("⚠️ Resources low!")
+| Operator | Meaning | Example |
+|----------|---------|---------|
+| `and` | Both must be True | `x > 0 and x < 10` |
+| `or` | At least one True | `hp < 20 or mp < 10` |
+| `not` | Flip True/False | `not is_dead` |
+
+## Truth Tables
+
+```python
+# and - Both must be True
+True and True   # True
+True and False  # False
+False and True  # False
+False and False # False
+
+# or - At least one must be True
+True or True    # True
+True or False   # True
+False or True   # True
+False or False  # False
+
+# not - Flip the value
+not True   # False
+not False  # True
+```
+
+## Practical Examples
+
+```python
+# Can attack if has weapon AND ammo AND in range
+can_attack = has_weapon and has_ammo and in_range
+
+# Need healing if HP low OR MP low
+need_heal = hp < 50 or mp < 20
+
+# Player is active if not dead
+is_active = not is_dead
+```
+
+## Operator Precedence
+
+`not` is checked first, then `and`, then `or`:
+
+```python
+# This might surprise you!
+not True or False   # False (not applied first)
+True or True and False  # True (and before or)
+
+# Use parentheses for clarity
+(not True) or False  # False
+True or (True and False)  # True
+```
+
+## Short-Circuit Evaluation
+
+Python stops evaluating as soon as it knows the answer:
+
+```python
+# and stops at first False
+False and expensive_function()  # Never calls the function!
+
+# or stops at first True
+True or expensive_function()   # Never calls the function!
+
+# Useful for safe checks
+if x != 0 and 10 / x > 5:  # Safe! Division only if x != 0
+    print("big")
+```
+
+## Truthiness
+
+Many values act as `True` or `False`:
+
+```python
+# Falsy values (act like False)
+if 0:         pass  # Falsy
+if "":        pass  # Falsy (empty string)
+if []:        pass  # Falsy (empty list)
+if None:      pass  # Falsy
+
+# Truthy values (act like True)
+if 1:         pass  # Truthy
+if "hello":   pass  # Truthy (non-empty string)
+if [1, 2]:    pass  # Truthy (non-empty list)
 ```
 """
 
-[operators]
-and = "Both must be true: (x > 0 and x < 10)"
-or = "At least one must be true: (x < 0 or x > 10)"
-not = "Reverses truth value: not is_dead"
-
-[truth_tables]
-and_table = """
-True  and True  → True
-True  and False → False
-False and True  → False
-False and False → False
-"""
-or_table = """
-True  or True  → True
-True  or False → True
-False or True  → True
-False or False → False
-"""
-not_table = """
-not True  → False
-not False → True
-"""
-
-[gotchas]
-short_circuit = """
-Python uses short-circuit evaluation:
-- 'and' stops at first False
-- 'or' stops at first True
-
-x = 0
-if x != 0 and 10 / x > 5:  # Safe! 10/x never runs
-    print("big")
-
-This matters for performance and avoiding errors!
-"""
-operator_precedence = """
-Operators have precedence (like math):
-1. not (highest)
-2. and
-3. or (lowest)
-
-not True or False  →  (not True) or False  →  False or False  →  False
-
-Use parentheses for clarity:
-(not (True or False))  →  not True  →  False
-"""
-truthy_and_falsy = """
-Many values act as True/False:
-Falsy: False, None, 0, 0.0, "", [], {}, set()
-Truthy: Everything else!
-
-if my_list:  # True if list has items
-    print("List is not empty")
-
-if not my_string:  # True if string is empty
-    print("String is empty")
-"""
-
-[gamepad_tutorial]
-text = """
-🎮 EASY MODE:
-- Press Y to add logical operator
-- Press RB to suggest condition combinations
-- D-pad to show truth table
-- Hold RT to see short-circuit demo
-"""
-
-[challenges]
-starter = "password_validator"
-intermediate = ""
-mastery = ""
-
-[fun_factor]
-type = "logic"
-description = "Like checking multiple requirements for actions or items"
-examples = ["unlock doors", "equip items", "cast spells", "access areas"]
-
-[adaptive]
-weakness_signals = ["precedence_confusion", "not_overuse", "complex_nesting"]
-strength_indicators = ["clean_conditions", "guard_clauses", "de_morgans_law"]
-
-[examples]
-basic = '''
-# Check player can attack
-has_weapon = True
-has_ammo = True
-in_range = True
-
-if has_weapon and has_ammo and in_range:
-    print("🗡️ Attack!")
-
-# Check for any healing item
-has_potion = False
-has_food = True
-has_spell = False
-
-if has_potion or has_food or has_spell:
-    print("💚 Can heal")
-
-# Invert a condition
-is_dead = False
-if not is_dead:
-    print("Player is alive")
-'''
-
-advanced = '''
-# Complex RPG requirements
+[content.try_it]
+prompt = "Check if a player can enter a dungeon (level >= 10 AND has quest)"
+starter = '''
 player_level = 15
 has_quest = True
-area_unlocked = False
-party_size = 3
 
-# Multiple AND conditions
-can_enter_dungeon = (
-    player_level >= 10 and
-    has_quest and
-    party_size >= 2
-)
+# Check if player can enter
 
-if can_enter_dungeon:
-    print("Entering dungeon!")
+'''
+solution = '''
+player_level = 15
+has_quest = True
 
-# Combining AND and OR
-hp = 25
-max_hp = 100
-has_regen = True
-in_combat = False
-
-should_heal = (
-    (hp < max_hp * 0.5 and not in_combat) or
-    (hp < max_hp * 0.2) or  # Critical! Heal even in combat
-    (has_regen and not in_combat)
-)
-
-if should_heal:
-    print("Healing...")
-
-# De Morgan's Law in action
-# not (A or B) == (not A) and (not B)
-# not (A and B) == (not A) or (not B)
-
-is_enemy_alive = True
-is_in_range = False
-
-# These are equivalent:
-cannot_attack = not (is_enemy_alive and is_in_range)
-cannot_attack = (not is_enemy_alive) or (not is_in_range)
+# Check if player can enter
+if player_level >= 10 and has_quest:
+    print("Welcome to the dungeon!")
+else:
+    print("Cannot enter yet.")
 '''
 
-[common_mistakes]
-mistake_1 = "Confusion with operator precedence: not x and y vs not (x and y)"
-mistake_2 = "Overly complex nested conditions - use guard clauses instead"
-mistake_3 = "Not using parentheses for clarity in complex expressions"
+[connections]
+prerequisites = ["if_else", "types"]
+enables = ["if_elif_else"]
+used_in = []
+see_also = ["if_else", "if_elif_else"]
 
-[fun_facts]
-fact_1 = "Boolean logic is named after George Boole (1815-1864), a mathematician"
-fact_2 = "All modern computers are built on Boolean algebra (AND, OR, NOT gates)"
-fact_3 = "Python's 'and' and 'or' return values, not just True/False: 0 or 5 → 5"
+[meta]
+time_to_read = 55
+difficulty = "beginner"
+tags = ["logic", "conditionals", "operators"]

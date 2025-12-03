@@ -1,149 +1,129 @@
-# Level 2: For Loops
-# Prerequisite for: list comprehensions, iteration patterns, algorithms
+# Level 2: For Loops (Advanced)
 
 [concept]
 id = "for_loops"
-name = "For Loops: Do Something For Each Item"
+name = "For Loops: Iterate Everything"
 level = 2
-prerequisites = ["lists_basics"]
+category = "control_flow"
+order = 7
 
-[description]
-brief = "Repeat code for every item in a collection"
-detailed = """
-A for loop lets you do something with every item in a list, string, or other collection.
-Think "for each item in my backpack, print its name".
+[content]
+lesson = """
+## Beyond range()
+
+For loops work on ANY iterable - lists, strings, dictionaries, sets, and more.
+
+## Looping Through Lists
 
 ```python
 items = ["sword", "shield", "potion"]
 for item in items:
     print(f"You have: {item}")
+```
 
-# Output:
-# You have: sword
-# You have: shield
-# You have: potion
+## Looping Through Dictionaries
+
+```python
+stats = {"hp": 100, "mp": 50, "xp": 0}
+
+# Keys only
+for key in stats:
+    print(key)
+
+# Key-value pairs
+for key, value in stats.items():
+    print(f"{key}: {value}")
+```
+
+## enumerate() - Get Index Too
+
+When you need both the item AND its position:
+
+```python
+items = ["sword", "bow", "staff"]
+
+# Old way (don't do this)
+for i in range(len(items)):
+    print(f"{i}: {items[i]}")
+
+# Better way with enumerate()
+for i, item in enumerate(items):
+    print(f"{i}: {item}")
+```
+
+## zip() - Loop Two Lists Together
+
+```python
+names = ["Alice", "Bob", "Carol"]
+scores = [95, 87, 92]
+
+for name, score in zip(names, scores):
+    print(f"{name}: {score}")
+```
+
+## break and continue
+
+```python
+# break exits the loop immediately
+for num in range(10):
+    if num == 5:
+        break
+    print(num)  # Prints 0, 1, 2, 3, 4
+
+# continue skips to next iteration
+for num in range(5):
+    if num == 2:
+        continue
+    print(num)  # Prints 0, 1, 3, 4 (no 2!)
+```
+
+## Nested Loops
+
+```python
+# 2D grid
+for row in range(3):
+    for col in range(3):
+        print(f"({row}, {col})", end=" ")
+    print()  # New line after each row
+```
+
+## Don't Modify While Looping!
+
+```python
+# WRONG - modifying list while iterating
+items = [1, 2, 3, 4, 5]
+for item in items:
+    if item % 2 == 0:
+        items.remove(item)  # Causes skipped items!
+
+# RIGHT - create a new list
+items = [x for x in items if x % 2 != 0]
 ```
 """
 
-[patterns]
-basic_iteration = '''
-for item in collection:
-    # Do something with item
+[content.try_it]
+prompt = "Use enumerate to print each item with its number (starting from 1)"
+starter = '''
+inventory = ["sword", "shield", "potion", "map"]
+
+# Print each item with its number: "1. sword", "2. shield", etc.
+
 '''
-with_range = '''
-for i in range(10):      # 0 to 9
-    print(i)
+solution = '''
+inventory = ["sword", "shield", "potion", "map"]
 
-for i in range(5, 10):   # 5 to 9
-    print(i)
-
-for i in range(0, 10, 2): # 0, 2, 4, 6, 8
-    print(i)
-'''
-with_enumerate = '''
-items = ["sword", "bow", "staff"]
-for index, item in enumerate(items):
-    print(f"{index}: {item}")
-# Output:
-# 0: sword
-# 1: bow
-# 2: staff
-'''
-with_dict = '''
-player = {"name": "Kira", "hp": 100, "level": 5}
-
-# Loop over keys
-for key in player:
-    print(key, player[key])
-
-# Loop over key-value pairs
-for key, value in player.items():
-    print(f"{key}: {value}")
+# Print each item with its number: "1. sword", "2. shield", etc.
+for i, item in enumerate(inventory, 1):
+    print(f"{i}. {item}")
 '''
 
-[gotchas]
-modifying_while_iterating = """
-DON'T modify a list while looping over it:
-items = [1, 2, 3, 4]
-for item in items:
-    if item % 2 == 0:
-        items.remove(item)  # DANGER! Skips items
+[connections]
+prerequisites = ["for_loops_basics", "lists"]
+enables = ["list_comprehensions"]
+used_in = []
+see_also = ["while_loops", "for_loops_basics"]
 
-DO: Create a new list or iterate over a copy:
-items = [1, 2, 3, 4]
-items = [x for x in items if x % 2 != 0]  # Better!
-"""
-range_confusion = """
-range(10) goes from 0 to 9, NOT 1 to 10!
-range(1, 11) gives you 1 to 10
-"""
-loop_variable_scope = """
-The loop variable persists after the loop:
-for i in range(3):
-    pass
-print(i)  # 2 (last value)
-"""
-
-[gamepad_tutorial]
-text = """
-🎮 EASY MODE:
-- Press Y to start a for loop on highlighted collection
-- Press RB to add enumerate() or .items()
-- D-pad DOWN to see iteration step-by-step
-- Hold RT for "fast iteration" visualization
-"""
-
-[challenges]
-starter = "fizz_buzz"
-intermediate = ""
-mastery = ""
-
-[fun_factor]
-type = "control_flow"
-description = "Like processing every enemy on screen or every item in inventory"
-examples = ["damage all enemies", "heal all party members", "render game objects"]
-
-[adaptive]
-weakness_signals = ["modifying_while_iterating", "range_off_by_one", "nested_loop_confusion"]
-strength_indicators = ["enumerate_usage", "proper_range", "clean_iteration"]
-
-[examples]
-basic = '''
-# Deal damage to all enemies
-enemies = ["goblin", "orc", "troll"]
-for enemy in enemies:
-    print(f"Attacking {enemy}!")
-    # damage_enemy(enemy)
-'''
-
-advanced = '''
-# Count item quantities in inventory
-inventory = ["potion", "sword", "potion", "shield", "potion"]
-counts = {}
-for item in inventory:
-    counts[item] = counts.get(item, 0) + 1
-
-print(counts)  # {'potion': 3, 'sword': 1, 'shield': 1}
-
-# 2D grid iteration (nested loops)
-grid = [
-    [".", ".", "X"],
-    [".", "X", "."],
-    ["X", ".", "."]
-]
-
-for row_idx, row in enumerate(grid):
-    for col_idx, cell in enumerate(row):
-        if cell == "X":
-            print(f"Enemy at ({row_idx}, {col_idx})")
-'''
-
-[common_mistakes]
-mistake_1 = "Modifying a list while iterating over it - causes skipped items"
-mistake_2 = "Using range(10) and expecting it to include 10"
-mistake_3 = "Not using enumerate() when you need both index and item"
-
-[fun_facts]
-fact_1 = "Python's for loops work on ANY iterable - lists, strings, files, ranges, etc!"
-fact_2 = "The 'for' name comes from FORTRAN's 'DO 10 I = 1, 100' loops from the 1950s"
-fact_3 = "You can loop backwards: for i in range(10, 0, -1)"
+[meta]
+time_to_read = 55
+difficulty = "intermediate"
+tags = ["loops", "iteration", "control_flow"]

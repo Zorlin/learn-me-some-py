@@ -1,19 +1,17 @@
 # Level 3: Exceptions
-# Prerequisite for: robust code, error handling
 
 [concept]
 id = "exceptions"
-name = "Exceptions: Handle Errors Gracefully"
+name = "Exceptions: Handle Errors"
 level = 3
 category = "error_handling"
-prerequisites = ["functions", "conditionals"]
-unlocks = ["robust_code", "custom_exceptions", "context_managers"]
+order = 5
 
-[description]
-brief = "Catch and handle errors without crashing"
-detailed = """
-Exceptions let you handle errors gracefully instead of crashing.
-Think of them as a parachute - when things go wrong, you land safely.
+[content]
+lesson = """
+## Catching Errors
+
+Exceptions let you handle errors gracefully:
 
 ```python
 try:
@@ -23,237 +21,93 @@ except ZeroDivisionError:
     print("Warning: No armor equipped!")
 ```
 
-Exceptions let you:
-- Recover from errors instead of crashing
-- Provide helpful error messages
-- Clean up resources (close files, etc.)
-- Separate error handling from normal logic
-"""
+## The try/except Pattern
 
-[syntax]
-basic = """
+```python
 try:
-    risky_operation()
-except ExceptionType:
+    # Risky code that might fail
+    result = risky_operation()
+except SomeError:
+    # What to do if it fails
     handle_error()
-"""
+```
 
-multiple_except = """
-try:
-    risky_operation()
-except ValueError:
-    handle_value_error()
-except KeyError:
-    handle_key_error()
-"""
+## Common Exceptions
 
-catch_all = """
-try:
-    risky_operation()
-except Exception as e:
-    print(f"Error: {e}")
-"""
+| Exception | When it happens |
+|-----------|-----------------|
+| `ValueError` | Invalid value: `int("hello")` |
+| `KeyError` | Missing dict key: `data["missing"]` |
+| `IndexError` | List index out of range |
+| `FileNotFoundError` | File doesn't exist |
+| `ZeroDivisionError` | Division by zero |
+| `TypeError` | Wrong type: `"hello" + 5` |
 
-finally = """
+## Multiple except Blocks
+
+```python
 try:
-    risky_operation()
-except Exception:
-    handle_error()
+    data = load_save_file()
+except FileNotFoundError:
+    print("No save file found")
+    data = create_new_save()
+except json.JSONDecodeError:
+    print("Save file corrupted")
+    data = create_new_save()
+```
+
+## The finally Block
+
+`finally` ALWAYS runs, even if there's an error:
+
+```python
+try:
+    file = open("data.txt")
+    process(file)
 finally:
-    cleanup()  # Always runs
+    file.close()  # Always closes!
+```
+
+## Raising Exceptions
+
+```python
+def set_hp(value):
+    if value < 0:
+        raise ValueError("HP cannot be negative")
+    self.hp = value
+```
 """
 
-else_clause = """
-try:
-    risky_operation()
-except Exception:
-    handle_error()
-else:
-    runs_if_no_error()
-finally:
-    always_runs()
-"""
+[content.try_it]
+prompt = "Handle a potential division by zero error"
+starter = '''
+def safe_divide(a, b):
+    # Return a / b, but handle division by zero
+    pass
 
-[common_exceptions]
-ValueError = "Invalid value: int('hello')"
-KeyError = "Missing dict key: data['missing']"
-IndexError = "List index out of range: items[999]"
-FileNotFoundError = "File doesn't exist: open('missing.txt')"
-ZeroDivisionError = "Division by zero: 10 / 0"
-TypeError = "Wrong type: 'hello' + 5"
-AttributeError = "Missing attribute: player.missing_field"
+print(safe_divide(10, 2))  # Should print 5.0
+print(safe_divide(10, 0))  # Should print "Cannot divide by zero" and return None
 
-[examples]
-basic = """
-def divide(a, b):
+'''
+solution = '''
+def safe_divide(a, b):
     try:
         return a / b
     except ZeroDivisionError:
-        print("Can't divide by zero!")
+        print("Cannot divide by zero")
         return None
 
-result = divide(10, 0)  # Prints warning, returns None
-"""
+print(safe_divide(10, 2))  # 5.0
+print(safe_divide(10, 0))  # Cannot divide by zero, None
+'''
 
-advanced = """
-def load_player_save(filename):
-    '''Load save file with comprehensive error handling'''
-    try:
-        with open(filename, 'r') as f:
-            data = json.load(f)
-            return data
-    except FileNotFoundError:
-        print(f"Save file '{filename}' not found")
-        return create_new_save()
-    except json.JSONDecodeError:
-        print(f"Save file '{filename}' is corrupted")
-        return create_new_save()
-    except Exception as e:
-        print(f"Unexpected error: {e}")
-        return None
+[connections]
+prerequisites = ["functions", "if_elif_else"]
+enables = ["context_managers"]
+used_in = []
+see_also = ["file_io"]
 
-player = load_player_save('save1.json')
-"""
-
-real_world = """
-class GameInventory:
-    def __init__(self):
-        self.items = {}
-
-    def add_item(self, item_id, quantity=1):
-        '''Add items with validation'''
-        if not isinstance(quantity, int):
-            raise TypeError(f"Quantity must be int, not {type(quantity)}")
-        if quantity <= 0:
-            raise ValueError(f"Quantity must be positive, not {quantity}")
-
-        self.items[item_id] = self.items.get(item_id, 0) + quantity
-
-    def remove_item(self, item_id, quantity=1):
-        '''Remove items with validation'''
-        if item_id not in self.items:
-            raise KeyError(f"Item '{item_id}' not in inventory")
-
-        if self.items[item_id] < quantity:
-            raise ValueError(f"Not enough '{item_id}' (have {self.items[item_id]})")
-
-        self.items[item_id] -= quantity
-        if self.items[item_id] == 0:
-            del self.items[item_id]
-
-# Usage with error handling
-inv = GameInventory()
-try:
-    inv.add_item('sword', 1)
-    inv.remove_item('sword', 2)  # Raises ValueError
-except ValueError as e:
-    print(f"Error: {e}")
-"""
-
-[common_mistakes]
-bare_except = """
-# WRONG: Catches everything (even Ctrl+C!)
-try:
-    do_something()
-except:  # Too broad!
-    pass
-
-# RIGHT: Catch specific exceptions
-try:
-    do_something()
-except ValueError:
-    handle_value_error()
-"""
-
-swallowing_errors = """
-# WRONG: Silent failure
-try:
-    important_operation()
-except Exception:
-    pass  # Error vanishes!
-
-# RIGHT: At least log it
-try:
-    important_operation()
-except Exception as e:
-    print(f"Error in operation: {e}")
-    # Or log it, or re-raise
-"""
-
-wrong_order = """
-# WRONG: Broad exception first
-try:
-    risky()
-except Exception:
-    print("Generic error")
-except ValueError:  # Never reached!
-    print("Value error")
-
-# RIGHT: Specific first, broad last
-try:
-    risky()
-except ValueError:
-    print("Value error")
-except Exception:
-    print("Other error")
-"""
-
-[raising_exceptions]
-basic_raise = """
-if hp <= 0:
-    raise ValueError("HP cannot be negative")
-"""
-
-custom_exception = """
-class InvalidMoveError(Exception):
-    pass
-
-def move_player(x, y):
-    if not is_valid_position(x, y):
-        raise InvalidMoveError(f"Can't move to ({x}, {y})")
-"""
-
-re_raise = """
-try:
-    process_data()
-except ValueError as e:
-    print(f"Warning: {e}")
-    raise  # Re-raise same exception
-"""
-
-[gotchas]
-finally_always = "finally runs even if you return or raise in try/except"
-exception_hierarchy = "Exception is parent of most exceptions (not BaseException)"
-performance = "Exceptions are slower than if-checks - don't use for control flow"
-cleanup = "Use finally for cleanup, or better yet, use context managers (with)"
-
-[gamepad_tutorial]
-text = """
-🎮 EXCEPTION MODE:
-- Press Y to wrap code in try/except
-- Press A to add except clause
-- Press X to add finally
-- RB suggests exception type based on code
-- LB shows common exceptions
-- Hold LT + A to see exception hierarchy
-"""
-
-[challenges]
-starter = "error_handler"
-intermediate = ""
-mastery = ""
-
-[fun_facts]
-eafp = "Python philosophy: 'Easier to Ask Forgiveness than Permission' (try/except over if-checks)"
-exception_hierarchy = "All exceptions inherit from BaseException"
-traceback = "import traceback to get detailed error info"
-context_managers = "Context managers use exceptions internally for cleanup"
-
-[fun_factor]
-type = "robustness"
-description = "Make your game bulletproof"
-examples = ["Graceful save failure", "Invalid input handling", "Network error recovery"]
-
-[adaptive]
-weakness_signals = ["bare_except", "swallowed_errors", "wrong_order"]
-strength_indicators = ["specific_exceptions", "proper_logging", "clean_recovery"]
+[meta]
+time_to_read = 55
+difficulty = "intermediate"
+tags = ["error_handling", "exceptions", "try_except"]

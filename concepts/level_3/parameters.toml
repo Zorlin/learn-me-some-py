@@ -1,18 +1,16 @@
 # Level 3: Function Parameters
-# Make functions flexible by accepting inputs
-# Prerequisite for: scope, lambda, comprehensions
 
 [concept]
 id = "parameters"
-name = "Parameters: Give Functions Inputs"
+name = "Parameters: Function Inputs"
 level = 3
 category = "functions"
-prerequisites = ["def_return", "variables"]
-unlocks = ["scope", "lambda", "args_kwargs"]
+order = 2
 
-[description]
-brief = "Functions can accept inputs to customize their behavior"
-detailed = """
+[content]
+lesson = """
+## Making Functions Flexible
+
 Parameters let you pass information INTO a function:
 
 ```python
@@ -25,251 +23,94 @@ greet("Player")  # "Hello, Player!"
 
 Same function, different inputs, different results!
 
-Think of parameters as slots in a vending machine:
-- You define what slots exist: `def vend(coin, button):`
-- You fill them when calling: `vend(quarter, "A1")`
-- The function uses them inside: `return snacks[button]`
-"""
+## Multiple Parameters
 
-[syntax]
-single_param = """
-def double(x):
-    return x * 2
-"""
-
-multiple_params = """
+```python
 def add(a, b):
     return a + b
-"""
 
-default_params = """
-def greet(name="Player"):
-    return f"Hello, {name}!"
-
-greet()          # Uses default: "Hello, Player!"
-greet("Hero")    # Uses provided: "Hello, Hero!"
-"""
-
-mixed_params = """
-def attack(base_damage, critical=False):
-    if critical:
-        return base_damage * 2
-    return base_damage
-
-attack(10)            # 10 (not critical)
-attack(10, True)      # 20 (critical!)
-attack(10, critical=True)  # 20 (same, but explicit)
-"""
-
-[examples]
-simple = """
-def calculate_damage(power, defense):
-    return max(0, power - defense)
-
-damage = calculate_damage(50, 20)  # 30
-"""
-
-with_defaults = """
-def heal(amount=10, target="player"):
-    return f"{target} healed for {amount} HP"
-
-heal()                    # "player healed for 10 HP"
-heal(25)                  # "player healed for 25 HP"
-heal(15, "ally")          # "ally healed for 15 HP"
-heal(target="boss", amount=100)  # "boss healed for 100 HP"
-"""
-
-keyword_args = """
-def create_character(name, level, hp, mana):
-    return {
-        "name": name,
-        "level": level,
-        "hp": hp,
-        "mana": mana
-    }
-
-# Positional (order matters)
-hero = create_character("Link", 10, 100, 50)
-
-# Keyword (order doesn't matter!)
-mage = create_character(
-    mana=100,
-    hp=60,
-    name="Gandalf",
-    level=50
-)
-"""
-
-[parameter_types]
-positional = """
-Order matters! Must be in the right position:
-```python
-def sub(a, b):
-    return a - b
-
-sub(10, 3)  # 7 (10 - 3)
-sub(3, 10)  # -7 (3 - 10) - different!
+add(5, 3)  # 8
 ```
-"""
 
-keyword = """
-Use parameter names explicitly:
+## Default Values
+
+Make parameters optional with defaults:
+
 ```python
-def attack(damage, critical):
+def attack(damage, critical=False):
     if critical:
         return damage * 2
     return damage
 
-# Clear and explicit
-attack(damage=50, critical=True)
-attack(critical=False, damage=20)  # Order doesn't matter!
+attack(50)         # 50
+attack(50, True)   # 100
+attack(50, critical=True)  # 100 (keyword argument)
 ```
-"""
 
-default = """
-Parameters with default values are optional:
+## Keyword Arguments
+
+Use parameter names explicitly:
+
 ```python
-def buff(stat, amount=10):
-    return stat + amount
+def create_character(name, hp, mp):
+    return {"name": name, "hp": hp, "mp": mp}
 
-buff(100)      # 110 (uses default)
-buff(100, 20)  # 120 (overrides default)
+# Positional (order matters)
+hero = create_character("Link", 100, 50)
+
+# Keyword (order doesn't matter!)
+mage = create_character(mp=100, hp=60, name="Gandalf")
 ```
-"""
 
-[common_mistakes]
-wrong_order = """
-# WRONG: Arguments in wrong order
-def divide(a, b):
-    return a / b
+## Parameter vs Argument
 
-divide(3, 10)  # 0.3 - not what you wanted!
+- **Parameter** = placeholder in definition: `def greet(name):`
+- **Argument** = actual value when calling: `greet("Hero")`
 
-# RIGHT: Check parameter order
-divide(10, 3)  # 3.333... - correct!
+## Common Mistake: Mutable Defaults
 
-# OR: Use keyword arguments
-divide(b=3, a=10)  # 3.333... - explicit and clear!
-"""
-
-too_few_args = """
-# WRONG: Missing required parameter
-def add(a, b):
-    return a + b
-
-add(5)  # ERROR: missing 1 required positional argument: 'b'
-
-# RIGHT: Provide all required parameters
-add(5, 3)  # 8
-
-# OR: Make it optional with default
-def add(a, b=0):
-    return a + b
-
-add(5)  # 5 (uses default b=0)
-"""
-
-too_many_args = """
-# WRONG: Too many arguments
-def greet(name):
-    return f"Hello, {name}!"
-
-greet("Hero", "extra")  # ERROR: takes 1 positional argument but 2 were given
-
-# RIGHT: Only pass what the function expects
-greet("Hero")  # "Hello, Hero!"
-"""
-
-mutable_defaults = """
-# DANGEROUS: Mutable default parameter (THE BUG territory!)
+```python
+# DANGEROUS!
 def add_item(inventory=[]):
     inventory.append("sword")
     return inventory
 
-# Each call uses the SAME list!
 inv1 = add_item()  # ["sword"]
-inv2 = add_item()  # ["sword", "sword"] - SURPRISE!
+inv2 = add_item()  # ["sword", "sword"] - Same list!
 
-# SAFE: Use None and create new list inside
+# SAFE:
 def add_item(inventory=None):
     if inventory is None:
         inventory = []
     inventory.append("sword")
     return inventory
-"""
-
-[gotchas]
-parameter_vs_argument = """
-**Parameter** = placeholder in function definition
-**Argument** = actual value when calling
-
-```python
-def greet(name):  # 'name' is a PARAMETER
-    return f"Hi {name}"
-
-greet("Hero")  # "Hero" is an ARGUMENT
 ```
 """
 
-default_position = """
-Parameters with defaults MUST come after required parameters:
+[content.try_it]
+prompt = "Create a function that calculates damage with optional critical multiplier"
+starter = '''
+# Create damage(base, critical=False) that doubles damage if critical
 
-```python
-# WRONG:
-def broken(name="Hero", level):  # SyntaxError!
-    pass
+'''
+solution = '''
+# Create damage(base, critical=False) that doubles damage if critical
+def damage(base, critical=False):
+    if critical:
+        return base * 2
+    return base
 
-# RIGHT:
-def works(level, name="Hero"):
-    pass
-```
-"""
+print(damage(50))         # 50
+print(damage(50, True))   # 100
+'''
 
-defaults_evaluated_once = """
-Default values are evaluated when the function is DEFINED, not when called!
-This is why mutable defaults (lists, dicts) are dangerous - they're shared!
-"""
-
-[gamepad_tutorial]
-text = """
-🎮 PARAMETER MODE:
-- After typing function name, press X to add parameters
-- RB suggests parameter names based on function name
-- D-pad RIGHT to add another parameter
-- D-pad DOWN to add default value (= ...)
-- Y to add type hint (advanced)
-
-Example:
-1. Type "def calculate_damage"
-2. X → prompts for parameter name
-3. Type "base" → parameter added
-4. D-pad RIGHT → add another parameter
-5. Type "critical" → parameter added
-6. D-pad DOWN → add default
-7. Type "False" → critical=False
-"""
-
-[challenges]
-starter = "custom_calculator"
-intermediate = ""
-mastery = ""
-
-[fun_facts]
-unlimited = "Python supports *args and **kwargs for unlimited parameters!"
-unpacking = "You can unpack lists/dicts into parameters: func(*my_list)"
-annotations = "Python supports type hints: def add(x: int, y: int) -> int"
-
-[fun_factor]
-type = "flexibility"
-description = "Make functions that adapt to what you need"
-examples = ["damage(50)", "damage(50, critical=True)", "damage(power=100, target='boss')"]
-
-[adaptive]
-weakness_signals = ["wrong_arg_count", "wrong_arg_order", "mutable_default_bug"]
-strength_indicators = ["keyword_arg_usage", "appropriate_defaults", "clear_param_names"]
+[connections]
+prerequisites = ["def_return", "variables"]
+enables = ["scope"]
+used_in = []
+see_also = ["def_return", "functions"]
 
 [meta]
-scope_preview = """
-Parameters create LOCAL variables inside the function!
-Understanding this is crucial to avoid THE BUG (scope leaks).
-"""
+time_to_read = 55
+difficulty = "intermediate"
+tags = ["functions", "parameters", "arguments"]

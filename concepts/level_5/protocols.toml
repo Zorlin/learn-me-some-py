@@ -1,26 +1,23 @@
-# Level 5: Protocols (Structural Subtyping)
-# Duck typing that type checkers understand
+# Level 5: Protocols
 
 [concept]
 id = "protocols"
-name = "Protocols: Structural Subtyping"
+name = "Protocols: Structural Typing"
 level = 5
 category = "type_system"
-prerequisites = ["type_hints", "classes", "duck_typing", "abstract_base_classes"]
-unlocks = ["static_duck_typing", "type_safe_apis", "generic_programming"]
+order = 3
 
-[description]
-brief = "Define interfaces based on structure, not inheritance"
-detailed = """
-Protocols let you define interfaces without requiring inheritance. If a class
-has the right methods/attributes, it satisfies the protocol - even if it never
-heard of your protocol! This is "static duck typing".
+[content]
+lesson = """
+## Duck Typing + Type Hints
+
+Protocols define interfaces based on structure, not inheritance.
+If it has the right methods, it satisfies the protocol!
 
 ```python
 from typing import Protocol
 
 class Drawable(Protocol):
-    \"\"\"Any object with a draw() method is Drawable.\"\"\"
     def draw(self) -> str:
         ...
 
@@ -32,93 +29,44 @@ class Square:
     def draw(self) -> str:
         return "⬜"
 
-class Triangle:
-    def draw(self) -> str:
-        return "🔺"
-
 def render(obj: Drawable) -> None:
-    \"\"\"Works with ANY object that has draw(), no inheritance needed!\"\"\"
     print(obj.draw())
 
-# All of these work, even though they don't inherit from Drawable!
-render(Circle())    # ⭕
-render(Square())    # ⬜
-render(Triangle())  # 🔺
-
-# Type checker (mypy) verifies they have draw() method
-class BadShape:
-    pass
-
-render(BadShape())  # Type error: BadShape doesn't have draw()!
+# Both work - no inheritance needed!
+render(Circle())  # ⭕
+render(Square())  # ⬜
 ```
 
-This combines Python's duck typing with static type checking!
-"""
+## Why Protocols?
 
-[key_concepts]
-protocol_definition = """
-Define a Protocol using typing.Protocol:
+Unlike Abstract Base Classes (ABC), protocols don't require inheritance:
 
 ```python
-from typing import Protocol
-
-class SupportsClose(Protocol):
-    def close(self) -> None:
-        ...
-
-# Any class with close() method satisfies this protocol
-class File:
-    def close(self) -> None:
-        print("Closing file")
-
-class Socket:
-    def close(self) -> None:
-        print("Closing socket")
-
-def cleanup(resource: SupportsClose) -> None:
-    resource.close()
-
-cleanup(File())    # OK
-cleanup(Socket())  # OK
-```
-"""
-
-structural_vs_nominal = """
-**Nominal typing** (ABC): Must explicitly inherit
-**Structural typing** (Protocol): Just needs the right shape
-
-```python
-from abc import ABC, abstractmethod
-from typing import Protocol
-
-# Nominal (requires inheritance)
-class AnimalABC(ABC):
+# ABC: Must explicitly inherit
+class Animal(ABC):
     @abstractmethod
-    def speak(self) -> str:
-        pass
+    def speak(self): pass
 
-class Dog(AnimalABC):  # Must inherit!
-    def speak(self) -> str:
-        return "Woof"
+class Dog(Animal):  # Must inherit!
+    def speak(self): return "Woof"
 
-# Structural (no inheritance needed)
-class AnimalProtocol(Protocol):
-    def speak(self) -> str:
-        ...
+# Protocol: Just needs the right shape
+class AnimalProto(Protocol):
+    def speak(self) -> str: ...
 
 class Cat:  # Doesn't inherit anything
     def speak(self) -> str:
         return "Meow"
 
-def make_sound(animal: AnimalProtocol) -> None:
+def make_sound(animal: AnimalProto):
     print(animal.speak())
 
 make_sound(Cat())  # Works! Cat has speak()
 ```
-"""
 
-runtime_checkable = """
-Make protocols checkable at runtime with @runtime_checkable:
+## Runtime Checking
+
+Use `@runtime_checkable` for isinstance():
 
 ```python
 from typing import Protocol, runtime_checkable
@@ -131,322 +79,73 @@ class Person:
     def __init__(self, name: str):
         self.name = name
 
-class Dog:
-    def __init__(self, name: str):
-        self.name = name
-
 p = Person("Alice")
-d = Dog("Spot")
-
-# Runtime checks work!
 print(isinstance(p, HasName))  # True
-print(isinstance(d, HasName))  # True
-
-# Without @runtime_checkable, isinstance() raises TypeError
 ```
-"""
 
-[patterns]
-comparable = """
-Define comparable objects:
+## Common Protocols
 
 ```python
-from typing import Protocol
+class Sized(Protocol):
+    def __len__(self) -> int: ...
 
 class Comparable(Protocol):
-    def __lt__(self, other) -> bool:
-        ...
-
-    def __le__(self, other) -> bool:
-        ...
-
-def find_min(items: list[Comparable]) -> Comparable:
-    return min(items)  # Works with any comparable type!
-
-# These all work:
-find_min([1, 2, 3])
-find_min(["a", "b", "c"])
-find_min([date(2024, 1, 1), date(2024, 6, 1)])
-```
-"""
-
-context_manager = """
-Protocol for context managers:
-
-```python
-from typing import Protocol
-
-class SupportsContextManager(Protocol):
-    def __enter__(self):
-        ...
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        ...
-
-def use_resource(resource: SupportsContextManager):
-    with resource:
-        print("Using resource")
-
-# Works with files, locks, database connections, etc.
-```
-"""
-
-sized = """
-Protocol for objects with length:
-
-```python
-from typing import Protocol
-
-class Sized(Protocol):
-    def __len__(self) -> int:
-        ...
+    def __lt__(self, other) -> bool: ...
 
 def is_empty(container: Sized) -> bool:
     return len(container) == 0
 
-# Works with lists, dicts, strings, custom containers
-is_empty([])
-is_empty({})
-is_empty("")
-is_empty(MyCustomContainer())
+# Works with lists, strings, custom classes...
 ```
 """
 
-[common_mistakes]
-defining_methods_with_pass = """
-WRONG (Protocol methods should use ... not pass):
-```python
-class BadProtocol(Protocol):
-    def method(self):
-        pass  # Don't do this in protocols
-```
-
-RIGHT:
-```python
-class GoodProtocol(Protocol):
-    def method(self):
-        ...  # Use ellipsis in protocols
-```
-
-Protocols are NOT meant to be instantiated!
-"""
-
-runtime_checks_without_decorator = """
-WRONG:
-```python
-class MyProtocol(Protocol):
-    def method(self):
-        ...
-
-isinstance(obj, MyProtocol)  # TypeError without @runtime_checkable!
-```
-
-RIGHT:
-```python
-from typing import runtime_checkable
-
-@runtime_checkable
-class MyProtocol(Protocol):
-    def method(self):
-        ...
-
-isinstance(obj, MyProtocol)  # Now it works!
-```
-"""
-
-using_when_abc_better = """
-Use ABC when you want:
-- Runtime enforcement (can't instantiate)
-- Default implementations
-- Explicit inheritance
-
-Use Protocol when you want:
-- Type checking without inheritance
-- Duck typing with types
-- Library code that shouldn't dictate inheritance
-"""
-
-[when_to_use]
-perfect_for = [
-    "Library APIs (don't force inheritance)",
-    "Type hints for duck-typed code",
-    "Generic functions that work with 'anything with X'",
-    "Third-party integrations",
-]
-
-avoid_for = [
-    "Internal class hierarchies (use ABC)",
-    "When you want runtime enforcement",
-    "When you need default implementations",
-]
-
-[gotchas]
-attributes_vs_properties = """
-Protocol cares about INTERFACE, not implementation:
-
-```python
-class HasX(Protocol):
-    x: int
-
-class WithAttribute:
-    def __init__(self):
-        self.x = 42
-
-class WithProperty:
-    @property
-    def x(self) -> int:
-        return 42
-
-# Both satisfy the protocol!
-def use_x(obj: HasX):
-    print(obj.x)
-
-use_x(WithAttribute())
-use_x(WithProperty())
-```
-"""
-
-variance = """
-Protocols support variance annotations:
-
-```python
-from typing import Protocol, TypeVar
-
-T_co = TypeVar('T_co', covariant=True)  # Covariant
-
-class Producer(Protocol[T_co]):
-    def produce(self) -> T_co:
-        ...
-
-# A Producer[Dog] is a Producer[Animal] (covariant)
-```
-"""
-
-[gamepad_tutorial]
-text = """
-🎮 PROTOCOL CHALLENGE MODE:
-- RT: Visualize which classes satisfy the protocol
-- LT: Show protocol vs ABC comparison
-- Y: Generate Protocol boilerplate
-- B: Add @runtime_checkable
-- D-pad: Navigate between protocol definitions and implementations
-"""
-
-[challenges]
-starter = ""
-intermediate = ""
-mastery = ""
-
-[fun_factor]
-type = "type_system"
-description = "Duck typing that IDEs and type checkers understand"
-examples = [
-    "Generic render() that works with anything drawable",
-    "sort() that works with anything comparable",
-    "Type-safe plugin system without inheritance",
-]
-
-[adaptive]
-weakness_signals = [
-    "using_pass_instead_of_ellipsis",
-    "forgetting_runtime_checkable",
-    "using_protocol_when_abc_better",
-    "confusion_about_structural_vs_nominal",
-]
-strength_indicators = [
-    "appropriate_protocol_choice",
-    "understanding_duck_typing",
-    "clean_generic_apis",
-]
-
-[fun_facts]
-python_38_addition = """
-Protocols were added in Python 3.8 (PEP 544) to bring static duck typing
-to Python. Before that, you couldn't type-hint duck-typed code effectively.
-"""
-
-go_and_typescript = """
-Protocols are similar to:
-- Interfaces in Go (structural)
-- Interfaces in TypeScript (structural)
-- NOT interfaces in Java/C# (those are nominal)
-
-Python protocols are structural like Go and TypeScript!
-"""
-
-stdlib_protocols = """
-typing module includes many useful protocols:
-
-```python
-from typing import Iterable, Iterator, Sized, Container
-
-# These are all protocols!
-def process(items: Iterable[int]) -> int:
-    return sum(items)
-
-# Works with lists, sets, generators, custom iterables, etc.
-```
-"""
-
-[real_world]
-typing = "Many stdlib types are protocols (Iterable, Sized, etc.)"
-mypy = "Type checker uses protocols extensively"
-pydantic = "Uses protocols for validation interfaces"
-fastapi = "Depends on protocols for dependency injection"
-
-[see_also]
-concepts = ["type_hints", "duck_typing", "abstract_base_classes"]
-stdlib = ["typing.Protocol", "collections.abc"]
-advanced = ["generic_types", "variance", "structural_pattern_matching"]
-comparison = ["abc_vs_protocol", "nominal_vs_structural"]
-
-[abc_vs_protocol]
-when_abc = """
-Use ABC when:
-- You want runtime enforcement (can't instantiate incomplete classes)
-- You need default implementations
-- You control the inheritance hierarchy
-- You want explicit "this IS-A that" relationships
-"""
-
-when_protocol = """
-Use Protocol when:
-- You're writing library code
-- You don't want to force inheritance
-- You're type-hinting existing duck-typed code
-- You want flexibility for users
-- Third-party code might implement your interface
-"""
-
-both = """
-You can use both! ABC for internal hierarchy, Protocol for public API:
-
-```python
-from abc import ABC, abstractmethod
+[content.try_it]
+prompt = "Create a Closeable protocol for objects with close() method"
+starter = '''
 from typing import Protocol
 
-# Internal: Use ABC
-class _BaseWeapon(ABC):
-    @abstractmethod
-    def attack(self) -> int:
-        pass
+# Create Closeable protocol
 
-# Public API: Use Protocol
-class Weapon(Protocol):
-    def attack(self) -> int:
+class File:
+    def close(self):
+        print("Closing file")
+
+class Socket:
+    def close(self):
+        print("Closing socket")
+
+def cleanup(resource):  # Add type hint
+    resource.close()
+'''
+solution = '''
+from typing import Protocol
+
+class Closeable(Protocol):
+    def close(self) -> None:
         ...
 
-# Your internal classes use ABC
-class Sword(_BaseWeapon):
-    def attack(self) -> int:
-        return 10
+class File:
+    def close(self) -> None:
+        print("Closing file")
 
-# Users can use Protocol without inheriting
-class Stick:  # User's class, doesn't inherit
-    def attack(self) -> int:
-        return 2
+class Socket:
+    def close(self) -> None:
+        print("Closing socket")
 
-def use_weapon(w: Weapon):  # Public API uses Protocol
-    print(w.attack())
-```
-"""
+def cleanup(resource: Closeable) -> None:
+    resource.close()
+
+cleanup(File())    # Closing file
+cleanup(Socket())  # Closing socket
+'''
+
+[connections]
+prerequisites = ["type_hints", "classes", "abstract_base_classes"]
+enables = []
+used_in = []
+see_also = ["abstract_base_classes", "type_hints"]
+
+[meta]
+time_to_read = 55
+difficulty = "advanced"
+tags = ["protocols", "typing", "duck_typing"]

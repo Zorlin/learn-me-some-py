@@ -1,17 +1,17 @@
 # Level 1: The input() Function
-# Get information from the user!
 
 [concept]
 id = "input_function"
-name = "input(): Ask the User Questions"
+name = "input(): Ask the User"
 level = 1
-prerequisites = ["print_function", "variables", "strings"]
+category = "io"
+order = 1
 
-[description]
-brief = "Let users type responses - make your programs interactive!"
-detailed = """
-input() pauses your program and waits for the user to type something.
-Whatever they type becomes a string you can use!
+[content]
+lesson = """
+## Making Programs Interactive
+
+`input()` pauses your program and waits for the user to type something. Whatever they type becomes a string you can use!
 
 ```python
 name = input("What's your name? ")
@@ -22,110 +22,75 @@ print("Hello, " + name + "!")
 # Hello, Archer!
 ```
 
-input() ALWAYS returns a string, even if they type a number!
-"""
+## The Golden Rule
 
-[syntax]
-basic = '''
-response = input("Your question: ")
-'''
-with_prompt = '''
-# The text in input() is shown to the user
+**input() ALWAYS returns a string**, even if they type a number!
+
+```python
 age = input("How old are you? ")
-color = input("Favorite color: ")
-'''
-no_prompt = '''
-# You can use input() without text (but it's confusing!)
-answer = input()  # User sees nothing, just waits
-'''
+# User types: 25
+# age is "25" (a STRING, not a number!)
 
-[usage]
-interactive = '''
-# Make a simple chatbot
-print("Welcome to Python!")
-name = input("What's your name? ")
-print(f"Nice to meet you, {name}!")
+print(age + 5)  # ERROR! Can't add string and number!
+```
 
-hobby = input("What do you like to do? ")
-print(f"{hobby} sounds fun!")
-'''
+## Converting Input to Numbers
 
-[gotchas]
-always_string = """
-input() ALWAYS returns a string, even if user types a number:
+Use `int()` or `float()` to convert:
 
-age = input("Age: ")  # User types: 25
-print(age + 5)        # ERROR! Can't add string "25" and int 5
+```python
+# Get a whole number
+age = int(input("Age: "))
+print(age + 10)  # Now this works!
 
-You need to convert! (See: type_conversion)
-age = int(input("Age: "))  # Now it's a number
-print(age + 5)             # 30 ✓
-"""
-newline_automatic = """
-input() automatically adds space after your prompt:
+# Get a decimal number
+price = float(input("Price: "))
+print(price * 1.08)  # Add tax
+```
 
-name = input("Name:")   # Shows: "Name:" (no space)
-name = input("Name: ")  # Shows: "Name: " (with space)
+## Building Interactive Programs
 
-The space before closing " is optional but looks better!
-"""
-no_validation = """
-input() accepts ANYTHING the user types:
-
-age = input("Age: ")  # User types: banana
-# age is now "banana" (a string)
-# If you try int(age), you'll get an error!
-
-Always be ready for weird input!
-"""
-
-[gamepad_tutorial]
-text = """
-🎮 CONTROLLER MODE:
-- Press A on "input" to auto-complete input()
-- Press Y to insert input with prompt template
-- Press RB to suggest good prompt text
-- D-pad UP to add type conversion wrapper
-"""
-
-[patterns]
-basic_interaction = '''
-# Ask question, use answer
-name = input("What's your name? ")
-print(f"Hello, {name}!")
-'''
-with_conversion = '''
-# Get a number from user
-age_string = input("Age: ")
-age = int(age_string)  # Convert to integer
-print(f"In 10 years you'll be {age + 10}")
-'''
-multiple_questions = '''
-# Build up information
-print("Character creator:")
+```python
+print("Character Creator")
 name = input("Name: ")
-hero_class = input("Class: ")
+char_class = input("Class (warrior/mage/rogue): ")
 weapon = input("Weapon: ")
-print(f"{name} the {hero_class} wields a {weapon}!")
+
+print(f"{name} the {char_class} wields a {weapon}!")
+```
+
+## Pro Tips
+
+```python
+# Add a space in your prompt for cleaner output
+name = input("Name:")   # Shows: "Name:John" (cramped)
+name = input("Name: ")  # Shows: "Name: John" (nicer)
+```
+"""
+
+[content.try_it]
+prompt = "Ask for the user's name and favorite color, then use them"
+starter = '''
+# Ask for name and color
+# Then print a message using both
+
+'''
+solution = '''
+# Ask for name and color
+name = input("What's your name? ")
+color = input("What's your favorite color? ")
+
+# Then print a message using both
+print("Hi " + name + "! " + color + " is a great color!")
 '''
 
-[challenges]
-starter = "mad_libs"
-intermediate = "guess_my_number"
-mastery = ""
+[connections]
+prerequisites = ["print_function", "variables", "strings"]
+enables = ["type_conversion"]
+used_in = ["personal_greeting", "mad_libs", "guess_my_number"]
+see_also = ["print_function", "type_conversion"]
 
-[fun_factor]
-type = "interaction"
-description = "Make programs that talk WITH users, not AT them"
-examples = ["text adventures", "quizzes", "character creators", "chatbots"]
-
-[adaptive]
-weakness_signals = ["forgot_type_conversion", "missing_prompt", "type_error"]
-strength_indicators = ["clear_prompts", "proper_conversion", "good_ux"]
-
-[fun_facts]
-history = "input() used to be called raw_input() in Python 2!"
-blocking = "input() PAUSES your program until the user types something"
-newline = "Users press Enter/Return to submit their input"
-universal = "Getting user input is fundamental to interactive programs"
-alternatives = "GUIs and games use different input methods, but the concept is the same!"
+[meta]
+time_to_read = 45
+difficulty = "beginner"
+tags = ["io", "user_input", "interactive"]

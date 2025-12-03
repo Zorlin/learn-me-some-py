@@ -1,107 +1,79 @@
 # Level 6: Descriptors
-# The protocol behind properties, methods, and more
 
 [concept]
 id = "descriptors"
-name = "Descriptors: Attribute Access Control"
+name = "Descriptors: Attribute Control"
 level = 6
 category = "meta_programming"
-prerequisites = ["classes", "properties", "dunder_methods", "decorators"]
-unlocks = ["custom_properties", "orm_fields", "validation_frameworks"]
+order = 2
 
-[description]
-brief = "Control what happens when you get, set, or delete an attribute"
-detailed = """
-Descriptors are the mechanism behind properties, methods, classmethods, and
-staticmethods. They let you customize attribute access at the protocol level.
+[content]
+lesson = """
+## The Protocol Behind @property
+
+Descriptors control what happens when you access an attribute:
 
 ```python
 class Validator:
-    def __init__(self, min_value, max_value):
-        self.min_value = min_value
-        self.max_value = max_value
+    def __init__(self, min_val, max_val):
+        self.min_val = min_val
+        self.max_val = max_val
 
     def __set_name__(self, owner, name):
-        # Called when descriptor is assigned to a class attribute
         self.name = name
 
     def __get__(self, instance, owner):
-        # Called when attribute is accessed
         if instance is None:
-            return self  # Accessed via class, not instance
+            return self
         return instance.__dict__.get(self.name)
 
     def __set__(self, instance, value):
-        # Called when attribute is set
-        if not self.min_value <= value <= self.max_value:
-            raise ValueError(f"{self.name} must be {self.min_value}-{self.max_value}")
+        if not self.min_val <= value <= self.max_val:
+            raise ValueError(f"{self.name} must be {self.min_val}-{self.max_val}")
         instance.__dict__[self.name] = value
 
 class Game:
     score = Validator(0, 100)
     level = Validator(1, 10)
 
-    def __init__(self, score, level):
-        self.score = score  # Calls Validator.__set__
-        self.level = level
-
-game = Game(50, 5)
-print(game.score)  # Calls Validator.__get__ → 50
-game.score = 150   # ValueError: score must be 0-100
+game = Game()
+game.score = 50   # OK
+game.score = 150  # ValueError!
 ```
 
-This is how Django's ORM fields work under the hood!
-"""
-
-[key_concepts]
-descriptor_protocol = """
-A descriptor implements one or more of these methods:
-
-- `__get__(self, instance, owner)` - Called on attribute access
-- `__set__(self, instance, value)` - Called on attribute assignment
-- `__delete__(self, instance)` - Called on attribute deletion
-- `__set_name__(self, owner, name)` - Called when assigned to class
+## The Descriptor Protocol
 
 ```python
 class Descriptor:
     def __set_name__(self, owner, name):
+        # Called when assigned to class attribute
         self.name = name
 
     def __get__(self, instance, owner):
-        print(f"Getting {self.name}")
-        return instance.__dict__.get(self.name)
+        # Called on attribute access
+        pass
 
     def __set__(self, instance, value):
-        print(f"Setting {self.name} to {value}")
-        instance.__dict__[self.name] = value
+        # Called on attribute assignment
+        pass
 
     def __delete__(self, instance):
-        print(f"Deleting {self.name}")
-        del instance.__dict__[self.name]
+        # Called on del
+        pass
 ```
-"""
 
-data_vs_non_data = """
-Two types of descriptors:
+## Data vs Non-Data Descriptors
 
-1. **Data descriptor**: Implements `__set__` or `__delete__`
-   - Takes priority over instance __dict__
-   - Used for enforced properties
-
-2. **Non-data descriptor**: Only implements `__get__`
-   - Instance __dict__ takes priority
-   - Used for methods, classmethod, staticmethod
+- **Data descriptor**: Has `__set__` → takes priority over instance
+- **Non-data descriptor**: Only `__get__` → instance can override
 
 ```python
 class DataDesc:
-    def __get__(self, instance, owner):
-        return "data"
-    def __set__(self, instance, value):
-        pass
+    def __get__(self, instance, owner): return "data"
+    def __set__(self, instance, value): pass
 
 class NonDataDesc:
-    def __get__(self, instance, owner):
-        return "non-data"
+    def __get__(self, instance, owner): return "non-data"
 
 class Test:
     data = DataDesc()
@@ -114,39 +86,52 @@ t.__dict__['non_data'] = 'override'
 print(t.data)      # "data" - descriptor wins
 print(t.non_data)  # "override" - __dict__ wins
 ```
-"""
 
-instance_vs_class_access = """
-Handle both instance and class access:
+## Lazy Property
 
 ```python
-class Method:
+class LazyProperty:
     def __init__(self, func):
         self.func = func
+        self.name = func.__name__
 
     def __get__(self, instance, owner):
         if instance is None:
-            # Accessed via class: MyClass.method
-            return self.func
-        # Accessed via instance: obj.method
-        return lambda *args, **kwargs: self.func(instance, *args, **kwargs)
+            return self
+        value = self.func(instance)
+        instance.__dict__[self.name] = value  # Cache it
+        return value
 
-class MyClass:
-    @Method
-    def greet(self, name):
-        return f"Hello {name}"
+class Dataset:
+    @LazyProperty
+    def expensive(self):
+        print("Computing...")
+        return sum(range(1000000))
 
-obj = MyClass()
-print(obj.greet("World"))        # "Hello World" (bound)
-print(MyClass.greet(obj, "World"))  # "Hello World" (unbound)
+data = Dataset()
+print(data.expensive)  # Computing... 499999500000
+print(data.expensive)  # 499999500000 (cached!)
 ```
 """
 
-[patterns]
-typed_field = """
-Enforce type checking on attributes:
+[content.try_it]
+prompt = "Create a Typed descriptor that enforces type checking"
+starter = '''
+class Typed:
+    def __init__(self, expected_type):
+        self.expected_type = expected_type
 
-```python
+    # Implement descriptor protocol
+
+class User:
+    name = Typed(str)
+    age = Typed(int)
+
+user = User()
+user.name = "Alice"  # OK
+user.age = "thirty"  # Should raise TypeError
+'''
+solution = '''
 class Typed:
     def __init__(self, expected_type):
         self.expected_type = expected_type
@@ -167,258 +152,19 @@ class Typed:
 class User:
     name = Typed(str)
     age = Typed(int)
-    email = Typed(str)
-```
-"""
 
-lazy_property = """
-Compute value once and cache it:
+user = User()
+user.name = "Alice"
+user.age = 30
+'''
 
-```python
-class LazyProperty:
-    def __init__(self, func):
-        self.func = func
-        self.name = func.__name__
+[connections]
+prerequisites = ["classes", "property_decorators", "magic_methods"]
+enables = []
+used_in = []
+see_also = ["property_decorators", "magic_methods"]
 
-    def __get__(self, instance, owner):
-        if instance is None:
-            return self
-        # Compute value
-        value = self.func(instance)
-        # Cache it by replacing descriptor with value
-        instance.__dict__[self.name] = value
-        return value
-
-class Dataset:
-    @LazyProperty
-    def expensive_computation(self):
-        print("Computing...")
-        return sum(range(1000000))
-
-data = Dataset()
-print(data.expensive_computation)  # Computing... 499999500000
-print(data.expensive_computation)  # 499999500000 (cached, no print)
-```
-"""
-
-django_style_field = """
-How Django's model fields work:
-
-```python
-class Field:
-    def __init__(self, default=None):
-        self.default = default
-
-    def __set_name__(self, owner, name):
-        self.name = name
-
-    def __get__(self, instance, owner):
-        if instance is None:
-            return self
-        return instance.__dict__.get(self.name, self.default)
-
-    def __set__(self, instance, value):
-        instance.__dict__[self.name] = value
-
-class Model:
-    id = Field()
-    name = Field(default="Unknown")
-
-    def __init__(self, **kwargs):
-        for key, value in kwargs.items():
-            setattr(self, key, value)
-```
-"""
-
-[common_mistakes]
-storing_in_descriptor = """
-WRONG (shared across all instances):
-```python
-class Bad:
-    def __init__(self):
-        self.value = None  # Shared by ALL instances!
-
-    def __set__(self, instance, value):
-        self.value = value  # WRONG!
-```
-
-RIGHT (store in instance):
-```python
-class Good:
-    def __set_name__(self, owner, name):
-        self.name = name
-
-    def __set__(self, instance, value):
-        instance.__dict__[self.name] = value  # RIGHT!
-```
-"""
-
-forgetting_instance_none = """
-WRONG:
-```python
-class Bad:
-    def __get__(self, instance, owner):
-        return instance.value  # AttributeError if instance is None!
-```
-
-RIGHT:
-```python
-class Good:
-    def __get__(self, instance, owner):
-        if instance is None:
-            return self  # Or return something appropriate
-        return instance.__dict__.get(self.name)
-```
-"""
-
-infinite_recursion = """
-WRONG:
-```python
-class Bad:
-    def __get__(self, instance, owner):
-        return instance.value  # If 'value' is this descriptor → infinite loop!
-```
-
-RIGHT:
-```python
-class Good:
-    def __set_name__(self, owner, name):
-        self.name = f"_{name}"  # Store with different name
-
-    def __get__(self, instance, owner):
-        return instance.__dict__.get(self.name)
-```
-"""
-
-[when_to_use]
-perfect_for = [
-    "ORM fields (Django, SQLAlchemy)",
-    "Type checking and validation",
-    "Lazy evaluation",
-    "Attribute access logging",
-    "Computed properties",
-]
-
-avoid_for = [
-    "Simple getters/setters (use @property)",
-    "One-off customizations",
-    "When the magic isn't worth the complexity",
-]
-
-[gotchas]
-lookup_order = """
-Attribute lookup order:
-1. Data descriptors from class.__mro__
-2. instance.__dict__
-3. Non-data descriptors from class.__mro__
-4. __getattr__() if defined
-
-This is why data descriptors (with __set__) are so powerful!
-"""
-
-set_name_timing = """
-`__set_name__` is called during class creation:
-
-```python
-class Desc:
-    def __set_name__(self, owner, name):
-        print(f"My name is {name} on {owner}")
-
-class MyClass:
-    field = Desc()  # Prints during class definition
-
-# Output: My name is field on <class 'MyClass'>
-```
-"""
-
-[gamepad_tutorial]
-text = """
-🎮 DESCRIPTOR CHALLENGE MODE:
-- RT: Visualize descriptor protocol flow
-- LT: Show __dict__ vs descriptor priority
-- Y: Generate descriptor boilerplate
-- A: Step through __get__/__set__ calls
-- D-pad: Navigate between descriptor types
-"""
-
-[challenges]
-starter = ""
-intermediate = ""
-mastery = ""
-
-[fun_factor]
-type = "meta_programming"
-description = "The protocol behind Python's attribute access"
-examples = [
-    "Build your own @property",
-    "Create Django-style ORM fields",
-    "Implement lazy evaluation like functools.cached_property",
-]
-
-[adaptive]
-weakness_signals = [
-    "storing_in_descriptor_instead_of_instance",
-    "forgetting_instance_none_check",
-    "infinite_recursion_errors",
-    "confusing_data_vs_nondata",
-]
-strength_indicators = [
-    "proper_instance_dict_usage",
-    "understanding_lookup_order",
-    "clean_descriptor_implementations",
-]
-
-[fun_facts]
-property_is_descriptor = """
-`@property` is just a descriptor!
-
-```python
-class Property:
-    def __init__(self, fget=None, fset=None, fdel=None):
-        self.fget = fget
-        self.fset = fset
-        self.fdel = fdel
-
-    def __get__(self, instance, owner):
-        if instance is None:
-            return self
-        return self.fget(instance)
-
-    def __set__(self, instance, value):
-        if self.fset is None:
-            raise AttributeError("can't set attribute")
-        self.fset(instance, value)
-```
-
-Python's actual `property` is implemented in C, but this is the idea!
-"""
-
-methods_are_descriptors = """
-Functions are non-data descriptors! That's how methods get `self`:
-
-```python
-def func(self):
-    pass
-
-# When you do obj.func(), the function's __get__ binds obj as self
-bound = func.__get__(obj, type(obj))
-bound()  # Equivalent to func(obj)
-```
-"""
-
-most_powerful_protocol = """
-Descriptors are arguably Python's most powerful protocol.
-Properties, methods, classmethods, staticmethods, and super()
-all use descriptors under the hood.
-"""
-
-[real_world]
-django = "Model fields use descriptors for database mapping"
-sqlalchemy = "Column definitions and ORM magic"
-attrs = "Type-validated attributes using descriptors"
-pydantic = "Data validation via descriptors"
-
-[see_also]
-concepts = ["properties", "decorators", "dunder_methods", "metaclasses"]
-built_in = ["property", "classmethod", "staticmethod", "functools.cached_property"]
-advanced = ["__getattribute__", "__setattr__", "data_model"]
+[meta]
+time_to_read = 60
+difficulty = "expert"
+tags = ["descriptors", "metaprogramming", "attributes"]

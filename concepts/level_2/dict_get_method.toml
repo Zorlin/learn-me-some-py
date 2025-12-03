@@ -1,0 +1,103 @@
+# Concept: The .get() Method
+# A cleaner way to handle missing keys
+
+[concept]
+id = "dict_get_method"
+name = "The .get() Method"
+level = 2
+category = "dictionaries"
+order = 4  # After dict_key_check
+
+[content]
+lesson = """
+## The Verbose Way
+
+You learned to check if a key exists first:
+
+```python
+counts = {}
+word = "cat"
+
+if word in counts:
+    counts[word] += 1
+else:
+    counts[word] = 1
+```
+
+This works, but it's 4 lines for a simple operation.
+
+## The Shortcut: .get()
+
+The `.get()` method returns a **default value** if the key doesn't exist:
+
+```python
+scores = {"alice": 95, "bob": 87}
+
+print(scores.get("alice", 0))    # 95 (found)
+print(scores.get("charlie", 0))  # 0  (not found, use default)
+```
+
+Syntax: `dict.get(key, default_value)`
+
+## Counting in One Line
+
+That 4-line counting pattern becomes 1 line:
+
+```python
+counts = {}
+word = "cat"
+
+counts[word] = counts.get(word, 0) + 1
+```
+
+**How it works:**
+1. `counts.get(word, 0)` returns the current count, or 0 if new
+2. We add 1 to it
+3. We store the result back
+
+## When to Use Each
+
+| Situation | Use |
+|-----------|-----|
+| Need to do different things for found/not-found | `if key in dict` |
+| Just need a default value | `.get(key, default)` |
+| Counting things | `.get(key, 0) + 1` |
+
+**The explicit `if/else` is always valid.** `.get()` is just a shortcut for common cases.
+"""
+
+[content.try_it]
+prompt = "Rewrite this counting code to use .get() instead of if/else"
+starter = '''
+counts = {}
+words = ["cat", "dog", "cat"]
+
+for word in words:
+    if word in counts:
+        counts[word] += 1
+    else:
+        counts[word] = 1
+
+print(counts)
+'''
+solution = '''
+counts = {}
+words = ["cat", "dog", "cat"]
+
+for word in words:
+    counts[word] = counts.get(word, 0) + 1
+
+print(counts)
+'''
+
+[connections]
+prerequisites = ["dict_key_check"]
+enables = ["dict_setdefault", "collections_counter"]
+used_in = ["word_counter", "anagram_checker"]
+see_also = ["dict_key_check"]
+
+[meta]
+time_to_read = 60
+difficulty = "beginner"
+tags = ["dictionaries", "shortcuts", "counting"]
+bonus = true  # This is "extra credit" - not required to proceed

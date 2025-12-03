@@ -1,20 +1,17 @@
 # Level 5: Property Decorators
-# Attribute access that looks like attributes but acts like methods
 
 [concept]
 id = "property_decorators"
 name = "Properties: Computed Attributes"
 level = 5
-category = "classes"
-prerequisites = ["classes", "decorators", "dunder_methods"]
-unlocks = ["descriptors", "data_validation", "computed_attributes"]
+category = "oop"
+order = 1
 
-[description]
-brief = "Turn methods into attributes with @property"
-detailed = """
-Properties let you write methods that look like attributes. You can compute
-values on the fly, validate input, or control access - all while maintaining
-a clean attribute-style interface.
+[content]
+lesson = """
+## Methods That Look Like Attributes
+
+Properties let you write methods that are accessed like attributes:
 
 ```python
 class Character:
@@ -25,46 +22,29 @@ class Character:
 
     @property
     def hp(self):
-        \"\"\"Get current HP.\"\"\"
         return self._hp
 
     @hp.setter
     def hp(self, value):
-        \"\"\"Set HP with validation.\"\"\"
-        if value < 0:
-            value = 0
-        elif value > self._max_hp:
-            value = self._max_hp
-        self._hp = value
+        # Validate and clamp
+        self._hp = max(0, min(value, self._max_hp))
 
     @property
     def hp_percentage(self):
-        \"\"\"Computed property - no setter.\"\"\"
         return (self._hp / self._max_hp) * 100
 
-    @property
-    def is_alive(self):
-        \"\"\"Boolean computed property.\"\"\"
-        return self._hp > 0
-
-# Usage looks like attributes!
 hero = Character("Hero", 100, 100)
-print(hero.hp)           # 100 (calls getter)
-print(hero.hp_percentage) # 100.0 (computed)
+print(hero.hp)           # 100 (no parentheses!)
+print(hero.hp_percentage) # 100.0
 
-hero.hp = 50             # Calls setter with validation
-hero.hp = -10            # Validated to 0
-hero.hp = 9999           # Validated to max_hp
-
-print(hero.is_alive)     # True (computed)
+hero.hp = 50             # Calls setter
+hero.hp = -10            # Clamped to 0
+hero.hp = 9999           # Clamped to max_hp
 ```
 
-From the outside, it looks like attributes. Inside, it's method logic!
-"""
+## Read-Only Properties
 
-[key_concepts]
-property_getter = """
-Use @property to turn a method into a read-only attribute:
+Don't define a setter for computed values:
 
 ```python
 class Circle:
@@ -75,22 +55,55 @@ class Circle:
     def area(self):
         return 3.14159 * self.radius ** 2
 
-    @property
-    def circumference(self):
-        return 2 * 3.14159 * self.radius
-
 circle = Circle(5)
-print(circle.area)          # 78.54 (computed, no parentheses!)
-print(circle.circumference) # 31.42
+print(circle.area)  # 78.54 (computed)
+# circle.area = 100  # Error! Can't set read-only property
 ```
 
-No need to call `circle.area()` - it looks like an attribute!
-"""
-
-property_setter = """
-Add @prop.setter to allow assignment:
+## Validation with Setters
 
 ```python
+class User:
+    @property
+    def age(self):
+        return self._age
+
+    @age.setter
+    def age(self, value):
+        if not isinstance(value, int):
+            raise TypeError("Age must be integer")
+        if value < 0 or value > 150:
+            raise ValueError("Age must be 0-150")
+        self._age = value
+```
+
+## Common Mistake: Infinite Recursion
+
+```python
+# WRONG - infinite recursion!
+class Bad:
+    @property
+    def name(self):
+        return self.name  # Calls itself!
+
+# RIGHT - use different name for storage
+class Good:
+    @property
+    def name(self):
+        return self._name  # Different attribute
+```
+
+## When to Use Properties
+
+- **Computed values**: area, full_name, is_valid
+- **Validation**: Ensure values are within range
+- **Lazy loading**: Compute expensive values on demand
+- **Backwards compatibility**: Turn attribute into method
+"""
+
+[content.try_it]
+prompt = "Create a Temperature class with celsius and fahrenheit properties"
+starter = '''
 class Temperature:
     def __init__(self, celsius):
         self._celsius = celsius
@@ -99,450 +112,36 @@ class Temperature:
     def celsius(self):
         return self._celsius
 
-    @celsius.setter
-    def celsius(self, value):
-        if value < -273.15:
-            raise ValueError("Below absolute zero!")
-        self._celsius = value
+    # Add fahrenheit property (read-only)
+    # Formula: F = C * 9/5 + 32
+
+temp = Temperature(100)
+print(temp.fahrenheit)  # Should print 212.0
+'''
+solution = '''
+class Temperature:
+    def __init__(self, celsius):
+        self._celsius = celsius
+
+    @property
+    def celsius(self):
+        return self._celsius
 
     @property
     def fahrenheit(self):
         return self._celsius * 9/5 + 32
 
-    @fahrenheit.setter
-    def fahrenheit(self, value):
-        self.celsius = (value - 32) * 5/9  # Converts to Celsius
-
-temp = Temperature(0)
-print(temp.celsius)    # 0
-print(temp.fahrenheit) # 32.0
-
-temp.fahrenheit = 212  # Sets via setter
-print(temp.celsius)    # 100.0 (converted!)
-```
-"""
-
-property_deleter = """
-Add @prop.deleter for del statement:
-
-```python
-class CachedProperty:
-    def __init__(self):
-        self._cache = None
-
-    @property
-    def data(self):
-        if self._cache is None:
-            print("Computing expensive data...")
-            self._cache = expensive_computation()
-        return self._cache
-
-    @data.deleter
-    def data(self):
-        print("Clearing cache")
-        self._cache = None
-
-obj = CachedProperty()
-print(obj.data)  # Computing expensive data... → result
-print(obj.data)  # result (from cache)
-del obj.data     # Clearing cache
-print(obj.data)  # Computing expensive data... → result
-```
-"""
-
-[patterns]
-lazy_evaluation = """
-Compute expensive values only when needed:
-
-```python
-class Dataset:
-    def __init__(self, filename):
-        self.filename = filename
-        self._data = None
-
-    @property
-    def data(self):
-        if self._data is None:
-            print(f"Loading {self.filename}...")
-            self._data = load_large_file(self.filename)
-        return self._data
-
-dataset = Dataset("huge.csv")
-# File not loaded yet
-print(dataset.data)  # NOW it loads
-print(dataset.data)  # Returns cached version
-```
-"""
-
-validation = """
-Validate values on assignment:
-
-```python
-class User:
-    def __init__(self, username, age):
-        self.username = username
-        self.age = age
-
-    @property
-    def age(self):
-        return self._age
-
-    @age.setter
-    def age(self, value):
-        if not isinstance(value, int):
-            raise TypeError("Age must be an integer")
-        if value < 0 or value > 150:
-            raise ValueError("Age must be 0-150")
-        self._age = value
-
-user = User("Alice", 30)
-user.age = 25      # OK
-user.age = -5      # ValueError!
-user.age = "old"   # TypeError!
-```
-"""
-
-dependent_properties = """
-Properties that depend on each other:
-
-```python
-class Rectangle:
-    def __init__(self, width, height):
-        self._width = width
-        self._height = height
-
-    @property
-    def width(self):
-        return self._width
-
-    @width.setter
-    def width(self, value):
-        self._width = value
-
-    @property
-    def height(self):
-        return self._height
-
-    @height.setter
-    def height(self, value):
-        self._height = value
-
-    @property
-    def area(self):
-        return self._width * self._height
-
-    @property
-    def perimeter(self):
-        return 2 * (self._width + self._height)
-
-rect = Rectangle(10, 5)
-rect.width = 20        # Changes width
-print(rect.area)       # 100 (automatically updated!)
-print(rect.perimeter)  # 50
-```
-"""
-
-[common_mistakes]
-calling_property = """
-WRONG (properties don't use parentheses):
-```python
-class Example:
-    @property
-    def value(self):
-        return 42
-
-obj = Example()
-print(obj.value())  # TypeError: 'int' object is not callable
-```
-
-RIGHT:
-```python
-print(obj.value)  # 42
-```
-"""
-
-setter_without_getter = """
-WRONG (must define getter first):
-```python
-class Bad:
-    @value.setter  # NameError: 'value' not defined
-    def value(self, val):
-        self._value = val
-```
-
-RIGHT (getter must come first):
-```python
-class Good:
-    @property
-    def value(self):
-        return self._value
-
-    @value.setter
-    def value(self, val):
-        self._value = val
-```
-"""
-
-infinite_recursion = """
-WRONG (property calls itself):
-```python
-class Bad:
-    @property
-    def name(self):
-        return self.name  # Infinite recursion!
-
-    @name.setter
-    def name(self, value):
-        self.name = value  # Infinite recursion!
-```
-
-RIGHT (use different name for storage):
-```python
-class Good:
-    @property
-    def name(self):
-        return self._name  # Different attribute
-
-    @name.setter
-    def name(self, value):
-        self._name = value
-```
-"""
-
-[when_to_use]
-perfect_for = [
-    "Computed values (area, full_name, etc.)",
-    "Validation on assignment",
-    "Lazy evaluation",
-    "Backwards compatibility (method → property)",
-    "Clean API without getters/setters",
-]
-
-avoid_for = [
-    "Expensive computations (unless cached)",
-    "Operations with side effects",
-    "When mutation isn't obvious",
-]
-
-[gotchas]
-property_vs_method = """
-Use properties for attribute-like access, methods for actions:
-
-PROPERTY (noun-like, cheap):
-```python
-@property
-def age(self):
-    return self._age
-
-@property
-def full_name(self):
-    return f"{self.first} {self.last}"
-```
-
-METHOD (verb-like, may be expensive):
-```python
-def save_to_database(self):
-    # Action with side effects
-
-def calculate_complex_statistics(self):
-    # Expensive operation
-```
-"""
-
-properties_not_inherited_to_slots = """
-Be careful with __slots__ and properties:
-
-```python
-class Base:
-    __slots__ = ['_x']
-
-    @property
-    def x(self):
-        return self._x
-
-    @x.setter
-    def x(self, value):
-        self._x = value
-
-obj = Base()
-obj.x = 42  # Works
-```
-"""
-
-[gamepad_tutorial]
-text = """
-🎮 PROPERTY CHALLENGE MODE:
-- RT: Visualize property dependencies
-- LT: Show getter/setter/deleter flow
-- Y: Convert method to @property
-- B: Add setter with validation
-- A: Add computed property
-- D-pad: Navigate between property and storage attribute
-"""
-
-[challenges]
-starter = "property_validator"
-intermediate = ""
-mastery = ""
-
-[fun_factor]
-type = "classes"
-description = "Attributes that are secretly smart"
-examples = [
-    "Character.hp with automatic clamping",
-    "Circle.area computed on the fly",
-    "User.age with validation",
-]
-
-[adaptive]
-weakness_signals = [
-    "calling_property_with_parentheses",
-    "setter_before_getter",
-    "infinite_recursion",
-    "using_properties_for_expensive_operations",
-]
-strength_indicators = [
-    "appropriate_property_usage",
-    "clean_validation_patterns",
-    "good_naming_conventions",
-    "understanding_when_not_to_use",
-]
-
-[fun_facts]
-pythonic_not_java = """
-Python properties replace Java-style getters/setters:
-
-Java (verbose):
-```java
-class User {
-    private String name;
-
-    public String getName() {
-        return this.name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-}
-```
-
-Python (clean):
-```python
-class User:
-    @property
-    def name(self):
-        return self._name
-
-    @name.setter
-    def name(self, value):
-        self._name = value
-```
-
-But usually in Python you just use `self.name` directly!
-"""
-
-property_is_descriptor = """
-`@property` is actually a descriptor! When you write:
-
-```python
-@property
-def x(self):
-    return self._x
-```
-
-Python creates a descriptor object with __get__, __set__, __delete__ methods.
-See the 'descriptors' concept for how this works under the hood!
-"""
-
-cached_property = """
-Python 3.8+ includes functools.cached_property for lazy evaluation:
-
-```python
-from functools import cached_property
-
-class DataSet:
-    @cached_property
-    def summary(self):
-        # Computed once, then cached
-        return expensive_analysis(self.data)
-```
-
-After first access, the property is replaced with a plain attribute!
-"""
-
-[real_world]
-django = "Model fields use properties for database access"
-pydantic = "Data validation via property-like fields"
-sqlalchemy = "ORM relationships as properties"
-dataclasses = "Auto-generated properties for fields"
-
-[see_also]
-concepts = ["decorators", "descriptors", "dunder_methods"]
-stdlib = ["functools.cached_property", "functools.lru_cache"]
-patterns = ["lazy_evaluation", "data_validation"]
-
-[best_practices]
-naming_conventions = """
-Use descriptive names that sound like attributes:
-
-GOOD:
-```python
-@property
-def full_name(self):  # Noun phrase
-
-@property
-def is_valid(self):   # Boolean adjective
-
-@property
-def total_score(self):  # Noun phrase
-```
-
-NOT SO GOOD:
-```python
-@property
-def get_name(self):  # Sounds like a method
-
-@property
-def calculate_score(self):  # Sounds like an action
-```
-"""
-
-read_only_properties = """
-For read-only properties, don't define a setter:
-
-```python
-class Circle:
-    def __init__(self, radius):
-        self.radius = radius
-
-    @property
-    def area(self):
-        \"\"\"Read-only computed property.\"\"\"
-        return 3.14159 * self.radius ** 2
-
-circle = Circle(5)
-print(circle.area)   # 78.54
-circle.area = 100    # AttributeError: can't set attribute
-```
-
-This makes it clear the property is computed, not stored.
-"""
-
-private_storage = """
-Use underscore prefix for storage attributes:
-
-```python
-class User:
-    @property
-    def name(self):
-        return self._name  # Storage attribute
-
-    @name.setter
-    def name(self, value):
-        self._name = value
-
-# Interface: obj.name
-# Storage: obj._name (private by convention)
-```
-"""
+temp = Temperature(100)
+print(temp.fahrenheit)  # 212.0
+'''
+
+[connections]
+prerequisites = ["classes", "decorators"]
+enables = ["descriptors"]
+used_in = []
+see_also = ["decorators", "classes"]
+
+[meta]
+time_to_read = 55
+difficulty = "advanced"
+tags = ["property", "decorators", "oop"]

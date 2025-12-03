@@ -1,172 +1,140 @@
-# Level 2: While Loops
-# Prerequisite for: game loops, event handling, user input
+# Level 2: While Loops (Advanced)
 
 [concept]
 id = "while_loops"
-name = "While Loops: Keep Going Until..."
+name = "While Loops: Advanced Patterns"
 level = 2
-prerequisites = ["for_loops", "boolean_logic"]
+category = "control_flow"
+order = 8
 
-[description]
-brief = "Repeat code while a condition is true"
-detailed = """
-A while loop keeps running as long as a condition is true. Perfect for game loops,
-waiting for input, or when you don't know how many times to repeat.
+[content]
+lesson = """
+## Game Loop Pattern
+
+The most important while loop pattern - keeps your game running:
+
+```python
+game_running = True
+while game_running:
+    command = input("What do you do? ")
+    if command == "quit":
+        game_running = False
+    else:
+        process_command(command)
+```
+
+## The while True Pattern
+
+Use `while True` with `break` for cleaner exit conditions:
+
+```python
+while True:
+    answer = input("Password: ")
+    if answer == "secret":
+        print("Access granted!")
+        break  # Exit the loop
+    print("Wrong password!")
+```
+
+## Multiple Exit Conditions
+
+Combine conditions for complex loops:
 
 ```python
 hp = 100
-while hp > 0:
-    print(f"HP: {hp}")
-    hp -= 10  # Take damage
+enemies = 5
 
-print("Game Over!")
+while hp > 0 and enemies > 0:
+    # Battle continues while alive AND enemies remain
+    hp -= 10
+    enemies -= 1
+
+if hp <= 0:
+    print("You died!")
+else:
+    print("You won!")
 ```
-"""
 
-[patterns]
-basic_while = '''
-while condition:
-    # Do something
-    # (Usually modify condition eventually)
-'''
-infinite_with_break = '''
-while True:
-    user_input = input("Command: ")
-    if user_input == "quit":
-        break  # Exit the loop
-    process_command(user_input)
-'''
-with_counter = '''
-count = 0
-while count < 10:
-    print(count)
-    count += 1
-'''
-with_continue = '''
-i = 0
-while i < 10:
-    i += 1
-    if i % 2 == 0:
-        continue  # Skip even numbers
-    print(i)
-'''
+## Retry Pattern
 
-[gotchas]
-infinite_loops = """
-Forgetting to modify the condition causes infinite loops:
-x = 0
-while x < 10:
-    print(x)  # x never changes! Loop forever!
+Attempt something multiple times:
 
-✓ Always update the condition variable:
-x = 0
-while x < 10:
-    print(x)
-    x += 1  # Now it will exit
-"""
-while_true_danger = """
-while True is powerful but dangerous:
-✓ Good: Always include a break condition
-✗ Bad: No way to exit = frozen program
-
-while True:
-    if should_quit():
-        break  # Must have this!
-    do_work()
-"""
-off_by_one = """
-Be careful with loop exit conditions:
-x = 0
-while x < 10:  # Runs 0-9 (10 times)
-    x += 1
-
-x = 0
-while x <= 10:  # Runs 0-10 (11 times)
-    x += 1
-"""
-
-[gamepad_tutorial]
-text = """
-🎮 EASY MODE:
-- Press Y to add break statement
-- Press RB to suggest loop condition
-- D-pad DOWN to step through loop iteration
-- Hold LT to see "infinite loop warning"
-"""
-
-[challenges]
-starter = "guess_my_number"
-intermediate = ""
-mastery = ""
-
-[fun_factor]
-type = "control_flow"
-description = "Like main game loops or waiting for player input"
-examples = ["game loop", "menu system", "wait for event", "retry logic"]
-
-[adaptive]
-weakness_signals = ["infinite_loop", "off_by_one_errors", "missing_break"]
-strength_indicators = ["proper_exit_condition", "break_usage", "avoiding_while_for_known_count"]
-
-[examples]
-basic = '''
-# Guess the number
-secret = 42
-guess = 0
-
-while guess != secret:
-    guess = int(input("Guess: "))
-    if guess < secret:
-        print("Too low!")
-    elif guess > secret:
-        print("Too high!")
-
-print("You got it!")
-'''
-
-advanced = '''
-# Game loop with multiple exit conditions
-game_running = True
-player_hp = 100
-enemies_remaining = 5
-
-while game_running and player_hp > 0 and enemies_remaining > 0:
-    action = get_player_action()
-
-    if action == "quit":
-        game_running = False
-        break
-
-    if action == "attack":
-        enemies_remaining -= 1
-        player_hp -= 10  # Take damage
-
-    if enemies_remaining == 0:
-        print("Victory!")
-        break
-
-if player_hp <= 0:
-    print("Defeat!")
-
-# Retry with max attempts
-max_attempts = 3
+```python
 attempts = 0
+max_attempts = 3
 success = False
 
 while attempts < max_attempts and not success:
-    success = try_operation()
-    attempts += 1
+    try:
+        result = risky_operation()
+        success = True
+    except:
+        attempts += 1
+        print(f"Retry {attempts}/{max_attempts}")
 
-    if not success and attempts < max_attempts:
-        print(f"Retrying... ({attempts}/{max_attempts})")
+if not success:
+    print("All attempts failed")
+```
+
+## The else Clause
+
+`else` runs if loop completes normally (no `break`):
+
+```python
+for num in range(2, 10):
+    for i in range(2, num):
+        if num % i == 0:
+            break
+    else:
+        # No break happened - num is prime
+        print(f"{num} is prime")
+```
+
+## Common Mistake: Forgetting to Update
+
+```python
+# INFINITE LOOP!
+x = 0
+while x < 10:
+    print(x)
+    # Forgot: x += 1
+
+# Fixed
+x = 0
+while x < 10:
+    print(x)
+    x += 1  # Don't forget!
+```
+"""
+
+[content.try_it]
+prompt = "Create a guessing game loop that continues until correct"
+starter = '''
+secret = 7
+# Keep asking for guesses until they get it right
+
+'''
+solution = '''
+secret = 7
+# Keep asking for guesses until they get it right
+while True:
+    guess = int(input("Guess a number: "))
+    if guess == secret:
+        print("Correct!")
+        break
+    elif guess < secret:
+        print("Too low!")
+    else:
+        print("Too high!")
 '''
 
-[common_mistakes]
-mistake_1 = "Infinite loops from forgetting to update the condition variable"
-mistake_2 = "Using 'while' when 'for' would be clearer (if you know the count)"
-mistake_3 = "while True without proper break conditions"
+[connections]
+prerequisites = ["while_loops_basics", "boolean_logic"]
+enables = []
+used_in = ["guess_my_number"]
+see_also = ["for_loops", "while_loops_basics"]
 
-[fun_facts]
-fact_1 = "Game engines run on a 'while True' loop, checking inputs 60+ times per second!"
-fact_2 = "The first while loop was in ALGOL 60 (1960) - before that, programmers used GOTOs"
-fact_3 = "You can add 'else' to while: runs if loop exits normally (not via break)"
+[meta]
+time_to_read = 55
+difficulty = "intermediate"
+tags = ["loops", "control_flow", "game_loops"]

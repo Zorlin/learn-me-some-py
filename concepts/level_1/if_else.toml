@@ -1,17 +1,17 @@
 # Level 1: If/Else
-# Prerequisite for: if_elif_else, boolean_logic
 
 [concept]
-id = "if_else_basics"
+id = "if_else"
 name = "If/Else: Making Decisions"
 level = 1
-prerequisites = ["types_basics", "boolean_logic"]
-unlocks = ["if_elif_else", "while_loops"]
+category = "control_flow"
+order = 0
 
-[description]
-brief = "Make your code choose between two paths"
-detailed = """
-Sometimes code needs to make decisions. If/else is like a fork in the road.
+[content]
+lesson = """
+## The Fork in the Road
+
+Sometimes code needs to make decisions. `if/else` is like a fork in the road - your code takes ONE path, never both.
 
 ```python
 age = 18
@@ -21,69 +21,87 @@ else:
     print("Not old enough yet")
 ```
 
-The code takes ONE path, never both.
-"""
+## The Rules
 
-[examples]
-basic = """
-# Simple decision
+1. **Colon required** - `if condition:` must end with `:`
+2. **Indentation matters** - Code inside must be indented (4 spaces)
+3. **else is optional** - You can have just `if`
+
+## Simple Decisions
+
+```python
 is_raining = True
 if is_raining:
     print("Bring an umbrella")
 else:
     print("Enjoy the sunshine")
-"""
+```
 
-advanced = """
-# Nested decisions
-has_key = True
-door_locked = False
+## Comparisons Return Booleans
 
-if has_key:
-    if door_locked:
-        print("Unlocking door...")
-    else:
-        print("Door already unlocked")
-    print("Opening door")
+```python
+x = 5
+print(x > 3)   # True
+print(x == 10) # False (double equals for comparison!)
+print(x != 3)  # True (not equal)
+```
+
+## Watch Out!
+
+```python
+# WRONG - single equals is assignment, not comparison!
+if x = 5:    # This is an ERROR
+
+# RIGHT - double equals for comparison
+if x == 5:   # This checks if x equals 5
+```
+
+## Truthiness
+
+Python treats some values as False:
+- `0`, `0.0` (zero)
+- `""` (empty string)
+- `[]` (empty list)
+- `None`
+
+Everything else is True!
+
+```python
+lives = 0
+if lives:
+    print("Keep playing")
 else:
-    print("Need to find the key")
+    print("Game over")  # This runs because 0 is "falsy"
+```
 """
 
-[syntax]
-condition = "if condition: (must end with colon)"
-indentation = "Code inside if/else MUST be indented (4 spaces)"
-else_optional = "else: is optional - you can have just if"
+[content.try_it]
+prompt = "Check if a player has enough gold to buy a sword"
+starter = '''
+gold = 50
+sword_price = 75
 
-[common_mistakes]
-missing_colon = "if x > 5  # Missing colon! Should be: if x > 5:"
-no_indentation = "Code after if must be indented or Python won't know it's part of the if"
-assignment_vs_comparison = "if x = 5: is WRONG. Use if x == 5: (double equals for comparison)"
-empty_block = "Can't leave if/else empty. Use 'pass' as placeholder if needed"
+# Check if player can afford the sword
 
-[fun_facts]
-pass_keyword = "Use 'pass' when you want an empty if block: if x: pass"
-truthiness = "Python treats empty things as False: empty list [], empty string '', 0"
-ternary = "One-line if: result = 'yes' if condition else 'no'"
+'''
+solution = '''
+gold = 50
+sword_price = 75
 
-[gamepad_tutorial]
-text = """
-🎮 DECISION MAKER:
-- Press A to create if statement
-- Press B to add else block
-- D-pad UP/DOWN to navigate between branches
-- RT (analog) to toggle between True/False for testing
-"""
+# Check if player can afford the sword
+if gold >= sword_price:
+    print("You bought a sword!")
+else:
+    print("Not enough gold!")
+'''
 
-[challenges]
-starter = "guess_my_number"
-intermediate = "grade_calculator"
-mastery = ""
+[connections]
+prerequisites = ["types", "basic_operators"]
+enables = ["if_elif_else", "while_loops_basics", "boolean_logic"]
+used_in = ["guess_my_number"]
+see_also = ["basic_operators", "boolean_logic"]
 
-[fun_factor]
-type = "branching"
-description = "Choose your own adventure - code edition"
-examples = ["password checker", "age gatekeeper", "game decision tree"]
-
-[adaptive]
-weakness_signals = ["indentation_error", "missing_colon", "assignment_in_condition"]
-strength_indicators = ["clean_nesting", "appropriate_conditions", "proper_indentation"]
+[meta]
+time_to_read = 50
+difficulty = "beginner"
+tags = ["control_flow", "decisions", "conditionals"]

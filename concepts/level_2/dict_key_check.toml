@@ -1,0 +1,83 @@
+# Concept: Checking if a Key Exists in a Dictionary
+# The foundation for safe dictionary access
+
+[concept]
+id = "dict_key_check"
+name = "Checking if a Key Exists"
+level = 2
+category = "dictionaries"
+order = 3  # After dict_basics and dict_access
+
+[content]
+lesson = """
+## The Problem
+
+When you try to access a key that doesn't exist, Python crashes:
+
+```python
+scores = {"alice": 95, "bob": 87}
+print(scores["charlie"])  # KeyError: 'charlie'
+```
+
+This is called a **KeyError** - the key isn't in the dictionary.
+
+## The Solution: Check First
+
+Use `in` to check if a key exists before accessing it:
+
+```python
+scores = {"alice": 95, "bob": 87}
+
+if "charlie" in scores:
+    print(scores["charlie"])
+else:
+    print("Not found")
+```
+
+The `in` keyword returns `True` if the key exists, `False` if it doesn't.
+
+## Common Pattern: Counting
+
+When counting things, you need to handle "first time seen":
+
+```python
+counts = {}
+
+word = "cat"
+if word in counts:
+    counts[word] += 1  # Already exists, add 1
+else:
+    counts[word] = 1   # First time, start at 1
+```
+
+This is the **check-then-act** pattern. You'll use it constantly.
+"""
+
+[content.try_it]
+prompt = "Complete the code to safely print Bob's score, or 'Unknown' if not found"
+starter = '''
+scores = {"alice": 95, "bob": 87}
+
+name = "bob"
+# Check if name is in scores, then print the score or "Unknown"
+'''
+solution = '''
+scores = {"alice": 95, "bob": 87}
+
+name = "bob"
+if name in scores:
+    print(scores[name])
+else:
+    print("Unknown")
+'''
+
+[connections]
+prerequisites = ["dict_basics"]
+enables = ["dict_get_method", "dict_setdefault"]
+used_in = ["word_counter", "contact_book", "inventory_tracker"]
+see_also = ["if_statements", "dict_basics"]
+
+[meta]
+time_to_read = 45
+difficulty = "beginner"
+tags = ["dictionaries", "conditionals", "error-prevention"]

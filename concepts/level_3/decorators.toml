@@ -1,74 +1,35 @@
 # Level 3: Decorators
-# Prerequisite for: advanced patterns, metaprogramming
 
 [concept]
 id = "decorators"
-name = "Decorators: Modify Functions Magically"
+name = "Decorators: Modify Functions"
 level = 3
 category = "advanced"
-prerequisites = ["functions"]
-unlocks = ["dataclasses", "property", "advanced_oop"]
+order = 8
 
-[description]
-brief = "Wrap functions to add extra behavior without changing their code"
-detailed = """
-Decorators let you modify how functions work by wrapping them.
-It's like adding mods to a game - the original is still there,
-but with extra features.
+[content]
+lesson = """
+## Adding Superpowers
+
+Decorators wrap functions to add extra behavior:
 
 ```python
 @timer
-def slow_calculation():
+def slow_function():
     # Some heavy computation
     pass
 
-# Same as:
-# slow_calculation = timer(slow_calculation)
+# Same as: slow_function = timer(slow_function)
 ```
 
-Decorators let you:
-- Add logging to functions
-- Measure performance
-- Cache results
-- Validate inputs
-- Register functions
-"""
+## A Simple Decorator
 
-[syntax]
-basic = """
-@decorator_name
-def function():
-    pass
-"""
-
-with_args = """
-@decorator_with_args(arg1, arg2)
-def function():
-    pass
-"""
-
-multiple = """
-@decorator1
-@decorator2
-def function():
-    pass
-"""
-
-manual = """
-# Same as @decorator
-def function():
-    pass
-function = decorator(function)
-"""
-
-[examples]
-basic = """
+```python
 def debug(func):
-    '''Print when function is called'''
     def wrapper(*args, **kwargs):
         print(f"Calling {func.__name__}")
         result = func(*args, **kwargs)
-        print(f"{func.__name__} returned {result}")
+        print(f"Returned {result}")
         return result
     return wrapper
 
@@ -79,14 +40,51 @@ def add(a, b):
 add(2, 3)
 # Output:
 # Calling add
-# add returned 5
-"""
+# Returned 5
+```
 
-advanced = """
+## Common Built-in Decorators
+
+```python
+class Player:
+    def __init__(self, hp):
+        self._hp = hp
+
+    @property  # Makes method look like attribute
+    def hp(self):
+        return self._hp
+
+    @staticmethod  # No self needed
+    def max_level():
+        return 100
+
+player = Player(50)
+print(player.hp)          # 50 (no parentheses!)
+print(Player.max_level()) # 100
+```
+
+## The @dataclass Decorator
+
+```python
+from dataclasses import dataclass
+
+@dataclass
+class Item:
+    name: str
+    value: int
+    weight: float = 1.0
+
+# Automatically creates __init__, __repr__, etc!
+sword = Item("Sword", 100)
+print(sword)  # Item(name='Sword', value=100, weight=1.0)
+```
+
+## Creating a Timer Decorator
+
+```python
 import time
 
 def timer(func):
-    '''Measure function execution time'''
     def wrapper(*args, **kwargs):
         start = time.time()
         result = func(*args, **kwargs)
@@ -96,177 +94,55 @@ def timer(func):
     return wrapper
 
 @timer
-def generate_world():
-    time.sleep(0.1)  # Simulate work
-    return "World generated"
+def process_data():
+    time.sleep(0.1)
+    return "Done"
 
-world = generate_world()
-# Output: generate_world took 0.1002s
+process_data()  # "process_data took 0.1005s"
+```
 """
 
-real_world = """
-# Game event system using decorators
-class EventSystem:
-    def __init__(self):
-        self.handlers = {}
+[content.try_it]
+prompt = "Create a decorator that prints 'Before' and 'After' around function calls"
+starter = '''
+def before_after(func):
+    # Your decorator here
+    pass
 
-    def on(self, event_name):
-        '''Decorator to register event handlers'''
-        def decorator(func):
-            if event_name not in self.handlers:
-                self.handlers[event_name] = []
-            self.handlers[event_name].append(func)
-            return func
-        return decorator
-
-    def trigger(self, event_name, *args, **kwargs):
-        '''Trigger all handlers for an event'''
-        if event_name in self.handlers:
-            for handler in self.handlers[event_name]:
-                handler(*args, **kwargs)
-
-events = EventSystem()
-
-@events.on('player_died')
-def show_game_over(player):
-    print(f"GAME OVER - {player.name}")
-
-@events.on('player_died')
-def save_score(player):
-    print(f"Final score: {player.score}")
-
-# Trigger event
-events.trigger('player_died', player=Player("Hero", 0))
-"""
-
-[common_decorators]
-staticmethod = "@staticmethod - Method doesn't need self"
-classmethod = "@classmethod - Method gets class, not instance"
-property = "@property - Make method look like attribute"
-dataclass = "@dataclass - Auto-generate __init__ and __repr__"
-lru_cache = "@lru_cache - Cache function results"
-
-[common_mistakes]
-forgetting_return = """
-# WRONG: Doesn't return wrapper
-def broken(func):
-    def wrapper():
-        print("Before")
-        func()
-    # Missing return!
-
-# RIGHT: Return the wrapper
-def works(func):
-    def wrapper():
-        print("Before")
-        func()
-    return wrapper
-"""
-
-losing_metadata = """
-# WRONG: Wrapper loses original function info
-def timer(func):
-    def wrapper(*args, **kwargs):
-        return func(*args, **kwargs)
-    return wrapper
-
-# RIGHT: Preserve metadata with functools
-from functools import wraps
-
-def timer(func):
-    @wraps(func)  # Preserves func's name, docstring, etc.
-    def wrapper(*args, **kwargs):
-        return func(*args, **kwargs)
-    return wrapper
-"""
-
-args_kwargs = """
-# WRONG: Decorator doesn't handle arguments
-def debug(func):
-    def wrapper():  # No args!
-        return func()
-
-# RIGHT: Use *args, **kwargs
-def debug(func):
-    def wrapper(*args, **kwargs):
-        return func(*args, **kwargs)
-    return wrapper
-"""
-
-[decorator_patterns]
-simple = """
-def decorator(func):
-    def wrapper(*args, **kwargs):
-        # Do something before
-        result = func(*args, **kwargs)
-        # Do something after
-        return result
-    return wrapper
-"""
-
-with_arguments = """
-def repeat(times):
-    def decorator(func):
-        def wrapper(*args, **kwargs):
-            for _ in range(times):
-                func(*args, **kwargs)
-        return wrapper
-    return decorator
-
-@repeat(3)
-def greet():
-    print("Hello!")
-"""
-
-class_decorator = """
-class Counter:
-    def __init__(self, func):
-        self.func = func
-        self.count = 0
-
-    def __call__(self, *args, **kwargs):
-        self.count += 1
-        print(f"Call {self.count} to {self.func.__name__}")
-        return self.func(*args, **kwargs)
-
-@Counter
+@before_after
 def say_hello():
     print("Hello!")
-"""
 
-[gotchas]
-order_matters = "Decorators are applied bottom-up: @a @b @c def f() → a(b(c(f)))"
-metadata_loss = "Use @wraps from functools to preserve function metadata"
-closure = "Wrapper has access to decorator's variables (closure)"
-performance = "Each decorator call adds overhead"
+say_hello()
+# Should print:
+# Before
+# Hello!
+# After
 
-[gamepad_tutorial]
-text = """
-🎮 DECORATOR MODE:
-- Press Y to add decorator
-- Press A to create custom decorator
-- Press X to remove decorator
-- RB suggests decorators based on context
-- LB shows common decorators
-- Hold RT to see decorator effect
-"""
+'''
+solution = '''
+def before_after(func):
+    def wrapper(*args, **kwargs):
+        print("Before")
+        result = func(*args, **kwargs)
+        print("After")
+        return result
+    return wrapper
 
-[challenges]
-starter = "decorator_factory"
-intermediate = ""
-mastery = ""
+@before_after
+def say_hello():
+    print("Hello!")
 
-[fun_facts]
-syntactic_sugar = "@decorator is syntactic sugar for: func = decorator(func)"
-builtin_decorators = "Python has built-in decorators: @staticmethod, @property, @dataclass"
-stacking = "You can stack decorators - they apply from bottom to top"
-classes_too = "Decorators work on classes too, not just functions!"
+say_hello()
+'''
 
-[fun_factor]
-type = "metaprogramming"
-description = "Add superpowers to your functions"
-examples = ["@cache for speed", "@validate for safety", "@timer for profiling"]
+[connections]
+prerequisites = ["functions"]
+enables = ["dataclasses", "property_decorators"]
+used_in = []
+see_also = ["functions"]
 
-[adaptive]
-weakness_signals = ["missing_return", "lost_metadata", "arg_handling_errors"]
-strength_indicators = ["proper_wraps", "clean_decorators", "good_use_cases"]
+[meta]
+time_to_read = 60
+difficulty = "advanced"
+tags = ["decorators", "metaprogramming", "advanced"]

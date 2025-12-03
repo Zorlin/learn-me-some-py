@@ -1,106 +1,127 @@
 # Level 2: Dictionaries
-# Prerequisite for: JSON, APIs, config files
 
 [concept]
-id = "dictionaries_basics"
-name = "Dictionaries: Label Your Data"
+id = "dictionaries"
+name = "Dictionaries: Key-Value Storage"
 level = 2
-prerequisites = ["variables", "strings"]
+category = "collections"
+order = 2
 
-[description]
-brief = "Store values with names (keys), not positions"
-detailed = """
-A dictionary is like a labeled storage box - instead of "item #3",
-you say "get me the sword" or "get me the health potion".
+[content]
+lesson = """
+## Named Storage
+
+A dictionary stores values with labels (keys), not positions. Like a real dictionary: look up "cat" to find its definition.
 
 ```python
-player = {}                    # Empty dictionary
-player["name"] = "Aria"        # Add a key-value pair
-player["health"] = 100
-player["level"] = 1
-
-print(player["name"])          # "Aria"
-print(player)                  # {'name': 'Aria', 'health': 100, 'level': 1}
-```
-"""
-
-[methods]
-keys = "Get all keys: player.keys() → ['name', 'health', 'level']"
-values = "Get all values: player.values() → ['Aria', 100, 1]"
-items = "Get key-value pairs: player.items() → [('name', 'Aria'), ...]"
-get = "Safe access with default: player.get('mana', 0) → 0"
-pop = "Remove and return value: player.pop('health') → 100"
-update = "Merge dictionaries: player.update({'xp': 50})"
-
-[gotchas]
-key_error = """
-Accessing a missing key crashes:
-player["mana"] → KeyError!
-
-Use .get() for safety:
-player.get("mana", 0) → 0 (default if missing)
-"""
-keys_must_be_immutable = """
-Keys must be unchangeable (strings, numbers, tuples):
-✓ player["name"] = "Aria"
-✗ player[[1,2,3]] = "bad"  # Lists can't be keys!
-"""
-order_matters_now = "In Python 3.7+, dictionaries remember insertion order!"
-
-[gamepad_tutorial]
-text = """
-🎮 EASY MODE:
-- Press Y to add a new key-value pair
-- Press RB to suggest dict methods
-- D-pad LEFT/RIGHT to navigate keys
-- D-pad UP to see all keys
-"""
-
-[challenges]
-starter = "contact_book"
-intermediate = "inventory_system"
-mastery = ""
-
-[fun_factor]
-type = "mapping"
-description = "Like RPG character stats or game save files"
-examples = ["character stats", "config files", "inventory with quantities"]
-
-[adaptive]
-weakness_signals = ["KeyError", "using_list_when_dict_better"]
-strength_indicators = ["safe_get_usage", "proper_key_naming"]
-
-[examples]
-basic = '''
-# Create a character
-hero = {
-    "name": "Zara",
-    "class": "Ranger",
-    "hp": 80,
-    "mp": 40
+player = {
+    "name": "Aria",
+    "health": 100,
+    "level": 5
 }
 
-print(hero["name"])  # "Zara"
+print(player["name"])    # "Aria"
+print(player["health"])  # 100
+```
+
+## Creating Dictionaries
+
+```python
+# Empty dictionary
+empty = {}
+
+# With initial values
+hero = {
+    "name": "Kira",
+    "class": "Ranger",
+    "hp": 80
+}
+
+# Add new keys
+hero["weapon"] = "bow"
+hero["gold"] = 150
+```
+
+## Reading and Writing
+
+```python
+player = {"hp": 100, "mp": 50}
+
+# Read
+current_hp = player["hp"]  # 100
+
+# Write (add or update)
+player["hp"] = 80          # Update existing
+player["xp"] = 0           # Add new key
+```
+
+## The KeyError Problem
+
+Accessing a missing key crashes:
+
+```python
+player = {"hp": 100}
+print(player["mp"])  # KeyError: 'mp'
+
+# Safe way: check first
+if "mp" in player:
+    print(player["mp"])
+
+# Or use .get() with default
+print(player.get("mp", 0))  # 0 (default if missing)
+```
+
+## Looping Through Dictionaries
+
+```python
+stats = {"hp": 100, "mp": 50, "xp": 0}
+
+# Loop over keys
+for key in stats:
+    print(key, stats[key])
+
+# Loop over key-value pairs
+for key, value in stats.items():
+    print(f"{key}: {value}")
+```
+
+## Common Methods
+
+| Method | What it does |
+|--------|--------------|
+| `.get(key, default)` | Safe access with default |
+| `.keys()` | All keys |
+| `.values()` | All values |
+| `.items()` | Key-value pairs |
+| `.pop(key)` | Remove and return value |
+| `.update(other)` | Merge another dict |
+"""
+
+[content.try_it]
+prompt = "Create a character with name, hp, and mp, then print their stats"
+starter = '''
+# Create a character dictionary
+# Print their name and HP
+
+'''
+solution = '''
+# Create a character dictionary
+character = {
+    "name": "Hero",
+    "hp": 100,
+    "mp": 50
+}
+# Print their name and HP
+print(f"{character['name']}: HP {character['hp']}, MP {character['mp']}")
 '''
 
-advanced = '''
-# Inventory with quantities
-inventory = {}
-inventory["potion"] = inventory.get("potion", 0) + 3  # Add 3 potions
-inventory["sword"] = 1
+[connections]
+prerequisites = ["variables", "strings"]
+enables = ["dict_key_check", "dict_get_method"]
+used_in = []
+see_also = ["lists", "sets"]
 
-# Check before using
-if inventory.get("potion", 0) > 0:
-    print("Drinking potion!")
-    inventory["potion"] -= 1
-'''
-
-[common_mistakes]
-mistake_1 = "Forgetting quotes around string keys: {name: 'Aria'} instead of {'name': 'Aria'}"
-mistake_2 = "Using [] instead of .get() and hitting KeyError"
-mistake_3 = "Trying to use a list as a dictionary key"
-
-[fun_facts]
-fact_1 = "Dictionaries use hash tables - lookups are super fast even with millions of items!"
-fact_2 = "JSON (used for web APIs) is basically JavaScript dictionaries"
-fact_3 = "Python dicts were unordered until 3.7 - now they remember insertion order"
+[meta]
+time_to_read = 55
+difficulty = "beginner"
+tags = ["collections", "dictionaries", "key_value"]

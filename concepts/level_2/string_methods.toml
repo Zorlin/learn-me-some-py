@@ -1,209 +1,124 @@
 # Level 2: String Methods
-# Prerequisite for: text parsing, user input, data processing
 
 [concept]
 id = "string_methods"
-name = "String Methods: Text Manipulation"
+name = "String Methods: Text Tools"
 level = 2
-prerequisites = ["strings", "lists_basics"]
+category = "strings"
+order = 6
 
-[description]
-brief = "Built-in functions to slice, split, join, and transform text"
-detailed = """
-Strings come with powerful methods for text manipulation. Essential for
-parsing commands, formatting output, and processing player input.
+[content]
+lesson = """
+## Built-in Text Tools
+
+Strings come with dozens of useful methods. Here are the essential ones.
+
+## Case Conversion
 
 ```python
+name = "hello world"
+print(name.upper())      # "HELLO WORLD"
+print(name.lower())      # "hello world"
+print(name.title())      # "Hello World"
+print(name.capitalize()) # "Hello world"
+```
+
+## Splitting and Joining
+
+```python
+# Split string into list
 command = "ATTACK goblin"
 parts = command.split()  # ["ATTACK", "goblin"]
-action = parts[0].lower()  # "attack"
+
+# Split by specific character
+csv = "a,b,c"
+items = csv.split(",")   # ["a", "b", "c"]
 
 # Join list into string
-items = ["sword", "shield", "potion"]
-inventory_text = ", ".join(items)
-print(inventory_text)  # "sword, shield, potion"
+words = ["hello", "world"]
+sentence = " ".join(words)  # "hello world"
+```
+
+## Cleaning Input
+
+```python
+messy = "  Hello World  "
+print(messy.strip())   # "Hello World" (trim both ends)
+print(messy.lstrip())  # "Hello World  " (trim left)
+print(messy.rstrip())  # "  Hello World" (trim right)
+```
+
+## Finding and Replacing
+
+```python
+text = "hello world"
+
+# Find position (-1 if not found)
+print(text.find("world"))   # 6
+print(text.find("xyz"))     # -1
+
+# Replace
+new = text.replace("world", "python")
+print(new)  # "hello python"
+```
+
+## Checking Content
+
+```python
+text = "Hello123"
+
+print(text.isalpha())    # False (has numbers)
+print(text.isdigit())    # False (has letters)
+print(text.isalnum())    # True (letters AND numbers)
+
+age = "42"
+print(age.isdigit())     # True (only digits)
+
+print(text.startswith("Hello"))  # True
+print(text.endswith("123"))      # True
+```
+
+## Strings Are Immutable!
+
+Methods return NEW strings - they don't change the original:
+
+```python
+text = "hello"
+text.upper()      # Returns "HELLO" but text is still "hello"!
+text = text.upper()  # Now text is "HELLO"
 ```
 """
 
-[methods]
-# Case conversion
-upper = "Convert to uppercase: 'hello'.upper() → 'HELLO'"
-lower = "Convert to lowercase: 'HELLO'.lower() → 'hello'"
-title = "Title case: 'hello world'.title() → 'Hello World'"
-capitalize = "Capitalize first letter: 'hello'.capitalize() → 'Hello'"
+[content.try_it]
+prompt = "Parse a user command and print the action and target"
+starter = '''
+user_input = "  ATTACK goblin  "
 
-# Splitting and joining
-split = "Split by whitespace: 'a b c'.split() → ['a', 'b', 'c']"
-split_delimiter = "Split by delimiter: 'a,b,c'.split(',') → ['a', 'b', 'c']"
-join = "Join list with separator: ','.join(['a', 'b']) → 'a,b'"
+# Clean up and split the input
+# Print the action and target separately
 
-# Searching
-find = "Find substring position: 'hello'.find('ll') → 2 (or -1 if not found)"
-index = "Find substring (error if missing): 'hello'.index('ll') → 2"
-count = "Count occurrences: 'banana'.count('a') → 3"
-startswith = "Check prefix: 'hello'.startswith('hel') → True"
-endswith = "Check suffix: 'hello'.endswith('lo') → True"
+'''
+solution = '''
+user_input = "  ATTACK goblin  "
 
-# Checking
-isdigit = "All digits? '123'.isdigit() → True"
-isalpha = "All letters? 'abc'.isalpha() → True"
-isalnum = "Letters/numbers only? 'abc123'.isalnum() → True"
-isspace = "All whitespace? '   '.isspace() → True"
+# Clean up and split the input
+cleaned = user_input.strip().lower()
+parts = cleaned.split()
+action = parts[0]
+target = parts[1]
 
-# Whitespace
-strip = "Remove leading/trailing space: '  hi  '.strip() → 'hi'"
-lstrip = "Remove leading space: '  hi'.lstrip() → 'hi'"
-rstrip = "Remove trailing space: 'hi  '.rstrip() → 'hi'"
-
-# Replacement
-replace = "Replace substring: 'hello'.replace('l', 'r') → 'herro'"
-
-[gotchas]
-strings_immutable = """
-String methods return NEW strings - they don't modify the original:
-text = "hello"
-text.upper()  # Returns "HELLO" but text is still "hello"!
-
-✓ text = text.upper()  # Now text is "HELLO"
-"""
-split_returns_list = """
-split() always returns a list, even with one item:
-"hello".split() → ['hello']  # List with one string
-
-Empty strings split to empty list:
-"".split() → []
-"""
-join_takes_iterable = """
-join() is called ON the separator, takes a list:
-✓ ", ".join(["a", "b"])  # "a, b"
-✗ ["a", "b"].join(", ")  # Wrong! No join method on lists
-
-All items must be strings:
-✗ ",".join([1, 2, 3])  # Error!
-✓ ",".join(["1", "2", "3"])  # "1,2,3"
-✓ ",".join(map(str, [1, 2, 3]))  # "1,2,3"
-"""
-
-[gamepad_tutorial]
-text = """
-🎮 EASY MODE:
-- Press Y to suggest string method
-- Press RB to chain multiple methods
-- D-pad UP to see all string methods
-- Hold RT to see method return values
-"""
-
-[challenges]
-starter = "word_counter"
-intermediate = ""
-mastery = ""
-
-[fun_factor]
-type = "text_processing"
-description = "Like parsing player commands or formatting game messages"
-examples = ["command parsing", "dialogue formatting", "name validation", "save file parsing"]
-
-[adaptive]
-weakness_signals = ["forgetting_immutability", "join_syntax_confusion", "not_chaining"]
-strength_indicators = ["method_chaining", "proper_validation", "clean_parsing"]
-
-[examples]
-basic = '''
-# Parse player command
-user_input = "  TAKE key  "
-command = user_input.strip().lower()  # "take key"
-words = command.split()  # ["take", "key"]
-
-action = words[0]  # "take"
-if len(words) > 1:
-    target = words[1]  # "key"
-
-# Format item name
-item = "RUSTY_SWORD"
-display_name = item.replace("_", " ").title()
-print(display_name)  # "Rusty Sword"
-
-# Validate player name
-name = "Player123"
-if name.isalnum() and not name.isdigit():
-    print(f"Welcome, {name}!")
-else:
-    print("Invalid name!")
+# Print the action and target separately
+print(f"Action: {action}")
+print(f"Target: {target}")
 '''
 
-advanced = '''
-# Command parser with validation
-def parse_command(user_input):
-    """Parse and validate player command."""
-    # Clean input
-    cleaned = user_input.strip().lower()
+[connections]
+prerequisites = ["strings", "lists"]
+enables = []
+used_in = ["word_counter"]
+see_also = ["strings", "type_conversion"]
 
-    if not cleaned:
-        return None, None
-
-    # Split into words
-    parts = cleaned.split()
-    action = parts[0]
-    target = " ".join(parts[1:]) if len(parts) > 1 else None
-
-    return action, target
-
-# Usage
-action, target = parse_command("  ATTACK goblin chief  ")
-print(f"Action: {action}, Target: {target}")
-# Output: Action: attack, Target: goblin chief
-
-# Format game dialogue
-def format_dialogue(speaker, text):
-    """Format NPC dialogue with box."""
-    speaker_line = f"[ {speaker.upper()} ]"
-    border = "=" * len(speaker_line)
-
-    return f"{border}\n{speaker_line}\n{border}\n{text}"
-
-print(format_dialogue("guard", "Halt! Who goes there?"))
-# Output:
-# ===========
-# [ GUARD ]
-# ===========
-# Halt! Who goes there?
-
-# Text adventure room description
-def parse_room(description):
-    """Extract items and exits from room description."""
-    lines = description.strip().split("\n")
-
-    items = []
-    exits = []
-
-    for line in lines:
-        line = line.strip()
-        if line.startswith("Item:"):
-            items.append(line.replace("Item:", "").strip())
-        elif line.startswith("Exit:"):
-            exits.append(line.replace("Exit:", "").strip())
-
-    return items, exits
-
-room_text = """
-Dark stone chamber with torches.
-Item: rusty sword
-Item: health potion
-Exit: north
-Exit: east
-"""
-
-items, exits = parse_room(room_text)
-print(f"Items: {items}")
-print(f"Exits: {exits}")
-'''
-
-[common_mistakes]
-mistake_1 = "Forgetting strings are immutable: text.upper() doesn't change text"
-mistake_2 = "Confusing join() syntax: it's separator.join(list), not list.join(separator)"
-mistake_3 = "Not handling empty strings or None values when splitting"
-
-[fun_facts]
-fact_1 = "Python strings have 47+ built-in methods - they're incredibly powerful!"
-fact_2 = "The .split() and .join() methods are inverses of each other"
-fact_3 = "String methods are inspired by Perl, the 'Practical Extraction and Report Language'"
+[meta]
+time_to_read = 55
+difficulty = "beginner"
+tags = ["strings", "methods", "text_processing"]

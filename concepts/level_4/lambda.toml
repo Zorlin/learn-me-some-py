@@ -1,54 +1,144 @@
-# Level 4: Lambda Functions  
-# Anonymous functions for simple operations
+# Level 4: Lambda Functions
 
 [concept]
 id = "lambda"
-name = "Lambda: Anonymous Functions"
+name = "Lambda: One-Line Functions"
 level = 4
-prerequisites = ["def_return", "parameters"]
+category = "functional"
+order = 8
 
-[description]
-brief = "Create simple functions without 'def' - in one line!"
-detailed = """
-Lambda functions are tiny, unnamed functions for simple operations.
+[content]
+lesson = """
+## Tiny Anonymous Functions
 
-**Regular function:**
+Lambda functions are one-line functions without a name:
+
 ```python
+# Regular function
 def double(x):
     return x * 2
-```
 
-**Lambda function:**
-```python
+# Lambda function - same thing!
 double = lambda x: x * 2
 ```
 
-Same thing! But lambda is one line, no 'def' keyword, no 'return' keyword.
-"""
+## Syntax
 
-[examples]
-basic = """
+```python
+lambda parameters: expression
+```
+
+No `def`, no `return`, no name - just the essentials.
+
+## Examples
+
+```python
 # One parameter
 square = lambda x: x * x
+square(5)  # 25
 
-# Multiple parameters  
+# Multiple parameters
 add = lambda a, b: a + b
+add(3, 4)  # 7
 
-# Sort by key
+# No parameters
+greet = lambda: "Hello!"
+greet()  # "Hello!"
+```
+
+## Where Lambdas Shine
+
+Perfect as arguments to other functions:
+
+```python
+# Sort by second element
 pairs = [(1, 'one'), (3, 'three'), (2, 'two')]
 sorted_pairs = sorted(pairs, key=lambda x: x[1])
+
+# Filter list
+numbers = [1, 2, 3, 4, 5, 6]
+evens = list(filter(lambda x: x % 2 == 0, numbers))
+# [2, 4, 6]
+
+# Transform list
+doubled = list(map(lambda x: x * 2, numbers))
+# [2, 4, 6, 8, 10, 12]
+```
+
+## Game Examples
+
+```python
+# Sort enemies by HP
+enemies.sort(key=lambda e: e.hp)
+
+# Find closest enemy
+closest = min(enemies, key=lambda e: distance(player, e))
+
+# Button callback
+button.on_click(lambda: game.start())
+
+# Filter visible objects
+visible = [obj for obj in objects if obj.visible]
+# Or with filter:
+visible = list(filter(lambda obj: obj.visible, objects))
+```
+
+## When NOT to Use Lambda
+
+```python
+# TOO COMPLEX - use def instead
+bad = lambda x: x if x > 0 else -x if x < 0 else 0
+
+# BETTER - named function is clearer
+def absolute_value(x):
+    if x > 0:
+        return x
+    elif x < 0:
+        return -x
+    return 0
+```
+
+## Lambda Limitations
+
+- Single expression only
+- No statements (no `if:`, `for:`, etc.)
+- Hard to debug (no name in stack trace)
+
+Use `def` for anything complex!
 """
 
-[fun_factor]
-type = "elegance"
-description = "Write tiny inline functions that feel magical"
-examples = [
-    "sorted(enemies, key=lambda e: e.hp)",
-    "button.on_click(lambda: game.start())",
-    "filter(lambda x: x.is_visible, objects)"
+[content.try_it]
+prompt = "Sort a list of players by their score using lambda"
+starter = '''
+players = [
+    {"name": "Alice", "score": 150},
+    {"name": "Bob", "score": 200},
+    {"name": "Charlie", "score": 100}
 ]
 
-[challenges]
-starter = ""
-intermediate = ""
-mastery = ""
+# Sort by score (highest first)
+
+'''
+solution = '''
+players = [
+    {"name": "Alice", "score": 150},
+    {"name": "Bob", "score": 200},
+    {"name": "Charlie", "score": 100}
+]
+
+sorted_players = sorted(players, key=lambda p: p["score"], reverse=True)
+for p in sorted_players:
+    print(f"{p['name']}: {p['score']}")
+# Bob: 200, Alice: 150, Charlie: 100
+'''
+
+[connections]
+prerequisites = ["functions", "def_return"]
+enables = ["min_max_key"]
+used_in = []
+see_also = ["functions", "sorted_function"]
+
+[meta]
+time_to_read = 50
+difficulty = "intermediate"
+tags = ["lambda", "functions", "anonymous"]

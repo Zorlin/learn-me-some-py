@@ -1,98 +1,124 @@
-# Level 2: Len Function
-# Prerequisite for: iteration bounds, size checking
+# Level 2: The len() Function
 
 [concept]
 id = "len_function"
-name = "Len Function: How Big Is This?"
+name = "len(): Count Items"
 level = 2
-prerequisites = ["lists_basics", "strings"]
-unlocks = ["range_with_len", "empty_checks"]
+category = "functions"
+order = 11
 
-[description]
-brief = "Get the size/length of a container"
-detailed = """
-len() tells you how many items are in something. It works on almost all containers.
+[content]
+lesson = """
+## How Big Is It?
+
+`len()` tells you how many items are in a container:
 
 ```python
 inventory = ["sword", "shield", "potion"]
 print(len(inventory))  # 3
 
 name = "Alex"
-print(len(name))       # 4
-
-# Empty check
-if len(inventory) == 0:
-    print("Inventory is empty!")
+print(len(name))       # 4 characters
 ```
 
-The most-used function after print()!
-"""
+## Works on Everything
 
-[examples]
-basic = """
-# Length of different types
-print(len([1, 2, 3]))          # 3 (list)
-print(len("hello"))            # 5 (string)
-print(len({"a": 1, "b": 2}))  # 2 (dict - counts keys)
-print(len({1, 2, 3}))          # 3 (set)
-"""
+```python
+# Lists
+print(len([1, 2, 3]))          # 3
 
-advanced = """
-# Using len in loops
-items = ["a", "b", "c", "d"]
+# Strings
+print(len("hello"))            # 5
+
+# Dictionaries (counts keys)
+print(len({"a": 1, "b": 2}))  # 2
+
+# Sets
+print(len({1, 2, 3}))          # 3
+
+# Tuples
+print(len((1, 2, 3)))          # 3
+```
+
+## Empty Checks
+
+Common pattern - check if something is empty:
+
+```python
+items = []
+
+# Works, but not Pythonic
+if len(items) == 0:
+    print("Empty!")
+
+# Pythonic way (preferred)
+if not items:
+    print("Empty!")
+
+# Check if has items
+if items:
+    print("Has items!")
+```
+
+## Common Uses
+
+```python
+# Last index is len - 1
+items = ["a", "b", "c"]
+last_index = len(items) - 1  # 2
+
+# Loop with index (prefer enumerate instead)
 for i in range(len(items)):
-    print(f"Item {i}: {items[i]}")
+    print(f"{i}: {items[i]}")
 
-# Better way (enumerate)
+# Better!
 for i, item in enumerate(items):
-    print(f"Item {i}: {item}")
+    print(f"{i}: {item}")
+```
 
-# Empty check (Pythonic way)
-if not items:  # Better than: if len(items) == 0
-    print("List is empty")
+## Watch Out!
+
+```python
+# len() is instant (O(1)) - doesn't count each time
+big_list = list(range(1000000))
+len(big_list)  # Instant!
+
+# Can't use len on numbers
+len(42)  # TypeError!
+
+# Length is NOT the last index
+items = ["a", "b", "c"]  # len = 3, indices are 0, 1, 2
+items[3]  # IndexError! (index 3 doesn't exist)
+```
 """
 
-[usage]
-lists = "len(my_list) - number of items"
-strings = "len(my_string) - number of characters"
-dicts = "len(my_dict) - number of key-value pairs"
-sets = "len(my_set) - number of unique items"
-tuples = "len(my_tuple) - number of items"
+[content.try_it]
+prompt = "Check if an inventory is empty and print a message"
+starter = '''
+inventory = []
 
-[common_mistakes]
-len_parentheses = "It's len(x), not len x - function needs parentheses!"
-zero_vs_empty = "Use 'if not container:' instead of 'if len(container) == 0:' (more Pythonic)"
-off_by_one = "len([1,2,3]) is 3, but last index is 2! Length ≠ last index"
+# Print "Inventory is empty!" if empty
+# Print the count if not empty
 
-[fun_facts]
-o_1_complexity = "len() is O(1) - instant, doesn't count items every time"
-stored_value = "Containers store their size, so len() just reads that value"
-no_len_on_int = "Can't do len(42) - only works on containers, not single values"
+'''
+solution = '''
+inventory = []
 
-[gamepad_tutorial]
-text = """
-🎮 SIZE CHECKER:
-- Press A on container name to wrap with len()
-- D-pad DOWN to see length live during execution
-- Hold RB to show size of all containers in scope
-- Press Y to convert 'len(x) == 0' to 'not x' (more Pythonic)
-"""
+# Print "Inventory is empty!" if empty
+# Print the count if not empty
+if not inventory:
+    print("Inventory is empty!")
+else:
+    print(f"You have {len(inventory)} items")
+'''
 
-[challenges]
-starter = "name_length"
-intermediate = "word_counter"
-mastery = ""
+[connections]
+prerequisites = ["lists", "strings"]
+enables = []
+used_in = ["word_counter"]
+see_also = ["lists", "strings"]
 
-[fun_factor]
-type = "measurement"
-description = "Like a ruler for containers"
-examples = ["inventory counter", "validation checker", "progress tracker"]
-
-[adaptive]
-weakness_signals = ["len_without_parens", "inefficient_empty_check", "off_by_one_with_len"]
-strength_indicators = ["pythonic_empty_check", "enumerate_over_range_len", "correct_bounds"]
-
-[pythonic_patterns]
-empty_check = "if not container: (instead of len(container) == 0)"
-non_empty_check = "if container: (instead of len(container) > 0)"
-avoid_range_len = "Use enumerate() instead of range(len())"
+[meta]
+time_to_read = 40
+difficulty = "beginner"
+tags = ["functions", "built_ins", "collections"]

@@ -1,190 +1,124 @@
 # Level 3: Imports
-# Prerequisite for: project organization, using libraries
 
 [concept]
 id = "imports"
-name = "Imports: Use Other People's Code"
+name = "Imports: Use Other Code"
 level = 3
 category = "modules"
-prerequisites = ["functions"]
-unlocks = ["project_structure", "external_libraries", "packaging"]
+order = 7
 
-[description]
-brief = "Import modules and functions to reuse existing code"
-detailed = """
-Imports let you use code written by others (or yourself in other files).
-It's like summoning tools from your workshop.
+[content]
+lesson = """
+## Standing on Giants' Shoulders
+
+Imports let you use code written by others:
 
 ```python
-import random  # Import entire module
-random.randint(1, 6)  # Roll a die
+import random
 
-from math import sqrt  # Import specific function
-distance = sqrt(25)  # 5.0
+damage = random.randint(10, 20)
+direction = random.choice(['north', 'south', 'east', 'west'])
 ```
 
-Imports let you:
-- Use Python's standard library (random, math, json, etc.)
-- Organize your own code into multiple files
-- Use third-party libraries (installed via pip)
-"""
+## Import Styles
 
-[syntax]
-import_module = """
-import module_name
-module_name.function()
-"""
-
-import_from = """
-from module_name import function_name
-function_name()  # Use directly
-"""
-
-import_as = """
-import module_name as alias
-alias.function()
-"""
-
-import_multiple = """
-from module_name import func1, func2, func3
-"""
-
-import_all = """
-from module_name import *  # Import everything (avoid this!)
-"""
-
-[examples]
-basic = """
-import random
-
-# Generate random numbers
-damage = random.randint(10, 20)
-hit_chance = random.random()  # 0.0 to 1.0
-
-# Random choices
-direction = random.choice(['north', 'south', 'east', 'west'])
-"""
-
-advanced = """
-from pathlib import Path
-import json
-
-def load_player_data(filename):
-    '''Load player save file'''
-    save_path = Path(filename)
-
-    if not save_path.exists():
-        return None
-
-    with save_path.open('r') as f:
-        data = json.load(f)
-        return data
-
-player = load_player_data('save.json')
-"""
-
-real_world = """
-# Game imports
-import random
-from typing import List, Optional
-from dataclasses import dataclass
-
-# Your own modules
-from lmsp.game.entities import Player, Enemy
-from lmsp.combat.damage import calculate_damage
-from lmsp.utils.math import clamp
-
-def combat_round(player: Player, enemy: Enemy) -> bool:
-    '''Run one combat round, return True if player wins'''
-    damage = calculate_damage(player.attack, enemy.defense)
-    enemy.hp = clamp(enemy.hp - damage, 0, enemy.max_hp)
-    return enemy.hp <= 0
-"""
-
-[common_mistakes]
-import_wrong_name = """
-# WRONG: Import doesn't match usage
-import random
-Random.randint(1, 6)  # NameError!
-
-# RIGHT: Use exact name from import
+```python
+# Import entire module
 import random
 random.randint(1, 6)
-"""
 
-circular_imports = """
-# WRONG: Two files importing each other
-# player.py
-from enemy import Enemy  # Imports enemy.py
+# Import specific function
+from random import randint
+randint(1, 6)
 
-# enemy.py
-from player import Player  # Imports player.py (CIRCULAR!)
+# Import with alias
+import random as rng
+rng.randint(1, 6)
 
-# RIGHT: Move shared code to third file
-# entities.py
-class Player: ...
-class Enemy: ...
+# Import multiple items
+from random import randint, choice, shuffle
+```
 
-# game.py
-from entities import Player, Enemy
-"""
+## Common Standard Library Modules
 
-import_star = """
-# AVOID: Importing everything
-from random import *  # What did we just import?
+| Module | What it does |
+|--------|--------------|
+| `random` | Random numbers and choices |
+| `math` | Math functions (sqrt, floor, pi) |
+| `json` | Read/write JSON files |
+| `pathlib` | File path handling |
+| `datetime` | Dates and times |
+| `collections` | Special containers |
+
+## Examples
+
+```python
+import random
+import math
+from pathlib import Path
+
+# Random
+hit = random.randint(1, 100) > 50
+
+# Math
+distance = math.sqrt(x**2 + y**2)
+
+# Paths
+save_path = Path("saves") / "game.json"
+if save_path.exists():
+    print("Save found!")
+```
+
+## Import Order Convention
+
+```python
+# 1. Standard library
+import json
+import random
+
+# 2. Third-party (installed via pip)
+import pygame
+import requests
+
+# 3. Your own modules
+from my_game import player
+from my_game.utils import helpers
+```
+
+## Avoid import *
+
+```python
+# BAD - don't know what's imported
+from random import *
 randint(1, 6)  # Where does this come from?
 
-# BETTER: Import what you need
+# GOOD - explicit
 from random import randint
-randint(1, 6)  # Clear where it's from
+randint(1, 6)  # Clear!
+```
 """
 
-[standard_library]
-random = "Random numbers, choices: random.randint(), random.choice()"
-math = "Math functions: math.sqrt(), math.floor(), math.pi"
-json = "JSON reading/writing: json.load(), json.dump()"
-pathlib = "File paths: Path('file.txt').exists()"
-datetime = "Dates and times: datetime.now()"
-collections = "Special containers: deque, Counter, defaultdict"
+[content.try_it]
+prompt = "Import random and generate a random number between 1 and 100"
+starter = '''
+# Import random and print a random number from 1-100
 
-[import_patterns]
-module = "import math → math.sqrt(25)"
-specific = "from math import sqrt → sqrt(25)"
-alias = "import numpy as np → np.array([1,2,3])"
-relative = "from . import sibling_module (same package)"
-parent = "from .. import parent_module (up one level)"
+'''
+solution = '''
+# Import random and print a random number from 1-100
+import random
 
-[gotchas]
-order_matters = "Import order can matter - standard library first, then third-party, then yours"
-name_conflicts = "from x import * can overwrite names from previous imports"
-import_time = "Code at module level runs when imported!"
-circular_death = "Circular imports cause hard-to-debug errors"
+number = random.randint(1, 100)
+print(number)
+'''
 
-[gamepad_tutorial]
-text = """
-🎮 IMPORT MODE:
-- Press Y to add import statement
-- Press RB to suggest imports based on code
-- Press LB to see available functions in module
-- Press X to organize imports (sort and group)
-"""
+[connections]
+prerequisites = ["functions"]
+enables = []
+used_in = []
+see_also = []
 
-[challenges]
-starter = ""
-intermediate = ""
-mastery = ""
-
-[fun_facts]
-standard_library = "Python's standard library is HUGE - batteries included!"
-this_import = "Try: import this (Zen of Python)"
-antigravity = "Try: import antigravity (Easter egg!)"
-pip = "Install external libraries with: pip install package_name"
-
-[fun_factor]
-type = "tooling"
-description = "Summon powerful libraries like magic"
-examples = ["random for dice", "json for saving", "pathlib for files"]
-
-[adaptive]
-weakness_signals = ["import_errors", "name_conflicts", "circular_imports"]
-strength_indicators = ["clean_imports", "good_organization", "proper_usage"]
+[meta]
+time_to_read = 45
+difficulty = "beginner"
+tags = ["imports", "modules", "libraries"]

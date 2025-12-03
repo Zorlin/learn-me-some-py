@@ -1,82 +1,96 @@
-# Level 0: Types
-# Prerequisite for: everything else
+# Level 0: Data Types
 
 [concept]
-id = "types_basics"
-name = "Types: What Kind of Thing Is This?"
+id = "types"
+name = "Data Types: What Kind of Data?"
 level = 0
-prerequisites = ["variables"]
-unlocks = ["if_else", "basic_operators"]
+category = "basics"
+order = 5
 
-[description]
-brief = "Every value in Python has a type"
-detailed = """
-Just like in real life, different things work differently.
-You can add numbers, but you concatenate strings.
+[content]
+lesson = """
+## The Basic Types
+
+Python has different types for different kinds of data:
+
+| Type | What it holds | Example |
+|------|--------------|---------|
+| `str` | Text | `"Hello"` |
+| `int` | Whole numbers | `42` |
+| `float` | Decimal numbers | `3.14` |
+| `bool` | True/False | `True` |
+
+## Check the Type
+
+Use `type()` to see what something is:
 
 ```python
-age = 25              # int (whole number)
-height = 5.9          # float (decimal number)
-name = "Alex"         # str (text)
-is_learning = True    # bool (True or False)
-nothing = None        # None (absence of value)
-```
-
-Python knows the difference and won't let you mix them wrong.
-"""
-
-[examples]
-basic = """
-# Python figures out types automatically
-score = 100           # This is an int
-message = "Hello"     # This is a str
-ready = True          # This is a bool
-"""
-
-advanced = """
-# You can check types with type()
+print(type("Hello"))   # <class 'str'>
 print(type(42))        # <class 'int'>
 print(type(3.14))      # <class 'float'>
-print(type("hi"))      # <class 'str'>
 print(type(True))      # <class 'bool'>
-print(type(None))      # <class 'NoneType'>
+```
+
+## Why It Matters
+
+Different types do different things:
+
+```python
+# Numbers do math
+print(5 + 3)           # 8
+
+# Strings join together
+print("5" + "3")       # "53"
+
+# Can't mix them!
+print("5" + 3)         # Error!
+```
+
+## Booleans
+
+`True` and `False` are special values for yes/no decisions:
+
+```python
+is_alive = True
+game_over = False
+
+# Comparisons return booleans
+print(5 > 3)           # True
+print(10 == 20)        # False
+```
 """
 
-[types]
-int = "Whole numbers: 42, -17, 0"
-float = "Decimal numbers: 3.14, -0.5, 2.0"
-str = "Text in quotes: 'hello', \"world\""
-bool = "True or False (capitalized!)"
-none = "None - represents 'nothing' or 'no value'"
+[content.try_it]
+prompt = "Check the types of these values"
+starter = '''
+name = "Player"
+score = 100
+health = 99.5
+playing = True
 
-[common_mistakes]
-case_sensitive = "True and False are capitalized. 'true' and 'false' won't work!"
-none_vs_zero = "None is not the same as 0 or empty string. It means 'no value'."
-mixing_types = "Can't do: 5 + 'hello'. Python won't guess what you meant."
+# Print the type of each variable
 
-[fun_facts]
-everything_is_object = "In Python, even numbers are objects with methods!"
-bool_is_int = "True is actually 1 and False is 0. They're special ints!"
-dynamic_typing = "Variables can change type: x = 5; x = 'hi' is totally valid (though confusing)"
+'''
+solution = '''
+name = "Player"
+score = 100
+health = 99.5
+playing = True
 
-[gamepad_tutorial]
-text = """
-🎮 TYPE EXPLORER:
-- Press A on a variable to see its type
-- Hold LB + A to convert between types
-- D-pad RIGHT suggests type-appropriate operations
-"""
+# Print the type of each variable
+print(type(name))
+print(type(score))
+print(type(health))
+print(type(playing))
+'''
 
-[challenges]
-starter = "temperature_converter"
-intermediate = ""
-mastery = ""
+[connections]
+prerequisites = ["variables", "strings", "numbers"]
+enables = ["type_conversion", "boolean_logic"]
+used_in = []
+see_also = ["variables", "strings", "numbers"]
 
-[fun_factor]
-type = "puzzle"
-description = "Like sorting toys into boxes - each type has its own rules"
-examples = ["type detective", "conversion challenge", "operator matching"]
-
-[adaptive]
-weakness_signals = ["type_error", "comparison_with_none", "bool_lowercase"]
-strength_indicators = ["correct_type_usage", "appropriate_conversions"]
+[meta]
+time_to_read = 40
+difficulty = "beginner"
+tags = ["types", "basics", "fundamentals"]

@@ -1,512 +1,132 @@
 # Level 6: Introspection
-# Examine code and objects at runtime using the inspect module
 
 [concept]
 id = "introspection"
-name = "Introspection: Runtime Code Analysis"
+name = "Introspection: Runtime Analysis"
 level = 6
 category = "meta_programming"
-prerequisites = ["functions", "classes", "decorators", "types"]
-unlocks = ["code_generation", "framework_internals", "debugging_tools"]
+order = 0
 
-[description]
-brief = "Inspect code, functions, classes, and objects at runtime"
-detailed = """
-Introspection lets you examine Python objects at runtime - see their source
-code, arguments, attributes, and more. Essential for debugging, testing
-frameworks, documentation generators, and meta-programming.
+[content]
+lesson = """
+## Examine Code at Runtime
+
+Introspection lets you inspect functions, classes, and objects:
 
 ```python
 import inspect
 
 def greet(name: str, greeting: str = "Hello") -> str:
-    \"\"\"Greet someone with a custom message.\"\"\"
+    '''Greet someone.'''
     return f"{greeting}, {name}!"
 
-# Inspect the function
+# Get signature
 print(inspect.signature(greet))
 # (name: str, greeting: str = 'Hello') -> str
 
+# Get docstring
 print(inspect.getdoc(greet))
-# Greet someone with a custom message.
-
-print(inspect.getsource(greet))
-# def greet(name: str, greeting: str = "Hello") -> str:
-#     ...
-
-# Get function parameters
-sig = inspect.signature(greet)
-for param_name, param in sig.parameters.items():
-    print(f"{param_name}: {param.annotation}, default={param.default}")
-# name: <class 'str'>, default=<class 'inspect._empty'>
-# greeting: <class 'str'>, default=Hello
-
-# Call with validated parameters
-bound = sig.bind("Alice", greeting="Hi")
-result = greet(**bound.arguments)  # "Hi, Alice!"
-```
-
-Introspection powers tools like pytest, FastAPI, and Sphinx!
-"""
-
-[key_concepts]
-inspect_module = """
-The `inspect` module is your introspection toolkit:
-
-```python
-import inspect
+# Greet someone.
 
 # Get source code
-source = inspect.getsource(my_function)
-
-# Get docstring
-doc = inspect.getdoc(my_class)
-
-# Get signature
-sig = inspect.signature(my_function)
-
-# Check types
-inspect.isfunction(obj)
-inspect.isclass(obj)
-inspect.ismethod(obj)
-inspect.ismodule(obj)
-
-# Get members
-members = inspect.getmembers(my_class)
-methods = inspect.getmembers(my_class, inspect.isfunction)
+print(inspect.getsource(greet))
 ```
-"""
 
-function_signatures = """
-Inspect function parameters and annotations:
+## Inspect Parameters
 
 ```python
-import inspect
+sig = inspect.signature(greet)
 
-def process(data: list[int], *, validate: bool = True, timeout: float = 30.0) -> dict:
-    pass
-
-sig = inspect.signature(process)
-
-# Access parameters
 for name, param in sig.parameters.items():
-    print(f"Name: {name}")
-    print(f"  Annotation: {param.annotation}")
-    print(f"  Default: {param.default}")
-    print(f"  Kind: {param.kind}")
+    print(f"{name}: {param.annotation}")
+    print(f"  default: {param.default}")
 
-# Output:
-# Name: data
-#   Annotation: list[int]
-#   Default: <class 'inspect._empty'>
-#   Kind: POSITIONAL_OR_KEYWORD
-# Name: validate
-#   Annotation: bool
-#   Default: True
-#   Kind: KEYWORD_ONLY
-# ...
-
-# Check return annotation
-print(sig.return_annotation)  # dict
+# name: <class 'str'>
+#   default: <class 'inspect._empty'>
+# greeting: <class 'str'>
+#   default: Hello
 ```
-"""
 
-stack_inspection = """
-Inspect the call stack:
+## Type Checking
 
 ```python
 import inspect
 
-def caller_info():
-    # Get current frame
-    frame = inspect.currentframe()
-
-    # Get caller's frame
-    caller_frame = frame.f_back
-
-    # Get caller's info
-    info = inspect.getframeinfo(caller_frame)
-    print(f"Called from: {info.filename}:{info.lineno}")
-    print(f"Function: {info.function}")
-
-def my_function():
-    caller_info()
-
-my_function()
-# Called from: example.py:15
-# Function: my_function
-
-# Get full stack trace
-stack = inspect.stack()
-for frame_info in stack:
-    print(f"{frame_info.filename}:{frame_info.lineno} in {frame_info.function}")
+inspect.isfunction(greet)   # True
+inspect.isclass(str)        # True
+inspect.ismethod(obj.foo)   # True
+inspect.ismodule(os)        # True
 ```
-"""
 
-[patterns]
-auto_documentation = """
-Generate documentation from code:
+## Get Class Members
 
 ```python
 import inspect
 
-def document_function(func):
-    sig = inspect.signature(func)
-    doc = inspect.getdoc(func) or "No documentation"
-
-    print(f"Function: {func.__name__}")
-    print(f"Signature: {sig}")
-    print(f"Documentation: {doc}")
-    print("Parameters:")
-
-    for name, param in sig.parameters.items():
-        annotation = param.annotation
-        default = param.default
-
-        print(f"  - {name}: {annotation}", end="")
-        if default != inspect.Parameter.empty:
-            print(f" = {default}", end="")
-        print()
-
-def greet(name: str, times: int = 1) -> str:
-    \"\"\"Greet someone multiple times.\"\"\"
-    return (f"Hello, {name}! " * times).strip()
-
-document_function(greet)
-```
-"""
-
-dependency_injection = """
-Auto-inject dependencies based on type hints:
-
-```python
-import inspect
-from typing import get_type_hints
-
-class Database:
-    def query(self, sql):
-        return f"Result of: {sql}"
-
-class Cache:
-    def get(self, key):
-        return f"Cached: {key}"
-
-# Simple DI container
-container = {
-    Database: Database(),
-    Cache: Cache(),
-}
-
-def auto_inject(func):
-    \"\"\"Decorator that auto-injects dependencies.\"\"\"
-    sig = inspect.signature(func)
-    hints = get_type_hints(func)
-
-    def wrapper(*args, **kwargs):
-        # Bind provided arguments
-        bound = sig.bind_partial(*args, **kwargs)
-
-        # Inject missing dependencies
-        for param_name, param in sig.parameters.items():
-            if param_name not in bound.arguments:
-                param_type = hints.get(param_name)
-                if param_type in container:
-                    bound.arguments[param_name] = container[param_type]
-
-        return func(*bound.args, **bound.kwargs)
-
-    return wrapper
-
-@auto_inject
-def process_user(user_id: int, db: Database, cache: Cache):
-    # db and cache are automatically injected!
-    cached = cache.get(user_id)
-    result = db.query(f"SELECT * FROM users WHERE id={user_id}")
-    return f"{cached}, {result}"
-
-print(process_user(123))
-# Cached: 123, Result of: SELECT * FROM users WHERE id=123
-```
-"""
-
-attribute_discovery = """
-Discover all methods, properties, and attributes:
-
-```python
-import inspect
-
-def get_class_info(cls):
-    \"\"\"Get detailed info about a class.\"\"\"
-    print(f"Class: {cls.__name__}")
-    print(f"Base classes: {[base.__name__ for base in cls.__bases__]}")
-    print(f"MRO: {[c.__name__ for c in cls.__mro__]}")
-    print()
-
-    # Get all members
-    for name, obj in inspect.getmembers(cls):
-        if name.startswith('_'):
-            continue
-
-        if inspect.ismethod(obj) or inspect.isfunction(obj):
-            sig = inspect.signature(obj)
-            print(f"  Method: {name}{sig}")
-        elif isinstance(obj, property):
-            print(f"  Property: {name}")
-        else:
-            print(f"  Attribute: {name} = {obj}")
-
-class Character:
+class Player:
     max_level = 100
 
     def __init__(self, name):
         self.name = name
 
-    @property
-    def level(self):
-        return self._level
-
-    def gain_xp(self, amount: int) -> None:
+    def attack(self):
         pass
 
-get_class_info(Character)
-```
-"""
+# Get all members
+members = inspect.getmembers(Player)
 
-[common_mistakes]
-forgetting_empty = """
-WRONG (checking against None):
-```python
-if param.default is None:  # Wrong for optional params!
-    print("No default")
+# Get just methods
+methods = inspect.getmembers(Player, inspect.isfunction)
+# [('__init__', ...), ('attack', ...)]
 ```
 
-RIGHT (check against inspect.Parameter.empty):
+## Stack Inspection
+
 ```python
-if param.default is inspect.Parameter.empty:
-    print("No default")
-```
-
-`None` could be the actual default value!
-"""
-
-mutating_frame = """
-WRONG (modifying stack frames):
-```python
-frame = inspect.currentframe()
-frame.f_locals['x'] = 42  # Doesn't work as expected!
-```
-
-Modifying frame locals is unreliable. Use proper scoping instead.
-"""
-
-leaking_frames = """
-CAREFUL (frames hold references):
-```python
-def get_caller():
+def who_called_me():
     frame = inspect.currentframe()
-    # Always delete frame references!
-    try:
-        return frame.f_back.f_code.co_name
-    finally:
-        del frame  # Prevent reference cycles
+    caller = frame.f_back
+    info = inspect.getframeinfo(caller)
+    print(f"Called from {info.filename}:{info.lineno}")
 ```
+
+## Real-World Uses
+
+This is how frameworks work:
+- **FastAPI**: Inspects signatures for validation
+- **pytest**: Discovers tests and fixtures by name
+- **Sphinx**: Generates docs from docstrings
 """
 
-[when_to_use]
-perfect_for = [
-    "Debugging tools",
-    "Test frameworks (pytest)",
-    "Documentation generators (Sphinx)",
-    "Dependency injection (FastAPI)",
-    "API validation",
-    "Metaprogramming",
-]
-
-avoid_for = [
-    "Normal application logic",
-    "Performance-critical code",
-    "When static analysis suffices",
-]
-
-[gotchas]
-source_not_always_available = """
-inspect.getsource() fails for:
-- Built-in functions (written in C)
-- Functions defined in the REPL
-- Bytecode-only modules (.pyc without .py)
-
-```python
+[content.try_it]
+prompt = "Get the parameter names of a function using inspect"
+starter = '''
 import inspect
 
-try:
-    print(inspect.getsource(len))  # Built-in
-except OSError as e:
-    print(f"Can't get source: {e}")
-```
-"""
-
-signature_limitations = """
-Signatures don't capture everything:
-
-```python
-def func(*args, **kwargs):
-    # Signature doesn't tell you what args/kwargs are valid!
+def calculate(a, b, operation="add"):
     pass
 
-sig = inspect.signature(func)
-print(sig)  # (*args, **kwargs) - not very informative
-```
+# Get list of parameter names
 
-Type hints help, but runtime inspection has limits.
-"""
+'''
+solution = '''
+import inspect
 
-[gamepad_tutorial]
-text = """
-🎮 INTROSPECTION CHALLENGE MODE:
-- RT: Visualize call stack
-- LT: Show object attributes and methods
-- Y: Generate introspection code template
-- B: Add signature validation
-- A: Show source code for current function
-- D-pad: Navigate between stack frames
-"""
+def calculate(a, b, operation="add"):
+    pass
 
-[challenges]
-starter = "code_analyzer"
-intermediate = ""
-mastery = ""
+sig = inspect.signature(calculate)
+param_names = list(sig.parameters.keys())
+print(param_names)  # ['a', 'b', 'operation']
+'''
 
-[fun_factor]
-type = "meta_programming"
-description = "See inside the code while it runs"
-examples = [
-    "Auto-generate API documentation",
-    "Validate function calls automatically",
-    "Build a dependency injection framework",
-]
+[connections]
+prerequisites = ["functions", "classes", "decorators"]
+enables = []
+used_in = []
+see_also = ["decorators", "type_hints"]
 
-[adaptive]
-weakness_signals = [
-    "checking_none_instead_of_empty",
-    "not_deleting_frames",
-    "trying_to_get_source_of_builtins",
-    "performance_issues_from_overuse",
-]
-strength_indicators = [
-    "proper_signature_handling",
-    "safe_frame_usage",
-    "appropriate_introspection_usage",
-    "understanding_limitations",
-]
-
-[fun_facts]
-powers_fastapi = """
-FastAPI uses introspection heavily:
-
-```python
-from fastapi import FastAPI
-
-app = FastAPI()
-
-@app.get("/users/{user_id}")
-def get_user(user_id: int):  # FastAPI inspects this!
-    return {"user_id": user_id}
-
-# FastAPI:
-# 1. Inspects the signature
-# 2. Sees user_id is in the path and has type int
-# 3. Auto-validates and converts request data
-# 4. Generates OpenAPI docs from annotations
-```
-
-All from introspection!
-"""
-
-pytest_magic = """
-Pytest uses introspection to discover tests:
-
-```python
-# pytest introspects to find:
-# 1. Files named test_*.py
-# 2. Functions named test_*
-# 3. Classes named Test*
-# 4. Fixture dependencies by parameter names
-
-def test_something(database):  # pytest sees 'database'
-    pass                       # and looks for a fixture named 'database'
-```
-"""
-
-pydantic_validation = """
-Pydantic uses introspection for data validation:
-
-```python
-from pydantic import BaseModel
-
-class User(BaseModel):
-    name: str
-    age: int
-
-# Pydantic introspects the annotations to:
-# 1. Validate types
-# 2. Convert data
-# 3. Generate JSON schema
-```
-"""
-
-[real_world]
-pytest = "Test discovery and fixture injection"
-fastapi = "Request validation and documentation"
-sphinx = "Documentation generation from docstrings"
-pydantic = "Data validation from type annotations"
-click = "CLI argument parsing from function signatures"
-
-[see_also]
-concepts = ["decorators", "type_hints", "metaclasses"]
-stdlib = ["inspect", "typing", "types", "dis"]
-advanced = ["abstract_syntax_trees", "code_generation"]
-
-[inspect_reference]
-source_code = """
-- `inspect.getsource(obj)` - Get source code
-- `inspect.getsourcelines(obj)` - Get source as list of lines
-- `inspect.getfile(obj)` - Get file where object is defined
-- `inspect.getmodule(obj)` - Get module where object is defined
-"""
-
-signatures = """
-- `inspect.signature(callable)` - Get signature
-- `inspect.Parameter` - Represents a parameter
-- `signature.bind(*args, **kwargs)` - Validate arguments
-- `signature.bind_partial(...)` - Partial binding
-"""
-
-types = """
-- `inspect.isfunction(obj)` - Is it a function?
-- `inspect.ismethod(obj)` - Is it a method?
-- `inspect.isclass(obj)` - Is it a class?
-- `inspect.ismodule(obj)` - Is it a module?
-- `inspect.iscoroutine(obj)` - Is it a coroutine?
-- `inspect.isgenerator(obj)` - Is it a generator?
-"""
-
-members = """
-- `inspect.getmembers(obj)` - Get all members
-- `inspect.getmembers(obj, predicate)` - Filtered members
-- `inspect.getmembers(cls, inspect.ismethod)` - Just methods
-"""
-
-stack = """
-- `inspect.currentframe()` - Current frame
-- `inspect.stack()` - Full call stack
-- `inspect.getframeinfo(frame)` - Frame details
-- `frame.f_back` - Caller's frame
-- `frame.f_locals` - Local variables
-- `frame.f_code.co_name` - Function name
-"""
-
-documentation = """
-- `inspect.getdoc(obj)` - Get docstring (cleaned)
-- `inspect.getcomments(obj)` - Get comments before definition
-- `obj.__doc__` - Raw docstring
-"""
+[meta]
+time_to_read = 55
+difficulty = "expert"
+tags = ["introspection", "inspect", "metaprogramming"]

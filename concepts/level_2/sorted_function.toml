@@ -1,103 +1,140 @@
-# Level 2: Sorted Function
-# Prerequisite for: data organization, high scores
+# Level 2: The sorted() Function
 
 [concept]
 id = "sorted_function"
-name = "Sorted: Put Things in Order"
+name = "sorted(): Put Things in Order"
 level = 2
-prerequisites = ["lists_basics", "for_loops_basics"]
-unlocks = ["sorting_algorithms", "custom_sort_keys"]
+category = "functions"
+order = 14
 
-[description]
-brief = "Organize lists in order (numbers, strings, anything!)"
-detailed = """
-sorted() takes a messy list and returns a clean, ordered one.
+[content]
+lesson = """
+## Organize Your Data
+
+`sorted()` returns a new sorted list:
 
 ```python
 scores = [95, 102, 88, 110, 91]
 print(sorted(scores))
 # [88, 91, 95, 102, 110]
 
+# Original is unchanged!
+print(scores)  # [95, 102, 88, 110, 91]
+```
+
+## Reverse Order
+
+```python
+scores = [95, 102, 88, 110]
+print(sorted(scores, reverse=True))
+# [110, 102, 95, 88]
+```
+
+## Sorting Strings
+
+```python
 names = ["Zoe", "Alex", "Maya"]
 print(sorted(names))
 # ['Alex', 'Maya', 'Zoe']
+
+# Case-sensitive! Capitals first
+mixed = ["banana", "Apple", "cherry"]
+print(sorted(mixed))
+# ['Apple', 'banana', 'cherry']
+
+# Case-insensitive
+print(sorted(mixed, key=str.lower))
+# ['Apple', 'banana', 'cherry']
 ```
 
-Your original list stays unchanged!
-"""
+## Custom Sort with key=
 
-[examples]
-basic = """
-# Sort numbers
-numbers = [3, 1, 4, 1, 5, 9]
-print(sorted(numbers))           # [1, 1, 3, 4, 5, 9]
-print(sorted(numbers, reverse=True))  # [9, 5, 4, 3, 1, 1]
+Sort by a custom criteria using `key`:
 
-# Sort strings
-words = ["zebra", "apple", "mango"]
-print(sorted(words))             # ['apple', 'mango', 'zebra']
-"""
+```python
+words = ["cat", "elephant", "dog", "ant"]
 
-advanced = """
-# Sort by custom key
+# Sort by length
+print(sorted(words, key=len))
+# ['cat', 'dog', 'ant', 'elephant']
+
+# Sort dictionaries by a field
 players = [
     {"name": "Alex", "score": 95},
     {"name": "Zoe", "score": 110},
     {"name": "Maya", "score": 88}
 ]
 
-# Sort by score
 by_score = sorted(players, key=lambda p: p["score"])
-print(by_score)  # Maya(88), Alex(95), Zoe(110)
+# Maya(88), Alex(95), Zoe(110)
 
-# Sort by name length
-words = ["cat", "elephant", "dog", "hippopotamus"]
-print(sorted(words, key=len))  # ['cat', 'dog', 'elephant', 'hippopotamus']
+by_name = sorted(players, key=lambda p: p["name"])
+# Alex, Maya, Zoe
+```
+
+## sorted() vs .sort()
+
+| Feature | `sorted()` | `.sort()` |
+|---------|-----------|-----------|
+| Returns | New sorted list | None |
+| Original | Unchanged | Modified |
+| Works on | Any iterable | Only lists |
+
+```python
+nums = [3, 1, 4]
+
+# sorted() - returns new list
+new_list = sorted(nums)  # nums unchanged
+
+# .sort() - modifies in place
+nums.sort()  # nums is now sorted
+result = nums.sort()  # WRONG! Returns None
+```
+
+## Watch Out!
+
+```python
+# Can't sort mixed types
+mixed = [1, "two", 3]
+sorted(mixed)  # TypeError!
+
+# .sort() returns None!
+x = [3, 1, 2].sort()  # x is None, not [1, 2, 3]
+```
 """
 
-[usage]
-sorted_returns = "sorted(list) - returns NEW sorted list, original unchanged"
-list_sort = "list.sort() - modifies list in-place, returns None"
-reverse = "sorted(list, reverse=True) - sort descending"
-key_function = "sorted(list, key=func) - sort by custom comparison"
+[content.try_it]
+prompt = "Sort a list of players by their score (highest first)"
+starter = '''
+players = [
+    {"name": "Alice", "score": 85},
+    {"name": "Bob", "score": 92},
+    {"name": "Carol", "score": 78}
+]
 
-[common_mistakes]
-sorted_returns_new = "sorted() returns new list! Must capture: new_list = sorted(old_list)"
-sort_returns_none = "list.sort() modifies in-place and returns None - don't do: x = list.sort()"
-strings_case = "sorted() is case-sensitive: ['Zebra', 'apple'] → ['Zebra', 'apple'] (capitals first)"
-mixed_types = "Can't sort [1, 'two', 3] - mixed types don't compare"
+# Sort by score, highest first
 
-[fun_facts]
-timsort = "Python uses Timsort algorithm - super fast and stable"
-stable_sort = "Equal items keep their original order (stability)"
-key_once = "key function called only once per item (efficient!)"
+'''
+solution = '''
+players = [
+    {"name": "Alice", "score": 85},
+    {"name": "Bob", "score": 92},
+    {"name": "Carol", "score": 78}
+]
 
-[gamepad_tutorial]
-text = """
-🎮 SORTER:
-- Press A on list to wrap with sorted()
-- D-pad LEFT for reverse=True
-- Hold RB to show sorted() vs .sort() comparison
-- Press Y to add key=lambda for custom sort
-"""
+# Sort by score, highest first
+sorted_players = sorted(players, key=lambda p: p["score"], reverse=True)
+for p in sorted_players:
+    print(f"{p['name']}: {p['score']}")
+'''
 
-[challenges]
-starter = ""
-intermediate = ""
-mastery = ""
+[connections]
+prerequisites = ["lists", "for_loops_basics"]
+enables = []
+used_in = []
+see_also = ["lists"]
 
-[fun_factor]
-type = "organization"
-description = "Like organizing your game library alphabetically"
-examples = ["high score board", "alphabetical roster", "ranked leaderboard"]
-
-[adaptive]
-weakness_signals = ["using_assignment_with_sort", "case_sensitivity_surprise", "lost_return_value"]
-strength_indicators = ["sorted_vs_sort_choice", "key_parameter_usage", "reverse_parameter"]
-
-[comparison]
-feature = ["sorted()", "list.sort()"]
-returns = ["New list", "None"]
-modifies_original = ["No", "Yes"]
-works_on = ["Any iterable", "Only lists"]
-when_to_use = ["Keep original", "Save memory"]
+[meta]
+time_to_read = 50
+difficulty = "beginner"
+tags = ["functions", "sorting", "lists"]
