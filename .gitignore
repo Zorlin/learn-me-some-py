@@ -38,3 +38,6 @@ build/
 
 # Palace
 .palace/
+
+# Synthesis raw material
+synthesis/
