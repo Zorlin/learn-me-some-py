@@ -49,25 +49,30 @@ class TestIfElse:
         assert "gold" in player_code, "Code should use the gold variable"
         assert "sword_price" in player_code, "Code should use the sword_price variable"
 
-    def test_prints_appropriate_message(self, player_code: str):
-        """Code should print different messages based on the condition."""
-        # Test with the provided values (gold=50, sword_price=75)
+    def test_prints_message_when_cant_afford(self, player_code: str):
+        """Code should print something when player can't afford the sword."""
+        # Test with the provided values (gold=50, sword_price=75) - can't afford
         stdout, stderr, returncode = run_player_code(player_code)
         assert returncode == 0, f"Code failed: {stderr}"
-        assert len(stdout.strip()) > 0, "Code should print something"
+        assert len(stdout.strip()) > 0, \
+            "Code should print a message when player can't afford the sword"
 
-        # With gold=50 and sword_price=75, should print "Not enough gold!"
-        assert "Not enough gold!" in stdout or "not enough" in stdout.lower(), \
-            "With gold=50 and sword_price=75, should print insufficient funds message"
+    def test_prints_different_message_when_can_afford(self, player_code: str):
+        """Code should print a DIFFERENT message when player CAN afford."""
+        # Get output when can't afford (original: gold=50, price=75)
+        cant_afford_stdout, _, _ = run_player_code(player_code)
 
-    def test_modified_gold_values_work(self, player_code: str):
-        """Code should work correctly when gold values are modified."""
-        # Create a version with enough gold
+        # Get output when CAN afford (modified: gold=100)
         enough_gold_code = player_code.replace("gold = 50", "gold = 100")
-        stdout, stderr, returncode = run_player_code(enough_gold_code)
+        can_afford_stdout, stderr, returncode = run_player_code(enough_gold_code)
+
         assert returncode == 0, f"Code failed with enough gold: {stderr}"
-        assert "bought" in stdout.lower() or "sword" in stdout.lower(), \
-            "With enough gold, should print purchase success message"
+        assert len(can_afford_stdout.strip()) > 0, \
+            "Code should print a message when player CAN afford the sword"
+
+        # The two messages should be different!
+        assert cant_afford_stdout.strip() != can_afford_stdout.strip(), \
+            "The if and else branches should print DIFFERENT messages"
 
     def test_proper_indentation(self, player_code: str):
         """Code should use proper indentation for if/else blocks."""

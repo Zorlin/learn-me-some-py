@@ -69,36 +69,6 @@ def solution(commands):
 type = "pytest"
 test_file = "test_data_processor.py"
 
-[[tests.case]]
-name = "basic_pipeline"
-input = ["DATA 1,2,3", "PIPELINE clean,filter,square,sum"]
-expected = ["Data loaded: 3 items", "14"]
-
-[[tests.case]]
-name = "with_empty_values"
-input = ["DATA 1,2,,3,", "PIPELINE clean,filter,square,sum"]
-expected = ["Data loaded: 5 items", "14"]
-
-[[tests.case]]
-name = "with_invalid_numbers"
-input = ["DATA 1,2,abc,3,xyz", "PIPELINE clean,filter,square,sum"]
-expected = ["Data loaded: 5 items", "14"]
-
-[[tests.case]]
-name = "filter_only"
-input = ["DATA 1,abc,2,def,3", "PIPELINE clean,filter"]
-expected = ["Data loaded: 5 items", "[1, 2, 3]"]
-
-[[tests.case]]
-name = "partial_pipeline"
-input = ["DATA 2,3,4", "PIPELINE clean,filter,square"]
-expected = ["Data loaded: 3 items", "[4, 9, 16]"]
-
-[[tests.case]]
-name = "complex_data"
-input = ["DATA 5,,,10,,15,abc,20,def", "PIPELINE clean,filter,square,sum"]
-expected = ["Data loaded: 9 items", "750"]
-
 [hints]
 level_1 = "Use list comprehensions: [x for x in items if x]"
 level_2 = "For filter_numbers, use try/except to test int() conversion"

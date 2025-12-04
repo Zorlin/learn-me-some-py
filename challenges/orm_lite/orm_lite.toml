@@ -52,6 +52,10 @@ This teaches the DEEPEST Python magic - how Django models work under the hood.
 """
 
 [skeleton]
+[validation]
+type = "pytest"
+test_file = "test_orm_lite.py"
+
 code = '''
 class Field:
     """Descriptor for model fields."""
@@ -81,65 +85,6 @@ def solution(operation_spec):
     # Your code here
     pass
 '''
-
-[tests]
-[[tests.case]]
-name = "create_table_simple"
-input = {
-    "operation": "create_table",
-    "class_name": "User",
-    "fields": {"name": "TEXT", "age": "INTEGER"}
-}
-expected = "CREATE TABLE User (name TEXT, age INTEGER)"
-
-[[tests.case]]
-name = "create_table_multiple_fields"
-input = {
-    "operation": "create_table",
-    "class_name": "Product",
-    "fields": {"id": "INTEGER", "title": "TEXT", "price": "REAL", "stock": "INTEGER"}
-}
-expected = "CREATE TABLE Product (id INTEGER, title TEXT, price REAL, stock INTEGER)"
-
-[[tests.case]]
-name = "insert_single_row"
-input = {
-    "operation": "insert",
-    "class_name": "User",
-    "fields": {"name": "TEXT", "age": "INTEGER"},
-    "values": {"name": "Alice", "age": 30}
-}
-expected = "INSERT INTO User (name, age) VALUES ('Alice', 30)"
-
-[[tests.case]]
-name = "insert_with_string_escaping"
-input = {
-    "operation": "insert",
-    "class_name": "Post",
-    "fields": {"title": "TEXT", "content": "TEXT"},
-    "values": {"title": "Hello", "content": "World"}
-}
-expected = "INSERT INTO Post (title, content) VALUES ('Hello', 'World')"
-
-[[tests.case]]
-name = "select_by_condition"
-input = {
-    "operation": "select",
-    "class_name": "User",
-    "fields": {"name": "TEXT", "age": "INTEGER"},
-    "where": {"name": "Alice"}
-}
-expected = "SELECT * FROM User WHERE name='Alice'"
-
-[[tests.case]]
-name = "select_multiple_conditions"
-input = {
-    "operation": "select",
-    "class_name": "Product",
-    "fields": {"title": "TEXT", "price": "REAL"},
-    "where": {"title": "Widget", "price": 9.99}
-}
-expected = "SELECT * FROM Product WHERE title='Widget' AND price=9.99"
 
 [hints]
 level_1 = "Metaclasses intercept class creation with __new__"

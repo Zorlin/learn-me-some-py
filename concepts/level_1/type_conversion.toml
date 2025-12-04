@@ -1,4 +1,4 @@
-# Level 1: Type Conversion
+# Level 1: Type Conversion (Multi-Stage)
 
 [concept]
 id = "type_conversion"
@@ -29,16 +29,16 @@ price = float(price_string)  # 19.99 (as a number!)
 
 ## Why This Matters
 
-`input()` ALWAYS returns a string. To do math, you must convert:
+You can't mix types in operations:
 
 ```python
 # This crashes!
-age = input("Age: ")  # User types 25 -> "25" (string)
-print(age + 5)        # ERROR! Can't add "25" + 5
+age = "25"          # String
+print(age + 5)      # ERROR! Can't add "25" + 5
 
 # This works!
-age = int(input("Age: "))  # Convert to integer
-print(age + 5)             # 30 ✓
+age = int("25")     # Convert to integer
+print(age + 5)      # 30 ✓
 ```
 
 ## The Three Converters
@@ -62,14 +62,6 @@ int(-2.9)  # -2 (not -3!)
 round(3.9)  # 4
 ```
 
-## Watch Out: Invalid Conversions Crash!
-
-```python
-int("hello")   # ERROR! Can't convert "hello" to number
-int("3.14")    # ERROR! Use float() for decimals
-float("abc")   # ERROR! Not a number
-```
-
 ## Concatenation Needs Strings
 
 ```python
@@ -84,32 +76,202 @@ print(f"Score: {score}")       # f-strings handle it automatically
 ```
 """
 
-[content.try_it]
-prompt = "Get a temperature in Fahrenheit and convert it to Celsius"
-starter = '''
-# Formula: C = (F - 32) * 5/9
-# Get Fahrenheit from user, print Celsius
+[skeleton]
+code = '''
+# Type Conversion Practice
 
-'''
-solution = '''
-# Formula: C = (F - 32) * 5/9
-# Get Fahrenheit from user, print Celsius
-fahrenheit = float(input("Temperature in Fahrenheit: "))
-celsius = (fahrenheit - 32) * 5/9
-print(f"{fahrenheit}°F is {celsius}°C")
+# Stage 1: String to Number
+age_text = "25"
+# TODO: Convert age_text to an integer and add 5 years
+# Store the result in future_age
+# Print: "In 5 years: " followed by future_age
+
+
+# Stage 2: Number to String
+score = 100
+bonus = 50
+total = score + bonus
+# TODO: Create a message like "Your score: 150 points"
+# Use str() to convert total, then print the message
+
+
+# Stage 3: Float Conversion
+fahrenheit = "98.6"
+# TODO: Convert to float, then to Celsius using: (F - 32) * 5/9
+# Print the celsius value (it will be a decimal)
+
+
+# Stage 4: Real-World Input (The Full Pattern!)
+# TODO: Get temperature from user, convert to Celsius, print result
+# Combine everything: input() → float() → math → f-string output
+
 '''
 
 [validation]
 type = "pytest"
 test_file = "test_type_conversion.py"
 
+# ═══════════════════════════════════════════════════════════════════════════
+# STAGE 1: String to Number (int)
+# ═══════════════════════════════════════════════════════════════════════════
+[stages.stage_1]
+name = "String to Number"
+description = """
+Convert a string to a number and do math!
+
+The variable `age_text` contains `"25"` - that's a STRING (text).
+You can't add 5 to text, so convert it first:
+
+```python
+age_text = "25"
+age = int(age_text)      # Now it's a number!
+future_age = age + 5     # Math works!
+print("In 5 years:", future_age)
+```
+
+**Your task:** Convert `age_text` to an integer, add 5, and print the result.
+"""
+
+[stages.stage_1.hints]
+level_1 = "Use int() to convert the string to a number"
+level_2 = "future_age = int(age_text) + 5"
+
+# ═══════════════════════════════════════════════════════════════════════════
+# STAGE 2: Number to String (str)
+# ═══════════════════════════════════════════════════════════════════════════
+[stages.stage_2]
+name = "Number to String"
+description = """
+Combine text with numbers using `str()`!
+
+You have `total = 150` (a number). To make a message:
+
+```python
+# This crashes:
+print("Your score: " + total)  # ERROR!
+
+# This works:
+print("Your score: " + str(total) + " points")
+```
+
+**Your task:** Create and print "Your score: 150 points" using str() to convert total.
+
+💡 **Alternative:** f-strings handle this automatically: `f"Your score: {total} points"`
+"""
+
+[stages.stage_2.hints]
+level_1 = "Use str(total) to convert the number to text"
+level_2 = 'print("Your score: " + str(total) + " points")'
+
+# ═══════════════════════════════════════════════════════════════════════════
+# STAGE 3: Float Conversion
+# ═══════════════════════════════════════════════════════════════════════════
+[stages.stage_3]
+name = "Float Conversion"
+description = """
+Convert to float for decimal numbers!
+
+Body temperature is 98.6°F - that's a decimal. Use `float()`:
+
+```python
+fahrenheit = "98.6"
+f = float(fahrenheit)  # Now it's a number: 98.6
+celsius = (f - 32) * 5/9
+print(celsius)  # 37.0
+```
+
+**Your task:** Convert the fahrenheit string to float, calculate Celsius, and print it.
+
+The formula is: `C = (F - 32) * 5/9`
+"""
+
+[stages.stage_3.hints]
+level_1 = "Use float() because the temperature has a decimal"
+level_2 = "celsius = (float(fahrenheit) - 32) * 5/9"
+
+# ═══════════════════════════════════════════════════════════════════════════
+# STAGE 4: Real-World Input (Capstone)
+# ═══════════════════════════════════════════════════════════════════════════
+[stages.stage_4]
+name = "Real-World Input"
+description = """
+🎯 **Capstone: Put it all together!**
+
+Now combine everything you've learned:
+1. `input()` gets text from the user
+2. `float()` converts it to a number
+3. Math calculates the result
+4. f-string formats the output
+
+```python
+temp_f = float(input("Temperature in F: "))
+temp_c = (temp_f - 32) * 5/9
+print(f"{temp_f}°F = {temp_c:.1f}°C")
+```
+
+**Your task:** Create a temperature converter that:
+- Asks for Fahrenheit input
+- Converts to Celsius
+- Prints both values in a nice format
+"""
+
+[stages.stage_4.hints]
+level_1 = "Wrap input() with float(): float(input('prompt'))"
+level_2 = "Use an f-string to format the output nicely"
+
+# ═══════════════════════════════════════════════════════════════════════════
+# GLOBAL HINTS
+# ═══════════════════════════════════════════════════════════════════════════
+
+[hints]
+level_1 = "int() for whole numbers, float() for decimals, str() for text"
+level_2 = "You can't do math with strings - convert first!"
+level_3 = "f-strings like f\"Value: {x}\" handle conversions automatically"
+
+[solution]
+code = '''
+# Type Conversion Practice
+
+# Stage 1: String to Number
+age_text = "25"
+future_age = int(age_text) + 5
+print("In 5 years:", future_age)
+
+
+# Stage 2: Number to String
+score = 100
+bonus = 50
+total = score + bonus
+print("Your score: " + str(total) + " points")
+
+
+# Stage 3: Float Conversion
+fahrenheit = "98.6"
+celsius = (float(fahrenheit) - 32) * 5/9
+print(celsius)
+
+
+# Stage 4: Real-World Input
+temp_f = float(input("Temperature in F: "))
+temp_c = (temp_f - 32) * 5/9
+print(f"{temp_f}°F = {temp_c:.1f}°C")
+'''
+
 [connections]
-prerequisites = ["numbers", "strings", "input_function"]
+prerequisites = ["numbers", "strings"]
 enables = ["string_methods"]
 used_in = ["temperature_converter"]
-see_also = ["types", "input_function"]
+see_also = ["types"]
 
 [meta]
 time_to_read = 50
 difficulty = "beginner"
 tags = ["types", "conversion", "basics"]
+
+[emotional_checkpoints]
+after_first_test_pass = """
+🔢 You converted a string to a number! That's a fundamental skill.
+"""
+after_completion = """
+🎯 Type conversion mastered! You can now freely move between strings, ints, and floats.
+"""

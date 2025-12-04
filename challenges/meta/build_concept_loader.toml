@@ -26,6 +26,10 @@ This is META. You're building the system that taught you.
 """
 
 [skeleton]
+[validation]
+type = "pytest"
+test_file = "test_build_concept_loader.py"
+
 code = '''
 from dataclasses import dataclass
 from pathlib import Path
@@ -65,50 +69,6 @@ def load_concept(toml_path: str) -> Concept:
     # Your code here
     pass
 '''
-
-[tests]
-[[tests.case]]
-name = "load_simple_concept"
-input = ["""[concept]
-id = "test_concept"
-name = "Test Concept"
-level = 1
-prerequisites = []
-
-[description]
-brief = "A test"
-detailed = "Testing"
-"""]
-expected = {"id": "test_concept", "name": "Test Concept", "level": 1}
-
-[[tests.case]]
-name = "load_with_prerequisites"
-input = ["""[concept]
-id = "advanced"
-name = "Advanced Concept"
-level = 3
-prerequisites = ["basic1", "basic2"]
-
-[description]
-brief = "Advanced stuff"
-detailed = "Requires prerequisites"
-"""]
-expected = {"prerequisites": ["basic1", "basic2"]}
-
-[[tests.case]]
-name = "parse_descriptions"
-input = ["""[concept]
-id = "desc_test"
-name = "Description Test"
-level = 2
-prerequisites = []
-
-[description]
-brief = "Brief description"
-detailed = "This is a detailed description"
-"""]
-expected = {"description_brief": "Brief description"}
-
 [hints]
 level_1 = "Use Path.read_text() to read the file, then toml.loads() to parse"
 level_2 = "Access TOML sections with data['concept']['id']"

@@ -46,40 +46,6 @@ def solution(commands):
 type = "pytest"
 test_file = "test_error_handler.py"
 
-[[tests.case]]
-name = "basic_math"
-input = ["ADD 5 3", "ADD 10 20", "DIVIDE 10 2"]
-expected = ["8", "30", "5.0"]
-
-[[tests.case]]
-name = "division_by_zero"
-input = ["DIVIDE 10 0", "DIVIDE 5 0"]
-expected = ["ERROR: division by zero", "ERROR: division by zero"]
-
-[[tests.case]]
-name = "invalid_numbers"
-input = ["ADD 5 abc", "PARSE notanumber", "DIVIDE x y"]
-expected = ["ERROR: invalid number", "ERROR: invalid number", "ERROR: invalid number"]
-
-[[tests.case]]
-name = "storage_operations"
-input = ["STORE age 25", "GET age", "GET missing"]
-expected = ["Stored: age", "25", "ERROR: key not found"]
-
-[[tests.case]]
-name = "mixed_operations"
-input = [
-    "ADD 10 5",
-    "DIVIDE 20 4",
-    "DIVIDE 1 0",
-    "PARSE 42",
-    "PARSE bad",
-    "STORE x 100",
-    "GET x",
-    "GET y"
-]
-expected = ["15", "5.0", "ERROR: division by zero", "42", "ERROR: invalid number", "Stored: x", "100", "ERROR: key not found"]
-
 [hints]
 level_1 = "Use try/except blocks to catch errors"
 level_2 = "ValueError is raised when int() or float() fails"

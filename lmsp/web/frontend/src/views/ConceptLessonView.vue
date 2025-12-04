@@ -81,7 +81,54 @@ const testResult = ref<{
     actual?: unknown
     error?: string
   }>
+  director_intervention?: {
+    type: string
+    content: string
+    reason: string
+    confidence: number
+    suggested_lessons?: Array<{
+      id: string
+      name: string
+      level: number
+      category: string
+      time_to_read: number
+      has_try_it: boolean
+      item_type?: string
+      depth?: number
+    }>
+  }
+  suggested_lessons?: Array<{
+    id: string
+    name: string
+    level: number
+    category: string
+    time_to_read: number
+    has_try_it: boolean
+    item_type?: string
+    depth?: number
+  }>
 } | null>(null)
+
+// Director intervention and suggestions (same pattern as ChallengeView)
+const suggestedLessons = computed(() => {
+  if (!testResult.value) return []
+
+  // Check Director intervention first
+  if (testResult.value.director_intervention?.suggested_lessons) {
+    return testResult.value.director_intervention.suggested_lessons
+  }
+
+  // Check direct suggested_lessons (from repeated failures)
+  if (testResult.value.suggested_lessons) {
+    return testResult.value.suggested_lessons
+  }
+
+  return []
+})
+
+const directorIntervention = computed(() => {
+  return testResult.value?.director_intervention ?? null
+})
 
 // Lesson explainer collapsed state
 const showExplainer = ref(true)
@@ -282,6 +329,8 @@ async function runTests() {
       xp_reason: data.xp_reason,
       total_xp: data.total_xp,
       test_results: data.test_results,
+      director_intervention: data.director_intervention,
+      suggested_lessons: data.suggested_lessons,
     }
   } catch (error) {
     testResult.value = {
@@ -336,6 +385,10 @@ function goToRelated(id: string) {
 
 function goToChallenge(id: string) {
   router.push(`/challenge/${id}`)
+}
+
+function goToLesson(lessonId: string) {
+  router.push(`/concept/${lessonId}`)
 }
 
 function formatCategory(category: string): string {
@@ -600,6 +653,66 @@ const conceptContext = computed(() => {
               :challenge="conceptContext"
               class="mt-6"
             />
+
+            <!-- Director Intervention & Suggested Lessons -->
+            <div
+              v-if="directorIntervention || suggestedLessons.length > 0"
+              class="mt-6 director-suggestion"
+            >
+              <!-- Director Message -->
+              <div v-if="directorIntervention" class="intervention-card mb-4">
+                <div class="flex items-center gap-2 mb-2">
+                  <span class="text-lg">🎯</span>
+                  <span class="font-medium text-accent-primary">Director's Guidance</span>
+                </div>
+                <p class="text-text-secondary text-sm whitespace-pre-wrap" v-html="directorIntervention.content"></p>
+              </div>
+
+              <!-- Suggestions (struggles + concepts) -->
+              <div v-if="suggestedLessons.length > 0" class="suggested-lessons">
+                <div class="flex items-center gap-2 mb-3">
+                  <span class="font-medium text-text-primary">Suggestions</span>
+                  <span class="text-xs text-text-muted ml-auto">
+                    {{ suggestedLessons.length }} item{{ suggestedLessons.length > 1 ? 's' : '' }}
+                  </span>
+                </div>
+
+                <div class="lessons-grid">
+                  <!-- Struggle items (detected issues) - shown first -->
+                  <div
+                    v-for="item in suggestedLessons.filter(i => i.item_type === 'struggle')"
+                    :key="item.id"
+                    class="struggle-card"
+                  >
+                    <div class="flex items-center gap-2">
+                      <span class="text-lg">😤</span>
+                      <span class="font-medium text-accent-warning text-sm">{{ item.name }}</span>
+                    </div>
+                  </div>
+
+                  <!-- Concept items (lessons to review) -->
+                  <button
+                    v-for="item in suggestedLessons.filter(i => i.item_type !== 'struggle')"
+                    :key="item.id"
+                    class="lesson-card gamepad-focusable"
+                    @click="goToLesson(item.id)"
+                  >
+                    <div class="flex items-center gap-2 mb-1">
+                      <span class="level-badge-sm">L{{ item.level }}</span>
+                      <span class="font-medium text-text-primary text-sm">{{ item.name }}</span>
+                    </div>
+                    <div class="flex items-center gap-3 text-xs text-text-muted">
+                      <span>{{ item.category }}</span>
+                      <span>~{{ Math.ceil(item.time_to_read / 60) }} min</span>
+                      <span v-if="item.has_try_it" class="text-accent-success">✓ Interactive</span>
+                    </div>
+                    <div v-if="item.depth === 0" class="text-xs text-accent-primary mt-1">
+                      ← This concept
+                    </div>
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
 
           <!-- Lesson Content -->
@@ -813,5 +926,52 @@ const conceptContext = computed(() => {
   @apply bg-oled-panel border border-oled-border rounded-lg;
   @apply text-text-secondary;
   transition: all 0.2s ease;
+}
+
+/* Director suggestion section */
+.director-suggestion {
+  @apply p-4 rounded-lg;
+  @apply bg-oled-panel border border-oled-border;
+}
+
+.intervention-card {
+  @apply p-3 rounded-lg;
+  @apply bg-accent-primary/5 border border-accent-primary/20;
+}
+
+.suggested-lessons {
+  @apply p-3 rounded-lg;
+  background: rgba(10, 10, 10, 0.8);
+}
+
+.lessons-grid {
+  @apply flex flex-col gap-2;
+}
+
+.lesson-card {
+  @apply w-full text-left p-3 rounded-lg;
+  @apply bg-oled-panel border border-oled-border;
+  @apply transition-all duration-150;
+}
+
+.lesson-card:hover {
+  @apply border-accent-primary/50;
+  background: rgba(10, 10, 10, 0.9);
+}
+
+.lesson-card:focus {
+  @apply outline-none ring-2 ring-accent-primary ring-offset-2;
+  --tw-ring-offset-color: #000000;
+}
+
+.level-badge-sm {
+  @apply px-1.5 py-0.5 text-xs font-medium;
+  @apply bg-accent-secondary/20 text-accent-secondary;
+  @apply border border-accent-secondary/30 rounded;
+}
+
+.struggle-card {
+  @apply w-full p-3 rounded-lg;
+  @apply bg-accent-warning/5 border border-accent-warning/30;
 }
 </style>

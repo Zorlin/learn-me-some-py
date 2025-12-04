@@ -28,6 +28,10 @@ Implement a challenge validator that:
 """
 
 [skeleton]
+[validation]
+type = "pytest"
+test_file = "test_build_challenge_system.py"
+
 code = '''
 from dataclasses import dataclass
 from typing import Any
@@ -55,34 +59,6 @@ def validate_solution(solution_code: str, test_cases: list[dict]) -> list[TestRe
     # Your code here
     pass
 '''
-
-[tests]
-[[tests.case]]
-name = "simple_function"
-input = [
-    "def solution(x): return x * 2",
-    [{"name": "double_5", "input": [5], "expected": 10}]
-]
-expected = {"passed": true}
-
-[[tests.case]]
-name = "multiple_tests"
-input = [
-    "def solution(x): return x + 1",
-    [
-        {"name": "add_one_5", "input": [5], "expected": 6},
-        {"name": "add_one_10", "input": [10], "expected": 11}
-    ]
-]
-expected = {"all_passed": true}
-
-[[tests.case]]
-name = "failing_test"
-input = [
-    "def solution(x): return x * 2",
-    [{"name": "wrong", "input": [5], "expected": 11}]
-]
-expected = {"passed": false}
 
 [hints]
 level_1 = "Use exec() to run the solution code and extract the function"

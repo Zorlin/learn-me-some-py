@@ -26,6 +26,10 @@ This is the memory engine. The reason you REMEMBER what you learned.
 """
 
 [skeleton]
+[validation]
+type = "pytest"
+test_file = "test_build_spaced_repetition.py"
+
 code = '''
 from datetime import datetime, timedelta
 from dataclasses import dataclass
@@ -62,27 +66,6 @@ def is_due_for_review(card: SpacedCard, now: datetime) -> bool:
     # Your code here
     pass
 '''
-
-[tests]
-[[tests.case]]
-name = "first_review_success"
-input = [{"concept_id": "lists", "interval_hours": 1, "success": true}]
-expected = {"new_interval_hours": 24}  # 1 hour -> 1 day
-
-[[tests.case]]
-name = "second_review_success"
-input = [{"concept_id": "lists", "interval_hours": 24, "success": true}]
-expected = {"new_interval_hours": 72}  # 1 day -> 3 days
-
-[[tests.case]]
-name = "review_failure_resets"
-input = [{"concept_id": "comprehensions", "interval_hours": 168, "success": false}]
-expected = {"new_interval_hours": 1}  # Reset to 1 hour
-
-[[tests.case]]
-name = "due_check"
-input = [{"last_reviewed_hours_ago": 25, "interval_hours": 24}]
-expected = {"is_due": true}
 
 [hints]
 level_1 = "Use timedelta to represent time intervals (timedelta(hours=1), timedelta(days=1))"

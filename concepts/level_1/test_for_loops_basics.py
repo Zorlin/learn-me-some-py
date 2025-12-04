@@ -53,12 +53,16 @@ class TestForLoopsBasics:
         for i, line in enumerate(lines):
             assert expected_numbers[i] in line, f"Line {i+1} should contain '{expected_numbers[i]}', got: '{line}'"
 
-    def test_correct_range_parameters(self, player_code: str):
-        """Code should use range(1, 6) to get numbers 1-5."""
-        # Check for the correct range usage
-        # This allows for variations like range(1, 6), range(1, 5+1), etc.
-        pattern = r'range\s*\(\s*1\s*,\s*[^\)]*\)'
-        assert re.search(pattern, player_code), "Should use range(1, 6) or equivalent to get numbers 1-5"
+    def test_starts_at_one_not_zero(self, player_code: str):
+        """Output should start at 1, not 0 (common off-by-one error)."""
+        stdout, stderr, returncode = run_player_code(player_code)
+        assert returncode == 0, f"Code failed: {stderr}"
+
+        lines = [line.strip() for line in stdout.strip().split('\n') if line.strip()]
+        if lines:
+            first_output = lines[0]
+            assert '0' not in first_output or '10' in first_output, \
+                "Output starts with 0! Remember: range(5) gives 0-4, but range(1, 6) gives 1-5"
 
     def test_no_hardcoded_prints(self, player_code: str):
         """Code should not use hardcoded print statements for each number."""

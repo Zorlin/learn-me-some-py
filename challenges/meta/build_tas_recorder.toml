@@ -24,6 +24,10 @@ Build the time machine that made LMSP learning debuggable.
 """
 
 [skeleton]
+[validation]
+type = "pytest"
+test_file = "test_build_tas_recorder.py"
+
 code = '''
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -82,32 +86,6 @@ class Recorder:
         """Export the recording for replay/analysis."""
         return self.recording
 '''
-
-[tests]
-[[tests.case]]
-name = "record_single_event"
-input = [{"type": "keystroke", "data": {"key": "a"}}]
-expected = {"events_count": 1}
-
-[[tests.case]]
-name = "create_checkpoint"
-input = [
-    {"type": "keystroke", "data": {"key": "d"}},
-    {"type": "keystroke", "data": {"key": "e"}},
-    {"checkpoint": "after_def"}
-]
-expected = {"checkpoint_exists": True, "checkpoint_at": 2}
-
-[[tests.case]]
-name = "rewind_to_checkpoint"
-input = [
-    {"type": "keystroke", "data": {"key": "x"}},
-    {"checkpoint": "before_error"},
-    {"type": "keystroke", "data": {"key": "y"}},
-    {"type": "keystroke", "data": {"key": "z"}},
-    {"rewind_to": "before_error"}
-]
-expected = {"rewind_index": 1}
 
 [hints]
 level_1 = "Use time.time() to capture relative timestamps"

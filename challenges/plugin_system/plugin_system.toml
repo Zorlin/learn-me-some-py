@@ -55,6 +55,10 @@ This challenge teaches the pattern; real systems use sandboxing.
 """
 
 [skeleton]
+[validation]
+type = "pytest"
+test_file = "test_plugin_system.py"
+
 code = '''
 def solution(scenario):
     """
@@ -70,73 +74,6 @@ def solution(scenario):
     # Your code here
     pass
 '''
-
-[tests]
-[[tests.case]]
-name = "simple_function"
-input = {
-    "plugin_code": "def greet(name): return f'Hello, {name}!'",
-    "command": "greet",
-    "args": ["World"]
-}
-expected = {"result": "Hello, World!"}
-
-[[tests.case]]
-name = "math_function"
-input = {
-    "plugin_code": "def add(a, b): return a + b",
-    "command": "add",
-    "args": [5, 3]
-}
-expected = {"result": 8}
-
-[[tests.case]]
-name = "function_not_found"
-input = {
-    "plugin_code": "def foo(): return 42",
-    "command": "bar",
-    "args": []
-}
-expected = {"error": "function not found"}
-
-[[tests.case]]
-name = "execution_error"
-input = {
-    "plugin_code": "def divide(a, b): return a / b",
-    "command": "divide",
-    "args": [10, 0]
-}
-expected = {"error": "execution failed"}
-
-[[tests.case]]
-name = "multiple_functions"
-input = {
-    "plugin_code": "def add(a, b): return a + b\ndef sub(a, b): return a - b",
-    "command": "sub",
-    "args": [10, 3]
-}
-expected = {"result": 7}
-
-[[tests.case]]
-name = "no_args_function"
-input = {
-    "plugin_code": "def get_answer(): return 42",
-    "command": "get_answer",
-    "args": []
-}
-expected = {"result": 42}
-
-[[tests.case]]
-name = "complex_logic"
-input = {
-    "plugin_code": """
-def process(items):
-    return [x * 2 for x in items if x > 0]
-""",
-    "command": "process",
-    "args": [[-1, 2, -3, 4, 5]]
-}
-expected = {"result": [4, 8, 10]}
 
 [hints]
 level_1 = "Use exec() to run code string in a namespace dictionary"

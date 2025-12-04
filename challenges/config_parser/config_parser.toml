@@ -53,6 +53,10 @@ This is how tools like TOML, INI, and config parsers work.
 """
 
 [skeleton]
+[validation]
+type = "pytest"
+test_file = "test_config_parser.py"
+
 code = '''
 def solution(config_text):
     """
@@ -69,93 +73,6 @@ def solution(config_text):
     pass
 '''
 
-[tests]
-[[tests.case]]
-name = "simple_flat"
-input = """
-[app]
-name = myapp
-version = 1.0
-"""
-expected = {"app": {"name": "myapp", "version": "1.0"}}
-
-[[tests.case]]
-name = "type_conversion"
-input = """
-[settings]
-count = 42
-ratio = 3.14
-enabled = true
-disabled = false
-"""
-expected = {"settings": {"count": 42, "ratio": 3.14, "enabled": true, "disabled": false}}
-
-[[tests.case]]
-name = "nested_sections"
-input = """
-[server]
-host = localhost
-
-[server.ssl]
-enabled = true
-port = 443
-
-[database]
-url = postgres://localhost
-"""
-expected = {
-    "server": {
-        "host": "localhost",
-        "ssl": {"enabled": true, "port": 443}
-    },
-    "database": {"url": "postgres://localhost"}
-}
-
-[[tests.case]]
-name = "missing_section"
-input = "key = value"
-expected = {"error": "key before section"}
-
-[[tests.case]]
-name = "invalid_line"
-input = """
-[app]
-this is not valid syntax
-"""
-expected = {"error": "invalid line: this is not valid syntax"}
-
-[[tests.case]]
-name = "realistic_config"
-input = """
-[database]
-host = db.example.com
-port = 5432
-name = production
-
-[redis]
-host = cache.example.com
-port = 6379
-timeout = 5.0
-
-[server]
-host = 0.0.0.0
-port = 8080
-workers = 4
-
-[server.logging]
-level = info
-file = /var/log/app.log
-"""
-expected = {
-    "database": {"host": "db.example.com", "port": 5432, "name": "production"},
-    "redis": {"host": "cache.example.com", "port": 6379, "timeout": 5.0},
-    "server": {
-        "host": "0.0.0.0",
-        "port": 8080,
-        "workers": 4,
-        "logging": {"level": "info", "file": "/var/log/app.log"}
-    }
-}
 
 [hints]
 level_1 = "Split by lines, track current section as you parse"

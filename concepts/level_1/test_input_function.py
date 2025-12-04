@@ -78,10 +78,10 @@ class TestInputFunction:
             user_inputs=["Zara", "purple"]
         )
         assert returncode == 0, f"Code failed: {stderr}"
-        assert "Zara" in stdout or "zara" in stdout,
-               "Output should contain the user's name"
-        assert "purple" in stdout,
-               "Output should contain the user's favorite color"
+        assert "Zara" in stdout or "zara" in stdout, \
+            "Output should contain the user's name"
+        assert "purple" in stdout, \
+            "Output should contain the user's favorite color"
 
     def test_prints_message(self, player_code: str):
         """Code should print a message using the inputs."""
@@ -90,8 +90,8 @@ class TestInputFunction:
             user_inputs=["Sam", "green"]
         )
         assert returncode == 0, f"Code failed: {stderr}"
-        assert len(stdout.strip()) > 0,
-               "Code should print something to the screen"
+        assert len(stdout.strip()) > 0, \
+            "Code should print something to the screen"
 
     def test_multiple_different_inputs(self, player_code: str):
         """Code should work with different user inputs."""
@@ -108,7 +108,7 @@ class TestInputFunction:
                 user_inputs=[name, color]
             )
             assert returncode == 0, f"Code failed with inputs {name}, {color}: {stderr}"
-            assert name in stdout or name.lower() in stdout,
-                   f"Output should contain {name}"
-            assert color in stdout or color.lower() in stdout,
-                   f"Output should contain {color}"
+            assert name in stdout or name.lower() in stdout, \
+                f"Output should contain {name}"
+            assert color in stdout or color.lower() in stdout, \
+                f"Output should contain {color}"

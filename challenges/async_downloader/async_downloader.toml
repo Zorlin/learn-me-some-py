@@ -75,63 +75,9 @@ async def solution(tasks):
     pass
 '''
 
-[tests]
-[[tests.case]]
-name = "all_succeed"
-input = [
-    {"url": "a.txt", "duration": 0.01, "will_fail": false},
-    {"url": "b.txt", "duration": 0.01, "will_fail": false},
-    {"url": "c.txt", "duration": 0.01, "will_fail": false}
-]
-expected = [
-    {"url": "a.txt", "status": "success"},
-    {"url": "b.txt", "status": "success"},
-    {"url": "c.txt", "status": "success"}
-]
-max_duration = 0.05  # Must be concurrent, not sequential
-
-[[tests.case]]
-name = "some_fail"
-input = [
-    {"url": "x.txt", "duration": 0.01, "will_fail": false},
-    {"url": "y.txt", "duration": 0.01, "will_fail": true},
-    {"url": "z.txt", "duration": 0.01, "will_fail": false}
-]
-expected = [
-    {"url": "x.txt", "status": "success"},
-    {"url": "y.txt", "status": "failed"},
-    {"url": "z.txt", "status": "success"}
-]
-
-[[tests.case]]
-name = "concurrent_not_sequential"
-input = [
-    {"url": "1.txt", "duration": 0.05, "will_fail": false},
-    {"url": "2.txt", "duration": 0.05, "will_fail": false},
-    {"url": "3.txt", "duration": 0.05, "will_fail": false}
-]
-expected = [
-    {"url": "1.txt", "status": "success"},
-    {"url": "2.txt", "status": "success"},
-    {"url": "3.txt", "status": "success"}
-]
-max_duration = 0.08  # If sequential: 0.15s. If concurrent: 0.05s
-
-[[tests.case]]
-name = "single_file"
-input = [{"url": "solo.txt", "duration": 0.01, "will_fail": false}]
-expected = [{"url": "solo.txt", "status": "success"}]
-
-[[tests.case]]
-name = "all_fail"
-input = [
-    {"url": "bad1.txt", "duration": 0.01, "will_fail": true},
-    {"url": "bad2.txt", "duration": 0.01, "will_fail": true}
-]
-expected = [
-    {"url": "bad1.txt", "status": "failed"},
-    {"url": "bad2.txt", "status": "failed"}
-]
+[validation]
+type = "pytest"
+test_file = "test_async_downloader.py"
 
 [hints]
 level_1 = "Use asyncio.gather() to run multiple coroutines concurrently"

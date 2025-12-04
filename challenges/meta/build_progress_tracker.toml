@@ -24,6 +24,10 @@ Build the progress tracking system that powers LMSP progression.
 """
 
 [skeleton]
+[validation]
+type = "pytest"
+test_file = "test_build_progress_tracker.py"
+
 code = '''
 from dataclasses import dataclass, field
 import json
@@ -63,28 +67,6 @@ class PlayerProgress:
         """Load progress from JSON file."""
         pass
 '''
-
-[tests]
-[[tests.case]]
-name = "earn_xp"
-input = ["player1", 100]
-expected = {"total_xp": 100}
-
-[[tests.case]]
-name = "complete_challenge_increases_mastery"
-input = ["lists_basics", "lists", 50]
-expected = {"mastery_increased": true, "xp_earned": 50}
-
-[[tests.case]]
-name = "mastery_caps_at_4"
-input = [
-    ["challenge1", "concept1", 100],
-    ["challenge2", "concept1", 100],
-    ["challenge3", "concept1", 100],
-    ["challenge4", "concept1", 100],
-    ["challenge5", "concept1", 100]
-]
-expected = {"max_mastery": 4}
 
 [hints]
 level_1 = "Store mastery levels in a dict mapping concept -> int (0-4)"

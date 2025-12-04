@@ -25,6 +25,10 @@ Build the AI that learns YOUR dopamine patterns.
 """
 
 [skeleton]
+[validation]
+type = "pytest"
+test_file = "test_build_fun_detector.py"
+
 code = '''
 from dataclasses import dataclass, field
 from enum import Enum
@@ -66,38 +70,6 @@ def recommend_challenge_type(profile: FunProfile) -> FunType:
     # Return the type with highest score
     pass
 '''
-
-[tests]
-[[tests.case]]
-name = "detect_puzzle_lover"
-input = [
-    [
-        {"fun_type": "puzzle", "enjoyment": 0.9, "duration": 300},
-        {"fun_type": "speedrun", "enjoyment": 0.3, "duration": 60}
-    ]
-]
-expected = {"top_type": "puzzle"}
-
-[[tests.case]]
-name = "detect_speedrunner"
-input = [
-    [
-        {"fun_type": "speedrun", "enjoyment": 0.95, "duration": 180},
-        {"fun_type": "speedrun", "enjoyment": 0.9, "duration": 120},
-        {"fun_type": "puzzle", "enjoyment": 0.5, "duration": 100}
-    ]
-]
-expected = {"top_type": "speedrun"}
-
-[[tests.case]]
-name = "balanced_profile"
-input = [
-    [
-        {"fun_type": "puzzle", "enjoyment": 0.7, "duration": 200},
-        {"fun_type": "creation", "enjoyment": 0.7, "duration": 200}
-    ]
-]
-expected = {"has_multiple_interests": true}
 
 [hints]
 level_1 = "Weight each sample by: enjoyment * (duration / 60)"

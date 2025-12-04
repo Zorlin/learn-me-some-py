@@ -1,33 +1,62 @@
-# Challenge: Shopping List Manager
-# Learn list operations through a practical shopping app
+# Challenge: Shopping List Manager (Multi-Stage)
+# Learn list operations by building functions, then wiring them together
 
 [challenge]
 id = "shopping_list"
 name = "Shopping List Manager"
 level = 2
-prerequisites = ["lists_basics", "in_operator", "len"]
+prerequisites = ["lists_basics", "functions_basics", "in_operator"]
 
 [description]
-brief = "Build a shopping list that can add, remove, and check items"
+brief = "Build a shopping list app, one function at a time"
 detailed = """
 You're building a shopping list app for your phone.
 
-Implement these commands:
-- ADD <item>: Add item to the list. Return "Added <item>"
-- REMOVE <item>: Remove item from list. Return "Removed <item>" or "Item not found"
-- CHECK <item>: Check if item is on the list. Return "yes" or "no"
-- COUNT: Return the number of items as a string
-- LIST: Return all items as a comma-separated string (e.g., "milk,eggs,bread")
+First, you'll create simple functions for each action:
+- `add(item)` - Add an item
+- `count()` - Count items
+- `check(item)` - Check if item exists
+- `remove(item)` - Remove an item
+- `list_items()` - List all items
 
-The list starts empty.
+Then in the final stage, you'll wire them together into a command handler!
 """
 
 [skeleton]
 code = '''
+# Your shopping list - shared by all functions
+shopping_list = []
+
+def add(item):
+    """Add an item to the shopping list."""
+    # TODO: Add item to shopping_list and return "Added {item}"
+    pass
+
+def count():
+    """Return the number of items as a string."""
+    # TODO: Return len of shopping_list as a string
+    pass
+
+def check(item):
+    """Check if an item is on the list."""
+    # TODO: Return "yes" if item in list, "no" otherwise
+    pass
+
+def remove(item):
+    """Remove an item from the list."""
+    # TODO: Remove item and return "Removed {item}"
+    # If not found, return "Item not found"
+    pass
+
+def list_items():
+    """Return all items as comma-separated string."""
+    # TODO: Return items joined by commas
+    pass
+
 def solution(commands):
-    # Your shopping list starts empty
-    # Process each command and return appropriate response
-    # commands is a list of command strings like ["ADD milk", "CHECK eggs", "COUNT"]
+    """Process a list of command strings."""
+    # TODO: Parse each command and call the right function
+    # This is Stage 6 - wire it all together!
     pass
 '''
 
@@ -35,90 +64,230 @@ def solution(commands):
 type = "pytest"
 test_file = "test_shopping_list.py"
 
-[hints]
-level_1 = "Use a list to store your shopping items"
-level_2 = "Split each command into parts: command.split() gives you ['ADD', 'milk']"
-level_3 = "Use if/elif to handle different commands"
-level_4 = """
-Pattern:
+# ═══════════════════════════════════════════════════════════════════════════
+# STAGE 1: Add Items
+# ═══════════════════════════════════════════════════════════════════════════
+[stages.stage_1]
+name = "Add Items"
+description = """
+Let's start simple - just add items to your list!
+
+Implement the `add(item)` function:
 ```python
-shopping_list = []
+add("milk")   # Returns "Added milk"
+add("eggs")   # Returns "Added eggs"
+```
+
+Use `shopping_list.append(item)` to add items.
+"""
+
+[stages.stage_1.hints]
+level_1 = "Use shopping_list.append(item) to add the item"
+level_2 = "Return f'Added {item}' after appending"
+
+# ═══════════════════════════════════════════════════════════════════════════
+# STAGE 2: Count Items
+# ═══════════════════════════════════════════════════════════════════════════
+[stages.stage_2]
+name = "Count Items"
+description = """
+How many items are on our list?
+
+Implement the `count()` function:
+```python
+add("milk")
+add("eggs")
+count()       # Returns "2"
+```
+
+Use `len(shopping_list)` and convert to string with `str()`.
+"""
+
+[stages.stage_2.hints]
+level_1 = "Use len(shopping_list) to get the count"
+level_2 = "Return str(len(shopping_list))"
+
+# ═══════════════════════════════════════════════════════════════════════════
+# STAGE 3: Check Items
+# ═══════════════════════════════════════════════════════════════════════════
+[stages.stage_3]
+name = "Check Items"
+description = """
+Is something already on the list?
+
+Implement the `check(item)` function:
+```python
+add("milk")
+check("milk")   # Returns "yes"
+check("bread")  # Returns "no"
+```
+
+Use the `in` operator: `if item in shopping_list`
+"""
+
+[stages.stage_3.hints]
+level_1 = "Use: if item in shopping_list"
+level_2 = "Return 'yes' if found, 'no' if not"
+
+# ═══════════════════════════════════════════════════════════════════════════
+# STAGE 4: Remove Items
+# ═══════════════════════════════════════════════════════════════════════════
+[stages.stage_4]
+name = "Remove Items"
+description = """
+Changed your mind? Remove items!
+
+Implement the `remove(item)` function:
+```python
+add("milk")
+remove("milk")   # Returns "Removed milk"
+remove("bread")  # Returns "Item not found"
+```
+
+Check if it exists first, then use `shopping_list.remove(item)`.
+"""
+
+[stages.stage_4.hints]
+level_1 = "Check 'if item in shopping_list' before removing"
+level_2 = """
+if item in shopping_list:
+    shopping_list.remove(item)
+    return f"Removed {item}"
+else:
+    return "Item not found"
+"""
+
+# ═══════════════════════════════════════════════════════════════════════════
+# STAGE 5: List Items
+# ═══════════════════════════════════════════════════════════════════════════
+[stages.stage_5]
+name = "List Items"
+description = """
+Show everything on the list!
+
+Implement the `list_items()` function:
+```python
+add("milk")
+add("eggs")
+list_items()   # Returns "milk,eggs"
+```
+
+Use `",".join(shopping_list)` to combine with commas.
+"""
+
+[stages.stage_5.hints]
+level_1 = "Use the join method on strings"
+level_2 = "Return ','.join(shopping_list)"
+
+# ═══════════════════════════════════════════════════════════════════════════
+# STAGE 6: Command Handler
+# ═══════════════════════════════════════════════════════════════════════════
+[stages.stage_6]
+name = "Command Handler"
+description = """
+🛒 **Wire it all together!**
+
+Now implement `solution(commands)` - a command parser that:
+1. Splits each command string (e.g., `"ADD milk"`)
+2. Calls the right function
+3. Collects results
+
+```python
+solution(["ADD milk", "CHECK eggs", "COUNT"])
+# Returns ["Added milk", "no", "1"]
+```
+
+Use `command.split()` to get `["ADD", "milk"]`, then if/elif for each action.
+"""
+
+[stages.stage_6.hints]
+level_1 = "Use parts = command.split() then action = parts[0]"
+level_2 = """
 results = []
 for command in commands:
     parts = command.split()
     action = parts[0]
     if action == "ADD":
-        item = parts[1]
-        # add to list
-```
+        results.append(add(parts[1]))
+    elif action == "COUNT":
+        results.append(count())
+    # ... etc
+return results
 """
 
-[gamepad_hints]
-easy_mode = """
-🎮 SHOPPING LIST BUILDER:
-1. Press A to start coding
-2. Create shopping_list = [] at the top
-3. Press Y to loop through commands
-4. Press X to split commands (command.split())
-5. Use if/elif for each action
-"""
+# ═══════════════════════════════════════════════════════════════════════════
+# GLOBAL HINTS (fallback)
+# ═══════════════════════════════════════════════════════════════════════════
+
+[hints]
+level_1 = "Each function modifies or reads the shared shopping_list"
+level_2 = "The 'in' operator checks if something is in a list"
+level_3 = "str.join() combines list items with a separator"
 
 [solution]
-# Hidden from player
 code = '''
-def solution(commands):
-    shopping_list = []
-    results = []
+shopping_list = []
 
+def add(item):
+    shopping_list.append(item)
+    return f"Added {item}"
+
+def count():
+    return str(len(shopping_list))
+
+def check(item):
+    if item in shopping_list:
+        return "yes"
+    else:
+        return "no"
+
+def remove(item):
+    if item in shopping_list:
+        shopping_list.remove(item)
+        return f"Removed {item}"
+    else:
+        return "Item not found"
+
+def list_items():
+    return ",".join(shopping_list)
+
+def solution(commands):
+    results = []
     for command in commands:
         parts = command.split()
         action = parts[0]
 
         if action == "ADD":
-            item = parts[1]
-            shopping_list.append(item)
-            results.append(f"Added {item}")
+            results.append(add(parts[1]))
         elif action == "REMOVE":
-            item = parts[1]
-            if item in shopping_list:
-                shopping_list.remove(item)
-                results.append(f"Removed {item}")
-            else:
-                results.append("Item not found")
+            results.append(remove(parts[1]))
         elif action == "CHECK":
-            item = parts[1]
-            if item in shopping_list:
-                results.append("yes")
-            else:
-                results.append("no")
+            results.append(check(parts[1]))
         elif action == "COUNT":
-            results.append(str(len(shopping_list)))
+            results.append(count())
         elif action == "LIST":
-            results.append(",".join(shopping_list))
+            results.append(list_items())
 
     return results
 '''
 
 [meta]
 time_limit_seconds = 600
-speed_run_target = 120
-points = 30
-xp_reward = 30
+speed_run_target = 180
+points = 60
+xp_reward = 60
 category = "practical"
 next_challenge = "word_counter"
 
 [adaptive]
 fun_factor = "practical"
-weakness_signals = ["forgot_split", "string_vs_int", "remove_not_found_crash"]
+weakness_signals = ["forgot_return", "string_vs_int", "remove_not_found_crash"]
 project_themes = ["todo_app", "inventory", "wishlist", "meal_planner"]
 
 [emotional_checkpoints]
 after_first_test_pass = """
-🎮 Nice! Your ADD and CHECK are working.
-   [RT] to show satisfaction
+🎮 Nice! Your first function works!
 """
 after_completion = """
-🎮 Shopping list complete! You just built a real app feature.
-   How did that feel?
-   [RT] Useful/satisfying  |  [LT] Tedious  |  [Y] Tell me more
+🛒 Shopping list complete! You built real app functionality.
 """

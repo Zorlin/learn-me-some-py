@@ -23,6 +23,10 @@ Build the support system that helped you when you struggled.
 """
 
 [skeleton]
+[validation]
+type = "pytest"
+test_file = "test_build_weakness_driller.py"
+
 code = '''
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -57,33 +61,6 @@ def detect_weakness(concept: str, attempts: list[Attempt]) -> WeaknessSignal | N
     # Your code here
     pass
 '''
-
-[tests]
-[[tests.case]]
-name = "not_enough_failures"
-input = ["lists", [
-    {"concept": "lists", "success": False, "hours_ago": 1}
-]]
-expected = {"weakness": None}
-
-[[tests.case]]
-name = "clustered_failures_temporary"
-input = ["comprehensions", [
-    {"concept": "comprehensions", "success": False, "hours_ago": 2},
-    {"concept": "comprehensions", "success": False, "hours_ago": 1.5},
-    {"concept": "comprehensions", "success": False, "hours_ago": 1}
-]]
-expected = {"severity": "temporary", "recommendation": "Take a break"}
-
-[[tests.case]]
-name = "spread_failures_needs_scaffolding"
-input = ["lambda", [
-    {"concept": "lambda", "success": False, "hours_ago": 48},
-    {"concept": "lambda", "success": True, "hours_ago": 24},
-    {"concept": "lambda", "success": False, "hours_ago": 12},
-    {"concept": "lambda", "success": False, "hours_ago": 1}
-]]
-expected = {"severity": "needs_scaffolding"}
 
 [hints]
 level_1 = "Filter attempts to just the concept in question"

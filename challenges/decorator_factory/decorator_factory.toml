@@ -83,37 +83,6 @@ def solution(scenario):
     pass
 '''
 
-[tests]
-[[tests.case]]
-name = "succeeds_first_try"
-input = {"max_attempts": 3, "delay_seconds": 0.01, "failures_before_success": 0}
-expected = "SUCCESS"
-
-[[tests.case]]
-name = "succeeds_second_try"
-input = {"max_attempts": 3, "delay_seconds": 0.01, "failures_before_success": 1}
-expected = "SUCCESS"
-
-[[tests.case]]
-name = "succeeds_last_try"
-input = {"max_attempts": 3, "delay_seconds": 0.01, "failures_before_success": 2}
-expected = "SUCCESS"
-
-[[tests.case]]
-name = "exhausts_all_attempts"
-input = {"max_attempts": 3, "delay_seconds": 0.01, "failures_before_success": 3}
-expected = "FAILED"
-
-[[tests.case]]
-name = "single_attempt_success"
-input = {"max_attempts": 1, "delay_seconds": 0.01, "failures_before_success": 0}
-expected = "SUCCESS"
-
-[[tests.case]]
-name = "single_attempt_failure"
-input = {"max_attempts": 1, "delay_seconds": 0.01, "failures_before_success": 1}
-expected = "FAILED"
-
 [hints]
 level_1 = "A decorator factory is a function that returns a decorator"
 level_2 = "The pattern is: factory(args) -> decorator -> wrapper -> original function"

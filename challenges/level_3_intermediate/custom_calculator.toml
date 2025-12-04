@@ -78,34 +78,6 @@ def solution(commands):
 type = "pytest"
 test_file = "test_custom_calculator.py"
 
-[[tests.case]]
-name = "basic_operations"
-input = ["ADD 5 3", "SUBTRACT 10 4", "MULTIPLY 6 7"]
-expected = ["8", "6", "42"]
-
-[[tests.case]]
-name = "division"
-input = ["DIVIDE 20 4", "DIVIDE 10 0", "DIVIDE 15 3"]
-expected = ["5.0", "Error", "5.0"]
-
-[[tests.case]]
-name = "memory_operations"
-input = ["STORE 42", "RECALL", "STORE 100", "RECALL", "CLEAR", "RECALL"]
-expected = ["Stored", "42", "Stored", "100", "Cleared", "0"]
-
-[[tests.case]]
-name = "mixed_operations"
-input = [
-    "ADD 10 20",
-    "STORE 50",
-    "MULTIPLY 3 4",
-    "RECALL",
-    "DIVIDE 100 5",
-    "CLEAR",
-    "RECALL"
-]
-expected = ["30", "Stored", "12", "50", "20.0", "Cleared", "0"]
-
 [hints]
 level_1 = "In __init__, set self.memory = 0"
 level_2 = "Each method needs 'self' as first parameter"

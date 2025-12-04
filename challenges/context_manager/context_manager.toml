@@ -90,38 +90,6 @@ def solution(scenario):
     pass
 '''
 
-[tests]
-[[tests.case]]
-name = "successful_execution"
-input = {"will_raise": false, "duration": 0.05}
-expected = {"success": true, "exception": null}
-expected_elapsed_min = 0.04
-expected_elapsed_max = 0.10
-
-[[tests.case]]
-name = "exception_caught"
-input = {"will_raise": true, "duration": 0.02}
-expected = {"success": false, "exception": "ValueError"}
-expected_elapsed_min = 0.01
-expected_elapsed_max = 0.10
-
-[[tests.case]]
-name = "zero_duration"
-input = {"will_raise": false, "duration": 0.0}
-expected = {"success": true, "exception": null}
-
-[[tests.case]]
-name = "long_duration_success"
-input = {"will_raise": false, "duration": 0.1}
-expected = {"success": true, "exception": null}
-expected_elapsed_min = 0.08
-
-[[tests.case]]
-name = "long_duration_failure"
-input = {"will_raise": true, "duration": 0.1}
-expected = {"success": false, "exception": "ValueError"}
-expected_elapsed_min = 0.08
-
 [hints]
 level_1 = "__enter__ runs before the with block, __exit__ runs after (even on exception)"
 level_2 = "__exit__ receives (exc_type, exc_val, exc_tb) - None if no exception"

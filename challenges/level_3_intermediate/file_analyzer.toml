@@ -46,42 +46,6 @@ def solution(file_contents, commands):
 type = "pytest"
 test_file = "test_file_analyzer.py"
 
-[[tests.case]]
-name = "basic_analysis"
-input.file_contents = "Hello world!\nHello Python.\nWorld of code."
-input.commands = ["LINES", "WORDS", "CHARS"]
-expected = ["3", "7", "41"]
-
-[[tests.case]]
-name = "longest_word"
-input.file_contents = "The quick brown fox jumps"
-input.commands = ["LONGEST"]
-expected = ["brown"]
-
-[[tests.case]]
-name = "most_frequent"
-input.file_contents = "hello world hello python world world"
-input.commands = ["FREQUENT"]
-expected = ["world"]
-
-[[tests.case]]
-name = "case_insensitive_frequent"
-input.file_contents = "Hello HELLO hello World"
-input.commands = ["FREQUENT"]
-expected = ["hello"]
-
-[[tests.case]]
-name = "complete_analysis"
-input.file_contents = "Python is great.\nPython is powerful.\nI love Python!"
-input.commands = ["LINES", "WORDS", "LONGEST", "FREQUENT"]
-expected = ["3", "9", "powerful", "python"]
-
-[[tests.case]]
-name = "empty_file"
-input.file_contents = ""
-input.commands = ["LINES", "WORDS", "CHARS"]
-expected = ["0", "0", "0"]
-
 [hints]
 level_1 = "Split by lines: file_contents.split('\\n')"
 level_2 = "Split by words: file_contents.split()"

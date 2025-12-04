@@ -25,6 +25,10 @@ This is GRANULARITY. Not binary. SPECTRUM.
 """
 
 [skeleton]
+[validation]
+type = "pytest"
+test_file = "test_build_emotional_feedback.py"
+
 code = '''
 from dataclasses import dataclass
 from enum import Enum
@@ -86,27 +90,6 @@ class EmotionalPrompt:
         # Your code here
         pass
 '''
-
-[tests]
-[[tests.case]]
-name = "rt_enjoyment"
-input = [{"rt": 0.8, "lt": 0.2, "a_pressed": True}]
-expected = {"dimension": "enjoyment", "value": 0.8}
-
-[[tests.case]]
-name = "lt_frustration"
-input = [{"rt": 0.3, "lt": 0.7, "a_pressed": True}]
-expected = {"dimension": "frustration", "value": 0.7}
-
-[[tests.case]]
-name = "complex_response"
-input = [{"rt": 0.5, "lt": 0.5, "y_pressed": True}]
-expected = {"is_complex": True}
-
-[[tests.case]]
-name = "render_shows_bars"
-input = [{"rt": 0.6, "lt": 0.3}]
-expected = {"has_rt_bar": True, "has_lt_bar": True}
 
 [hints]
 level_1 = "Store RT/LT values as floats between 0.0 and 1.0"

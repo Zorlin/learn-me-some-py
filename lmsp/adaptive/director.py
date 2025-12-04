@@ -38,6 +38,12 @@ class StruggleType(Enum):
     OPERATOR_ORDER_TYPO = "operator_order_typo"    # =- instead of -= (very common typo!)
     OUTPUT_FORMAT_MISMATCH = "output_format"       # Printed raw value instead of formatted string
     STRING_CONCAT_TYPE_ERROR = "string_concat_type"  # "text" + number without str()
+    RANGE_OFF_BY_ONE = "range_off_by_one"  # Zero-indexing confusion: range(5) vs range(1,6)
+    RANGE_SINGLE_ARG_ALWAYS_ZERO = "range_single_arg"  # range(n) ALWAYS starts at 0, no exceptions
+    PRINT_VS_RETURN = "print_vs_return"  # return print(...) instead of return ... (print returns None!)
+    RETURN_VS_PRINT = "return_vs_print"  # returned value when challenge expected print() output
+    ACCIDENTAL_NONE_OUTPUT = "accidental_none"  # output has extra "None" from print() return value
+    FSTRING_SYNTAX = "fstring_syntax"  # f-string mistakes: forgot f prefix, wrong braces, etc.
 
 
 @dataclass
@@ -558,6 +564,128 @@ class Director:
                         ))
                         break
 
+        # RANGE_OFF_BY_ONE and RANGE_SINGLE_ARG_ALWAYS_ZERO: Zero-indexing confusion
+        # Common: range(5) gives 0-4, but learner expected 1-5
+        # Even experienced devs forget: range(n) ALWAYS starts at 0!
+        if obs.code and obs.output:
+            if 'range(' in obs.code:
+                output_lines = obs.output.strip().split('\n')
+                if output_lines and output_lines[0].strip() == '0':
+                    # Output starts with 0 - check if they're using single-arg range
+                    # Pattern: range(4) or range(5) - single argument, no comma
+                    single_arg_match = re.search(r'range\s*\(\s*(\d+)\s*\)', obs.code)
+
+                    if single_arg_match and 'starts with 0' in error_text:
+                        # They used range(n) expecting to start at 1
+                        struggles.append(Struggle(
+                            type=StruggleType.RANGE_SINGLE_ARG_ALWAYS_ZERO,
+                            description="range(n) ALWAYS starts at 0 - you can't change this with just one argument",
+                            error_message="range(5) → 0,1,2,3,4. For 1-5, you MUST use range(1, 6) with TWO arguments",
+                            code_context=obs.code[-500:] if obs.code else None,
+                        ))
+                    elif 'starts with 0' in error_text or 'expected 5 lines' in error_text or '1' in error_text:
+                        # General off-by-one confusion
+                        struggles.append(Struggle(
+                            type=StruggleType.RANGE_OFF_BY_ONE,
+                            description="range() starts at 0 by default, not 1",
+                            error_message="range(5) gives 0,1,2,3,4 - use range(1, 6) for 1,2,3,4,5",
+                            code_context=obs.code[-500:] if obs.code else None,
+                        ))
+
+        # PRINT_VS_RETURN: Using return print(...) instead of return ...
+        # print() returns None! This is a VERY common beginner mistake
+        # Pattern: return print(something) or return print(f"...")
+        if obs.code and 'return print' in obs.code.replace(' ', ''):
+            # More reliable check with regex to handle whitespace
+            if re.search(r'return\s+print\s*\(', obs.code):
+                # Check if they got None back (which happens with return print())
+                if 'none' in error_text.lower() or "expected 'added" in error_text.lower():
+                    struggles.append(Struggle(
+                        type=StruggleType.PRINT_VS_RETURN,
+                        description="Using 'return print(...)' - but print() returns None!",
+                        error_message="print() displays text but returns None. Use 'return f\"...\"' directly!",
+                        code_context=obs.code[-500:] if obs.code else None,
+                    ))
+
+        # FSTRING_SYNTAX: Forgot f prefix or wrong braces
+        # Pattern: return "{item}" when they meant f"{item}"
+        if obs.code and obs.output:
+            # Look for string literals that contain {variable} but no f prefix
+            forgot_f_pattern = re.search(r'return\s+["\'].*\{(\w+)\}.*["\']', obs.code)
+            if forgot_f_pattern and not re.search(r'return\s+f["\']', obs.code):
+                var_name = forgot_f_pattern.group(1)
+                if '{' + var_name + '}' in obs.output:
+                    # They literally printed {item} instead of the value
+                    struggles.append(Struggle(
+                        type=StruggleType.FSTRING_SYNTAX,
+                        description=f"Forgot the 'f' prefix - printed literal '{{...}}' instead of value",
+                        error_message=f"Use f\"...{{...}}\" not \"...{{...}}\" to insert values",
+                        code_context=obs.code[-500:] if obs.code else None,
+                    ))
+
+        # RETURN_VS_PRINT: Returned a value when the challenge expected print() output
+        # Opposite of PRINT_VS_RETURN - they used return when they should have used print
+        # Pattern: function returns value but tests check stdout
+        if obs.code and obs.output:
+            # Check if they're returning but not printing
+            has_return = re.search(r'\breturn\s+[^\s]', obs.code)
+            has_print = 'print(' in obs.code
+
+            if has_return and not has_print:
+                # Check if tests were expecting printed output
+                if ('expected' in error_text and ('stdout' in error_text or 'output' in error_text)):
+                    struggles.append(Struggle(
+                        type=StruggleType.RETURN_VS_PRINT,
+                        description="Returning value but challenge expected print() output",
+                        error_message="Some challenges want you to print(), not return. Check the instructions!",
+                        code_context=obs.code[-500:] if obs.code else None,
+                    ))
+                # Also detect by checking if output is empty but return is used
+                elif not obs.output.strip() and 'assert' in error_text:
+                    # Empty output + return statement = might need print instead
+                    if 'expected' in error_text:
+                        struggles.append(Struggle(
+                            type=StruggleType.RETURN_VS_PRINT,
+                            description="Returning value but nothing was printed",
+                            error_message="This challenge checks what you print, not what you return. Use print()!",
+                            code_context=obs.code[-500:] if obs.code else None,
+                        ))
+
+        # ACCIDENTAL_NONE_OUTPUT: Output has extra "None" from print() return value
+        # Pattern: print(print("something")) or just evaluating print() in REPL-like context
+        # Also: having both return AND print when only one is needed
+        if obs.output:
+            output_lines = obs.output.strip().split('\n')
+            # Check if any line is just "None" (common sign of accidental print return)
+            has_none_line = any(line.strip() == 'None' for line in output_lines)
+
+            if has_none_line:
+                # Check for nested print (the classic mistake)
+                if obs.code and re.search(r'print\s*\(\s*print\s*\(', obs.code):
+                    struggles.append(Struggle(
+                        type=StruggleType.ACCIDENTAL_NONE_OUTPUT,
+                        description="Nested print() - the inner print returns None!",
+                        error_message="print(print('hi')) prints 'hi' then 'None'. Just use print('hi')!",
+                        code_context=obs.code[-500:] if obs.code else None,
+                    ))
+                # Check if they have both return and print in same function
+                elif obs.code and 'return' in obs.code and 'print(' in obs.code:
+                    # Both return and print - one might be extra
+                    struggles.append(Struggle(
+                        type=StruggleType.ACCIDENTAL_NONE_OUTPUT,
+                        description="Extra 'None' in output - mixing print() and return?",
+                        error_message="If challenge wants a return value, don't print. If it wants output, don't return. Pick one!",
+                        code_context=obs.code[-500:] if obs.code else None,
+                    ))
+                # Generic case - None showed up unexpectedly
+                elif 'none' in error_text and 'expected' in error_text:
+                    struggles.append(Struggle(
+                        type=StruggleType.ACCIDENTAL_NONE_OUTPUT,
+                        description="Output includes unexpected 'None'",
+                        error_message="Something is returning/printing None when it shouldn't. Check your print() and return statements!",
+                        code_context=obs.code[-500:] if obs.code else None,
+                    ))
+
         # STRING_VS_IDENTIFIER: Comparing string params to function names
         # Detect pattern: if x == identifier (without quotes) when comparing string args
         # Common in dispatcher functions: if operation == add instead of if operation == 'add'
@@ -843,6 +971,42 @@ Respond with JSON:
                 content="🔤 Python won't automatically convert numbers to text! When combining strings with `+`, everything must be a string.\n\n**Two fixes:**\n1. Use `str()`: `\"Age: \" + str(age)`\n2. Use f-strings (easier!): `f\"Age: {age}\"`\n\nF-strings automatically convert values inside `{}`!",
                 reason="Tried to concatenate string with int/float without converting",
                 confidence=0.95,
+            ),
+            StruggleType.RANGE_OFF_BY_ONE: DirectorIntervention(
+                type="micro_lesson",
+                content="🔢 Zero-indexing gotcha! Python counts from 0, not 1.\n\n`range(5)` → 0, 1, 2, 3, 4 (starts at 0!)\n`range(1, 6)` → 1, 2, 3, 4, 5 (starts at 1, stops BEFORE 6)\n\nTo get numbers 1-5, use `range(1, 6)` - the second number is always one MORE than you want to end at!",
+                reason="Used range(n) expecting 1-n, but got 0 to n-1",
+                confidence=0.95,
+            ),
+            StruggleType.RANGE_SINGLE_ARG_ALWAYS_ZERO: DirectorIntervention(
+                type="micro_lesson",
+                content="⚠️ **Critical insight:** `range(n)` with ONE argument ALWAYS starts at 0. No exceptions!\n\n• `range(4)` → 0, 1, 2, 3\n• `range(5)` → 0, 1, 2, 3, 4\n• `range(100)` → 0, 1, 2, ... 99\n\n**To start at 1, you MUST use TWO arguments:**\n`range(1, 6)` → 1, 2, 3, 4, 5\n\nThe first arg is START, second is STOP (exclusive). No shortcut!",
+                reason="Tried different numbers in range(n) hoping to start at 1 - but single-arg range always starts at 0",
+                confidence=0.98,
+            ),
+            StruggleType.PRINT_VS_RETURN: DirectorIntervention(
+                type="micro_lesson",
+                content="🖨️ **print() vs return - they're completely different!**\n\n• `print(x)` → Shows x on screen, returns `None`\n• `return x` → Gives x back to the caller\n\n❌ **Wrong:** `return print(f\"Added {item}\")`\n✅ **Right:** `return f\"Added {item}\"`\n\n`print()` is for displaying to humans. `return` is for giving values back to code!",
+                reason="Used return print(...) but print() returns None",
+                confidence=0.98,
+            ),
+            StruggleType.FSTRING_SYNTAX: DirectorIntervention(
+                type="micro_lesson",
+                content="🔤 **F-string gotcha!** You need the `f` prefix to make `{variables}` work!\n\n❌ **Wrong:** `\"Hello {name}\"` → Literally prints `{name}`\n✅ **Right:** `f\"Hello {name}\"` → Prints the actual value\n\nThe `f` before the quote tells Python to look for `{...}` and insert values!",
+                reason="String literal with {braces} but missing f prefix",
+                confidence=0.95,
+            ),
+            StruggleType.RETURN_VS_PRINT: DirectorIntervention(
+                type="micro_lesson",
+                content="📤 **return vs print() - different purposes!**\n\n• `return x` → Gives x back to the code that called the function (invisible to user)\n• `print(x)` → Shows x on the screen (visible to user)\n\n**Check the challenge instructions:**\n- \"Print the result\" → use `print()`\n- \"Return the result\" → use `return`\n\nSome challenges check what you PRINT, not what you RETURN!",
+                reason="Used return but challenge expected printed output",
+                confidence=0.90,
+            ),
+            StruggleType.ACCIDENTAL_NONE_OUTPUT: DirectorIntervention(
+                type="micro_lesson",
+                content="👻 **The mysterious 'None' in your output!**\n\nThis usually means:\n\n1. **Nested print:** `print(print('hi'))` → prints 'hi' then 'None'\n   ✅ Fix: Just `print('hi')`\n\n2. **Mixed return + print:** Function prints AND returns\n   ✅ Fix: Pick one based on what the challenge wants\n\n3. **Printing a None value:** A variable or function returned None\n   ✅ Fix: Check what you're printing - is it what you expect?\n\nRemember: `print()` returns `None`, so printing the result of print() gives you None!",
+                reason="Output contains unexpected 'None' - likely from print() return value",
+                confidence=0.92,
             ),
         }
 

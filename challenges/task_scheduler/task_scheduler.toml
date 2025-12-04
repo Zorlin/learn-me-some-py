@@ -31,6 +31,10 @@ This is graph theory in action - the foundation of build systems like Make, Baze
 """
 
 [skeleton]
+[validation]
+type = "pytest"
+test_file = "test_task_scheduler.py"
+
 code = '''
 def solution(tasks):
     """
@@ -47,56 +51,6 @@ def solution(tasks):
     pass
 '''
 
-[tests]
-[[tests.case]]
-name = "simple_chain"
-input = {"a": [], "b": ["a"], "c": ["b"]}
-expected = ["a", "b", "c"]
-
-[[tests.case]]
-name = "independent_tasks"
-input = {"x": [], "y": [], "z": []}
-expected_any = [
-    ["x", "y", "z"],
-    ["x", "z", "y"],
-    ["y", "x", "z"],
-    ["y", "z", "x"],
-    ["z", "x", "y"],
-    ["z", "y", "x"]
-]
-
-[[tests.case]]
-name = "diamond_dependency"
-input = {"a": [], "b": ["a"], "c": ["a"], "d": ["b", "c"]}
-expected_any = [
-    ["a", "b", "c", "d"],
-    ["a", "c", "b", "d"]
-]
-
-[[tests.case]]
-name = "simple_cycle"
-input = {"a": ["b"], "b": ["a"]}
-expected = "CYCLE"
-
-[[tests.case]]
-name = "complex_cycle"
-input = {"a": [], "b": ["a"], "c": ["b"], "d": ["c"], "e": ["d", "b"], "b": ["e"]}
-expected = "CYCLE"
-
-[[tests.case]]
-name = "realistic_build"
-input = {
-    "compile": ["parse"],
-    "parse": [],
-    "link": ["compile", "optimize"],
-    "optimize": ["compile"],
-    "package": ["link", "test"],
-    "test": ["compile"]
-}
-expected_any = [
-    ["parse", "compile", "optimize", "test", "link", "package"],
-    ["parse", "compile", "test", "optimize", "link", "package"]
-]
 
 [hints]
 level_1 = "This is Kahn's algorithm or DFS-based topological sort"

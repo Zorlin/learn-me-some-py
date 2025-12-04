@@ -1,4 +1,4 @@
-# Level 1: If/Else
+# Level 1: If/Else - Making Decisions
 
 [concept]
 id = "if_else"
@@ -8,71 +8,63 @@ category = "control_flow"
 order = 0
 
 [content]
+description_brief = "Make your code choose between two paths"
+description_detailed = """
+Every game needs decisions. Can the player afford that sword? Is the enemy in range?
+Did they guess the right number?
+
+`if/else` lets your code take ONE of two paths - never both. It's the foundation
+of all game logic: checking conditions and reacting appropriately.
+"""
+
 lesson = """
-## The Fork in the Road
-
-Sometimes code needs to make decisions. `if/else` is like a fork in the road - your code takes ONE path, never both.
+## The Basic Pattern
 
 ```python
-age = 18
-if age >= 18:
-    print("You can vote!")
+health = 0
+
+if health <= 0:
+    print("Game Over!")
 else:
-    print("Not old enough yet")
+    print("Still alive!")
 ```
 
-## The Rules
+**The structure:**
+1. `if` followed by a **condition** (something True or False)
+2. A **colon** `:`
+3. **Indented** code that runs if True
+4. `else:` for the alternative path
+5. **Indented** code that runs if False
 
-1. **Colon required** - `if condition:` must end with `:`
-2. **Indentation matters** - Code inside must be indented (4 spaces)
-3. **else is optional** - You can have just `if`
+## Comparison Operators
 
-## Simple Decisions
+Use these to compare values:
+
+| Operator | Meaning                  | Example          |
+|----------|--------------------------|------------------|
+| `>=`     | greater than or equal    | `score >= 100`   |
+| `>`      | greater than             | `lives > 0`      |
+| `==`     | equal to (TWO equals!)   | `level == 5`     |
+| `!=`     | not equal to             | `enemy != "boss"`|
+| `<`      | less than                | `ammo < 10`      |
+| `<=`     | less than or equal       | `time <= 0`      |
+
+## Common Mistake: = vs ==
 
 ```python
-is_raining = True
-if is_raining:
-    print("Bring an umbrella")
-else:
-    print("Enjoy the sunshine")
+# WRONG - single = is assignment!
+if level = 5:    # ERROR!
+
+# RIGHT - double == is comparison
+if level == 5:   # Checks if level equals 5
+    print("Boss fight!")
 ```
 
-## Comparisons Return Booleans
+## Both Paths Must Print Something
 
-```python
-x = 5
-print(x > 3)   # True
-print(x == 10) # False (double equals for comparison!)
-print(x != 3)  # True (not equal)
-```
-
-## Watch Out!
-
-```python
-# WRONG - single equals is assignment, not comparison!
-if x = 5:    # This is an ERROR
-
-# RIGHT - double equals for comparison
-if x == 5:   # This checks if x equals 5
-```
-
-## Truthiness
-
-Python treats some values as False:
-- `0`, `0.0` (zero)
-- `""` (empty string)
-- `[]` (empty list)
-- `None`
-
-Everything else is True!
-
-```python
-lives = 0
-if lives:
-    print("Keep playing")
-else:
-    print("Game over")  # This runs because 0 is "falsy"
-```
+When checking if a player can afford something, tell them the result either way:
+- **If yes:** Let them know the purchase worked
+- **If no:** Let them know they need more
 """
 
 [content.try_it]
@@ -81,8 +73,13 @@ starter = '''
 gold = 50
 sword_price = 75
 
-# Check if player can afford the sword
-
+# Can the player afford it? Compare gold to sword_price
+if ...:
+    # What happens when they have enough?
+    ...
+else:
+    # What happens when they don't?
+    ...
 '''
 solution = '''
 gold = 50
@@ -96,9 +93,9 @@ else:
 '''
 
 [connections]
-prerequisites = ["types", "basic_operators"]
+prerequisites = ["variables", "basic_operators"]
 enables = ["if_elif_else", "while_loops_basics", "boolean_logic"]
-used_in = ["guess_my_number"]
+used_in = ["guess_my_number", "text_adventure"]
 see_also = ["basic_operators", "boolean_logic"]
 
 [validation]
@@ -106,6 +103,6 @@ type = "pytest"
 test_file = "test_if_else.py"
 
 [meta]
-time_to_read = 50
+time_to_read = 40
 difficulty = "beginner"
-tags = ["control_flow", "decisions", "conditionals"]
+tags = ["control_flow", "decisions", "conditionals", "comparison"]

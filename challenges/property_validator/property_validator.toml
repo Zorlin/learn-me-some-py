@@ -55,6 +55,10 @@ This is how Django models, Pydantic, and dataclass validators work.
 """
 
 [skeleton]
+[validation]
+type = "pytest"
+test_file = "test_property_validator.py"
+
 code = '''
 class PositiveInt:
     """Descriptor that validates positive integers."""
@@ -101,61 +105,6 @@ def solution(test_spec):
     pass
 '''
 
-[tests]
-[[tests.case]]
-name = "positive_int_valid"
-input = {"validator": "PositiveInt", "value": 42}
-expected = {"status": "valid", "stored_value": 42}
-
-[[tests.case]]
-name = "positive_int_invalid_negative"
-input = {"validator": "PositiveInt", "value": -5}
-expected = {"status": "invalid", "error": "must be positive"}
-
-[[tests.case]]
-name = "positive_int_invalid_zero"
-input = {"validator": "PositiveInt", "value": 0}
-expected = {"status": "invalid", "error": "must be positive"}
-
-[[tests.case]]
-name = "email_valid"
-input = {"validator": "EmailStr", "value": "user@example.com"}
-expected = {"status": "valid", "stored_value": "user@example.com"}
-
-[[tests.case]]
-name = "email_invalid_no_at"
-input = {"validator": "EmailStr", "value": "invalidemail.com"}
-expected = {"status": "invalid", "error": "must contain @"}
-
-[[tests.case]]
-name = "email_invalid_no_dot"
-input = {"validator": "EmailStr", "value": "user@example"}
-expected = {"status": "invalid", "error": "must contain ."}
-
-[[tests.case]]
-name = "range_int_valid_min"
-input = {"validator": "RangeInt", "min": 0, "max": 100, "value": 0}
-expected = {"status": "valid", "stored_value": 0}
-
-[[tests.case]]
-name = "range_int_valid_max"
-input = {"validator": "RangeInt", "min": 0, "max": 100, "value": 100}
-expected = {"status": "valid", "stored_value": 100}
-
-[[tests.case]]
-name = "range_int_valid_middle"
-input = {"validator": "RangeInt", "min": 0, "max": 100, "value": 50}
-expected = {"status": "valid", "stored_value": 50}
-
-[[tests.case]]
-name = "range_int_invalid_below"
-input = {"validator": "RangeInt", "min": 0, "max": 100, "value": -1}
-expected = {"status": "invalid", "error": "must be between 0 and 100"}
-
-[[tests.case]]
-name = "range_int_invalid_above"
-input = {"validator": "RangeInt", "min": 0, "max": 100, "value": 101}
-expected = {"status": "invalid", "error": "must be between 0 and 100"}
 
 [hints]
 level_1 = "Descriptors use __get__ and __set__ to control attribute access"

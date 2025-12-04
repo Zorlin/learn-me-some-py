@@ -59,6 +59,10 @@ This is how linters (pylint, flake8) and static analysis tools work.
 """
 
 [skeleton]
+[validation]
+type = "pytest"
+test_file = "test_code_analyzer.py"
+
 code = '''
 import ast
 
@@ -76,123 +80,7 @@ def solution(code):
     pass
 '''
 
-[tests]
-[[tests.case]]
-name = "simple_function"
-input = """
-def hello():
-    return "world"
-"""
-expected = {
-    "functions": [{"name": "hello", "line": 2, "args": 0, "complexity": 1}],
-    "imports": [],
-    "dangerous": []
-}
 
-[[tests.case]]
-name = "multiple_functions"
-input = """
-def add(a, b):
-    return a + b
-
-def multiply(x, y):
-    return x * y
-"""
-expected = {
-    "functions": [
-        {"name": "add", "line": 2, "args": 2, "complexity": 1},
-        {"name": "multiply", "line": 5, "args": 2, "complexity": 1}
-    ],
-    "imports": [],
-    "dangerous": []
-}
-
-[[tests.case]]
-name = "complex_function"
-input = """
-def categorize(value):
-    if value < 0:
-        return "negative"
-    elif value == 0:
-        return "zero"
-    else:
-        return "positive"
-"""
-expected = {
-    "functions": [{"name": "categorize", "line": 2, "args": 1, "complexity": 3}],
-    "imports": [],
-    "dangerous": []
-}
-
-[[tests.case]]
-name = "nested_conditions"
-input = """
-def check(x, y):
-    if x > 0:
-        if y > 0:
-            return "both positive"
-    return "not both positive"
-"""
-expected = {
-    "functions": [{"name": "check", "line": 2, "args": 2, "complexity": 3}],
-    "imports": [],
-    "dangerous": []
-}
-
-[[tests.case]]
-name = "imports_detected"
-input = """
-import os
-import sys
-from pathlib import Path
-
-def work():
-    pass
-"""
-expected = {
-    "functions": [{"name": "work", "line": 5, "args": 0, "complexity": 1}],
-    "imports": ["os", "sys", "pathlib"],
-    "dangerous": []
-}
-
-[[tests.case]]
-name = "dangerous_patterns"
-input = """
-def unsafe():
-    eval(user_input)
-    exec(code)
-    return result
-"""
-expected = {
-    "functions": [{"name": "unsafe", "line": 2, "args": 0, "complexity": 1}],
-    "imports": [],
-    "dangerous": ["eval", "exec"]
-}
-
-[[tests.case]]
-name = "realistic_code"
-input = """
-import json
-import requests
-
-def fetch_data(url, timeout=30):
-    if not url:
-        raise ValueError("URL required")
-
-    try:
-        response = requests.get(url, timeout=timeout)
-        if response.status_code == 200:
-            return json.loads(response.text)
-        else:
-            return None
-    except Exception:
-        return None
-"""
-expected = {
-    "functions": [{"name": "fetch_data", "line": 4, "args": 2, "complexity": 5}],
-    "imports": ["json", "requests"],
-    "dangerous": []
-}
 
 [hints]
 level_1 = "Use ast.parse() to convert code string to AST"

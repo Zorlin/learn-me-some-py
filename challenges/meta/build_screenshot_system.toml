@@ -26,6 +26,10 @@ Build the introspection system that gave LMSP X-ray vision into your learning.
 """
 
 [skeleton]
+[validation]
+type = "pytest"
+test_file = "test_build_screenshot_system.py"
+
 code = '''
 from dataclasses import dataclass
 import ast
@@ -86,31 +90,6 @@ def take_screenshot(
     # Your code here
     pass
 '''
-
-[tests]
-[[tests.case]]
-name = "capture_simple_code"
-input = [
-    "def hello(): return 'world'",
-    1, 0, 1, 1, "test_challenge", 60.0
-]
-expected = {"has_ast": True, "cursor_line": 1}
-
-[[tests.case]]
-name = "invalid_syntax_ast"
-input = [
-    "def incomplete(",
-    1, 15, 0, 1, "syntax_challenge", 30.0
-]
-expected = {"ast_dump": "SyntaxError"}
-
-[[tests.case]]
-name = "full_screenshot"
-input = [
-    "def solution(x): return x * 2",
-    1, 10, 3, 5, "doubler", 120.0, "flow"
-]
-expected = {"emotion": "flow", "has_wireframe": True}
 
 [hints]
 level_1 = "Use ast.parse() to get the AST, then ast.dump() to stringify it"
