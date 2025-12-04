@@ -1,0 +1,66 @@
+# Challenge: Simple Math
+# Your first Python program!
+
+[challenge]
+id = "simple_math"
+name = "Simple Math"
+level = 0
+prerequisites = []
+
+[description]
+brief = "Calculate 42 + 58 and print the result"
+detailed = """
+Welcome to Python! Your first challenge is simple:
+
+Calculate 42 + 58 and print the result.
+
+Expected output: 100
+"""
+
+[skeleton]
+code = '''
+# Calculate 42 + 58 and print the result
+# Your code here
+'''
+
+[validation]
+type = "pytest"
+test_file = "test_simple_math.py"
+
+[hints]
+level_1 = "Use the + operator to add numbers"
+level_2 = "Use print() to display the result"
+
+[gamepad_hints]
+easy_mode = """
+🎮 SIMPLE MATH:
+1. Type: print(42 + 58)
+2. Press Enter to run
+3. You did it! Python is easy!
+"""
+
+[solution]
+code = '''
+# Calculate 42 + 58 and print the result
+result = 42 + 58
+print(result)
+'''
+
+[meta]
+time_limit_seconds = 60
+speed_run_target = 30
+points = 10
+xp_reward = 10
+category = "basics"
+next_challenge = "print_output"
+
+[adaptive]
+fun_factor = "beginner"
+weakness_signals = ["syntax_error", "no_output", "hardcoded_answer"]
+project_themes = ["calculator", "math_helper", "first_steps"]
+
+[emotional_checkpoints]
+after_completion = """
+🎮 Simple math complete! You just wrote Python code!
+   [RT] This is fun!  |  [LT] Too easy?  |  [Y] What's next?
+"""
