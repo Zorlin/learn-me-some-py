@@ -135,6 +135,49 @@ function handlePaste() {
   })
 }
 
+function handleDoubleClick(event: MouseEvent) {
+  const target = event.target as HTMLTextAreaElement
+  const pos = target.selectionStart
+  const code = props.code
+
+  // Smart selection patterns (in priority order)
+  const patterns = [
+    // Ellipsis placeholder - highest priority
+    /\.{3}/g,
+    // pass keyword (common placeholder)
+    /\bpass\b/g,
+    // String literals (single or double quoted, including f-strings)
+    /f?["'](?:[^"'\\]|\\.)*["']/g,
+    // Numbers (int, float, scientific)
+    /\b\d+(?:\.\d+)?(?:e[+-]?\d+)?\b/gi,
+    // Python keywords
+    /\b(?:def|class|if|elif|else|for|while|return|import|from|as|try|except|finally|with|yield|lambda|and|or|not|in|is|True|False|None)\b/g,
+    // Identifiers (variable/function names)
+    /\b[a-zA-Z_][a-zA-Z0-9_]*\b/g,
+  ]
+
+  // Find all matches and see which one contains the cursor
+  for (const pattern of patterns) {
+    pattern.lastIndex = 0  // Reset regex state
+    let match
+    while ((match = pattern.exec(code)) !== null) {
+      const start = match.index
+      const end = start + match[0].length
+
+      // Check if cursor is within this match
+      if (pos >= start && pos <= end) {
+        event.preventDefault()
+        requestAnimationFrame(() => {
+          target.selectionStart = start
+          target.selectionEnd = end
+        })
+        return
+      }
+    }
+  }
+  // If no pattern matched, let browser do default word selection
+}
+
 function handleScroll(event: Event) {
   const target = event.target as HTMLTextAreaElement
   const lineNumbersEl = document.querySelector('.line-numbers') as HTMLElement
@@ -202,6 +245,7 @@ onMounted(() => {
           @keydown="handleKeydown"
           @scroll="handleScroll"
           @paste="handlePaste"
+          @dblclick="handleDoubleClick"
         />
       </div>
     </div>
