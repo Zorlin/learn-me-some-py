@@ -508,13 +508,14 @@ class PytestValidator:
 
             # Write conftest.py to provide player_code fixture
             conftest = tmpdir / "conftest.py"
+            escaped_code = code.replace('"', '\\"')
             conftest.write_text(f'''
 import pytest
 
 @pytest.fixture
 def player_code():
     """Fixture providing the player's code as a string."""
-    return """{code.replace('"', '\\"')}"""
+    return """{escaped_code}"""
 
 @pytest.fixture
 def player_file():

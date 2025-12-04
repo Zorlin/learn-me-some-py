@@ -26,10 +26,8 @@ cleanup() {
 }
 trap cleanup SIGINT SIGTERM
 
-# Activate venv
-if [[ -z "$VIRTUAL_ENV" ]]; then
-    source .venv/bin/activate
-fi
+# Activate venv (always use this project's venv)
+source .venv/bin/activate
 
 # Start uvicorn backend
 echo "🐍 Starting backend on port 8000..."
