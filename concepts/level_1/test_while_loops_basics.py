@@ -119,6 +119,7 @@ class TestWhileLoopsBasics:
         lines = player_code.split('\n')
         while_found = False
         while_indent = None
+        has_indented_body = False
 
         for line in lines:
             if 'while' in line and ':' in line:
@@ -129,11 +130,14 @@ class TestWhileLoopsBasics:
             if while_found and line.strip():
                 current_indent = len(line) - len(line.lstrip())
                 # Loop body should be indented more than while statement
-                if current_indent <= while_indent:
-                    # We've moved out of the loop block
-                    if 'print(' in line or 'count' in line:
-                        raise AssertionError("Loop body should be properly indented")
+                if current_indent > while_indent:
+                    # This line is properly inside the loop body
+                    has_indented_body = True
+                else:
+                    # We've moved out of the loop block - that's fine!
                     while_found = False
+
+        assert has_indented_body, "Loop body should be properly indented"
 
     def test_uses_print_variable(self, player_code: str):
         """Code should print the counter variable, not just literals."""

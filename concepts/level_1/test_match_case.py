@@ -5,13 +5,18 @@ import sys
 from typing import Any, Dict, List
 
 
-def run_player_code(code: str) -> tuple[str, str, int]:
+def run_player_code(code: str, stdin_input: str = None) -> tuple[str, str, int]:
     """Execute player code and capture output."""
+    # If code uses input() and no stdin provided, give a default
+    if stdin_input is None and 'input(' in code:
+        stdin_input = "1\n"  # Default choice for menu-style code
+
     result = subprocess.run(
         [sys.executable, "-c", code],
         capture_output=True,
         text=True,
-        timeout=5
+        timeout=5,
+        input=stdin_input
     )
     return result.stdout, result.stderr, result.returncode
 
