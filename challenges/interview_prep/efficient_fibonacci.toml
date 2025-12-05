@@ -10,7 +10,7 @@ category = "interview_prep"
 
 [description]
 brief = "Optimize Fibonacci from O(2^n) to O(n)"
-detailed = """
+detailed = '''
 ## The Problem with Recursion
 
 Your recursive Fibonacci works, but it's **incredibly slow** for large n.
@@ -47,7 +47,7 @@ for _ in range(n - 1):     # Step forward n-1 times
 **Your Task:**
 Implement `efficient_fibonacci(n)` using the iterative approach.
 It must handle n=1000 without timeout (recursive would take centuries).
-"""
+'''
 
 [skeleton]
 code = '''
