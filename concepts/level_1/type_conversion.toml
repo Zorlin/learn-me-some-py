@@ -263,6 +263,20 @@ enables = ["string_methods"]
 used_in = ["temperature_converter"]
 see_also = ["types"]
 
+[content.try_it]
+prompt = "Convert age_text to a number, add 5, and print the result"
+starter = '''
+age_text = "25"
+# Convert age_text to an integer, add 5, and print it
+
+'''
+solution = '''
+age_text = "25"
+age = int(age_text)
+future_age = age + 5
+print("In 5 years:", future_age)
+'''
+
 [meta]
 time_to_read = 50
 difficulty = "beginner"
