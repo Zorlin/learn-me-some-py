@@ -143,6 +143,80 @@ See `concepts/level_0/basic_operators.toml` and `concepts/level_0/test_basic_ope
 
 ---
 
+## MANDATORY: Lesson Content Must Match Try-It
+
+**The lesson content MUST be specifically tailored to the try_it task.**
+
+A concept lesson exists to teach the learner EXACTLY what they need to complete the try_it. Nothing more, nothing less.
+
+### The Rule
+
+1. **Start with the try_it** - What task is the learner asked to do?
+2. **Write the lesson** - Teach ONLY what's needed to solve that task
+3. **Match the test** - The pytest tests should validate the try_it solution
+
+### BAD: Overly General Lesson
+
+```toml
+[content]
+lesson = """
+## Getting Individual Digits
+
+Here are 15 different ways to manipulate digits...
+[goes on for pages about unrelated stuff]
+"""
+
+[content.try_it]
+prompt = "Sum the digits of a two-digit number"
+```
+
+The learner reads pages of content and still doesn't know how to do the specific task.
+
+### GOOD: Targeted Lesson
+
+```toml
+[content]
+lesson = """
+## Your Task: Sum the Digits of a Two-Digit Number
+
+Given 42, return 4 + 2 = 6.
+
+```python
+def solution(n):
+    tens = n // 10
+    ones = n % 10
+    return tens + ones
+```
+
+That's it. Extract both digits, add them.
+"""
+
+[content.try_it]
+prompt = "Sum the digits of a two-digit number"
+```
+
+The lesson teaches EXACTLY the task. Learner reads, understands, solves.
+
+### The Flow
+
+```
+Learner opens lesson
+    ↓
+Reads targeted content (30 seconds)
+    ↓
+Understands the pattern
+    ↓
+Types solution in try_it
+    ↓
+Tests pass
+    ↓
+DONE - momentum preserved
+```
+
+If a learner reads the lesson and STILL doesn't know how to do the try_it, the lesson is BROKEN.
+
+---
+
 ## Development with Palace
 
 ### Quick Iteration
@@ -186,6 +260,54 @@ The invisible AI that watches the learner's journey and shapes their experience.
 - `OUTPUT_FORMAT_MISMATCH` - printed `5` when expected `Your name has 5 letters`
 
 **DO NOT hardcode error checks in pytest tests.** The Director provides intelligent, personalized feedback. Tests just validate correctness; The Director teaches.
+
+### TODO: AST-Based Static Analysis for Struggle Detection 🔥🧠
+
+**Current state:** The Director uses regex pattern matching:
+```python
+# Check for return inside loop body
+has_for_loop = re.search(r'\bfor\s+\w+\s+in\s+', obs.code)
+# ... indentation tracking ...
+if stripped.startswith('return ') and current_indent > loop_indent:
+    # Found return inside loop!
+```
+
+**Future unlock:** Python's `ast` module can do **proper** static analysis:
+```python
+import ast
+
+def detect_return_in_loop(code):
+    tree = ast.parse(code)
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.For, ast.While)):
+            for child in ast.walk(node):
+                if isinstance(child, ast.Return):
+                    return True  # Found it!
+    return False
+```
+
+**What AST-based detection unlocks:**
+```
+Current (regex):              AST-based:
+├── Fragile                   ├── Robust
+├── Fooled by strings         ├── Understands structure
+├── Indentation heuristics    ├── Actual scope awareness
+├── Can't see nested loops    ├── Full tree traversal
+└── False positives           └── Precise detection
+```
+
+**The Director could statically analyze for:**
+- `return` inside loops (exits early instead of building list)
+- Unused variables
+- Shadowed builtins (`list = [1,2,3]` shadows `list()`)
+- Unreachable code
+- Missing `break` in infinite loops
+- Mutable default arguments (`def foo(items=[])`)
+- `==` vs `is` with literals
+
+**You're not just building a tutor. You're building a linter that teaches.**
+
+The Director sees your code, parses it, identifies structural issues, and explains WHY they're problems - before you even run the tests.
 
 ### Adaptive Learning Engine (`lmsp/adaptive/`)
 
