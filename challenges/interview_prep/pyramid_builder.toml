@@ -1,0 +1,123 @@
+# Pyramid Builder Challenge
+# From synthesis/ASTERISKS - ASCII art pyramid printing
+
+[challenge]
+id = "pyramid_builder"
+name = "Pyramid Builder"
+level = 2
+prerequisites = ["for_loops_basics", "string_operations"]
+category = "interview_prep"
+
+[description]
+brief = "Print an ASCII pyramid with N levels"
+detailed = """
+## ASCII Art Pyramid
+
+Render an ASCII art pyramid with N levels by printing N rows of asterisks.
+- The top row has a single asterisk in the center
+- Each successive row has two additional asterisks (one on each side)
+
+**Example for N = 3:**
+```
+  *
+ ***
+*****
+```
+
+**Example for N = 5:**
+```
+    *
+   ***
+  *****
+ *******
+*********
+```
+
+**Your Task:**
+Write a program that generates a pyramid with N = 10 rows.
+
+**Key Insights:**
+- Row 0 has 1 asterisk, row 1 has 3, row 2 has 5... (formula: 2*row + 1)
+- Leading spaces decrease as you go down (formula: N - row - 1)
+"""
+
+[skeleton]
+code = '''
+def solution(n: int = 10) -> str:
+    """
+    Generate an ASCII pyramid with n rows.
+
+    Args:
+        n: Number of rows (default 10)
+
+    Returns:
+        The pyramid as a string with newlines
+    """
+    lines = []
+
+    for row in range(n):
+        # Calculate spaces and stars for this row
+        # spaces = ?
+        # stars = ?
+        # line = " " * spaces + "*" * stars
+        # lines.append(line)
+        pass
+
+    return "\\n".join(lines)
+'''
+
+[validation]
+type = "pytest"
+test_file = "test_pyramid_builder.py"
+
+[[tests.case]]
+name = "pyramid_3"
+input = 3
+expected = "  *\n ***\n*****"
+
+[[tests.case]]
+name = "pyramid_5"
+input = 5
+expected = "    *\n   ***\n  *****\n *******\n*********"
+
+[[tests.case]]
+name = "pyramid_1"
+input = 1
+expected = "*"
+
+[hints]
+level_1 = "For row i: number of stars = 2*i + 1"
+level_2 = "For row i: leading spaces = n - i - 1"
+level_3 = "Use string multiplication: ' ' * count and '*' * count"
+level_4 = """
+Pattern:
+```python
+for row in range(n):
+    spaces = n - row - 1
+    stars = 2 * row + 1
+    lines.append(' ' * spaces + '*' * stars)
+```
+"""
+
+[solution]
+code = '''
+def solution(n: int = 10) -> str:
+    lines = []
+    for row in range(n):
+        spaces = n - row - 1
+        stars = 2 * row + 1
+        lines.append(' ' * spaces + '*' * stars)
+    return "\\n".join(lines)
+
+print(solution(10))
+'''
+
+[meta]
+time_limit_seconds = 120
+speed_run_target = 45
+points = 100
+source = "ASTERISKS"
+
+[adaptive]
+fun_factor = "puzzle"
+weakness_signals = ["string_multiplication", "loop_index_math"]

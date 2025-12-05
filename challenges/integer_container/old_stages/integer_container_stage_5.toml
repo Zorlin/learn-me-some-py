@@ -1,0 +1,228 @@
+# Integer Container Stage 5: GET_NEXT
+# Progressive challenge - The final boss
+
+[challenge]
+id = "integer_container_stage_5"
+name = "Integer Container: GET_NEXT"
+level = 3
+prerequisites = ["integer_container_stage_4"]
+stage = 5
+total_stages = 5
+
+[description]
+brief = "Find the smallest value GREATER than a given value"
+detailed = """
+## Stage 5: Finding the Next Greater Value
+
+This is the final challenge! Find the next value greater than a given one.
+
+**New Command:**
+- `["GET_NEXT", "5"]` → Return the smallest integer in container that is STRICTLY greater than 5. Return `""` if none exists.
+
+**Example:**
+```python
+# Container: [1, 2, 2, 4]
+queries = [
+    ["GET_NEXT", "1"],  # Smallest > 1 is 2 → "2"
+    ["GET_NEXT", "2"],  # Smallest > 2 is 4 → "4"
+    ["GET_NEXT", "3"],  # Smallest > 3 is 4 → "4"
+    ["GET_NEXT", "4"],  # Nothing > 4 → ""
+    ["REMOVE", "2"],    # Container: [1, 2, 4]
+    ["GET_NEXT", "1"],  # Smallest > 1 is 2 → "2"
+]
+# → ["2", "4", "4", "", "true", "2"]
+```
+
+**Strategy:**
+1. Find all values greater than the target
+2. Return the minimum of those (or "" if none)
+
+**Or with sorting:**
+1. Sort the container
+2. Find the first value > target
+
+Keep ALL previous functionality working!
+"""
+
+[skeleton]
+code = '''
+def solution(queries):
+    results = []
+    container = []
+
+    for query in queries:
+        command = query[0]
+        value = int(query[1]) if len(query) > 1 else None
+
+        if command == "ADD":
+            container.append(value)
+            results.append(str(container.count(value)))
+
+        elif command == "REMOVE":
+            if value in container:
+                container.remove(value)
+                results.append("true")
+            else:
+                results.append("false")
+
+        elif command == "COUNT":
+            results.append(str(container.count(value)))
+
+        elif command == "GET_MEDIAN":
+            if len(container) == 0:
+                results.append("")
+            else:
+                sorted_vals = sorted(container)
+                mid = (len(sorted_vals) - 1) // 2
+                results.append(str(sorted_vals[mid]))
+
+        elif command == "GET_NEXT":
+            # Your code here:
+            # Find the smallest value STRICTLY GREATER than `value`
+            # Return "" if no such value exists
+            #
+            # Approach 1: Filter and find min
+            # greater_values = [x for x in container if x > value]
+            # if greater_values: return str(min(greater_values))
+            #
+            # Approach 2: Sort and search
+            # sorted_vals = sorted(container)
+            # for x in sorted_vals:
+            #     if x > value: return str(x)
+            pass
+
+    return results
+'''
+
+[validation]
+type = "pytest"
+test_file = "test_integer_container_stage_5.py"
+
+[[tests.case]]
+name = "get_next_basic"
+input = [["ADD", "1"], ["ADD", "2"], ["ADD", "4"], ["GET_NEXT", "1"]]
+expected = ["1", "1", "1", "2"]
+
+[[tests.case]]
+name = "get_next_none_found"
+input = [["ADD", "1"], ["ADD", "2"], ["GET_NEXT", "5"]]
+expected = ["1", "1", ""]
+
+[[tests.case]]
+name = "get_next_with_duplicates"
+input = [["ADD", "2"], ["ADD", "2"], ["ADD", "4"], ["GET_NEXT", "1"], ["GET_NEXT", "2"]]
+expected = ["1", "2", "1", "2", "4"]
+
+[[tests.case]]
+name = "get_next_after_remove"
+input = [["ADD", "1"], ["ADD", "2"], ["ADD", "3"], ["REMOVE", "2"], ["GET_NEXT", "1"]]
+expected = ["1", "1", "1", "true", "3"]
+
+[[tests.case]]
+name = "get_next_empty"
+input = [["GET_NEXT", "5"]]
+expected = [""]
+
+[[tests.case]]
+name = "full_example"
+input = [["ADD", "1"], ["ADD", "2"], ["ADD", "2"], ["ADD", "4"], ["GET_NEXT", "1"], ["GET_NEXT", "2"], ["GET_NEXT", "3"], ["GET_NEXT", "4"], ["REMOVE", "2"], ["GET_NEXT", "1"], ["GET_NEXT", "2"], ["GET_NEXT", "3"], ["GET_NEXT", "4"]]
+expected = ["1", "1", "2", "1", "2", "4", "4", "", "true", "2", "4", "4", ""]
+
+[hints]
+level_1 = "You need values STRICTLY greater than the target (not equal!)"
+level_2 = "List comprehension helps: [x for x in container if x > value]"
+level_3 = "If you have values greater, use min() to get the smallest"
+level_4 = """
+Approach 1 (filtering):
+```python
+elif command == "GET_NEXT":
+    greater = [x for x in container if x > value]
+    if greater:
+        results.append(str(min(greater)))
+    else:
+        results.append("")
+```
+
+Approach 2 (sorting):
+```python
+elif command == "GET_NEXT":
+    result = ""
+    for x in sorted(container):
+        if x > value:
+            result = str(x)
+            break
+    results.append(result)
+```
+"""
+
+[solution]
+code = '''
+def solution(queries):
+    results = []
+    container = []
+
+    for query in queries:
+        command = query[0]
+        value = int(query[1]) if len(query) > 1 else None
+
+        if command == "ADD":
+            container.append(value)
+            results.append(str(container.count(value)))
+
+        elif command == "REMOVE":
+            if value in container:
+                container.remove(value)
+                results.append("true")
+            else:
+                results.append("false")
+
+        elif command == "COUNT":
+            results.append(str(container.count(value)))
+
+        elif command == "GET_MEDIAN":
+            if len(container) == 0:
+                results.append("")
+            else:
+                sorted_vals = sorted(container)
+                mid = (len(sorted_vals) - 1) // 2
+                results.append(str(sorted_vals[mid]))
+
+        elif command == "GET_NEXT":
+            greater = [x for x in container if x > value]
+            if greater:
+                results.append(str(min(greater)))
+            else:
+                results.append("")
+
+    return results
+'''
+
+[meta]
+time_limit_seconds = 300
+speed_run_target = 120
+points = 200
+next_challenge = "base_converter"
+
+[adaptive]
+fun_factor = "puzzle"
+weakness_signals = ["greater_or_equal_bug", "empty_min_crash", "get_next_boundary"]
+
+[struggle_types]
+greater_or_equal_bug = "GET_NEXT needs STRICTLY greater (>), not greater-or-equal (>=)"
+empty_min_crash = "min([]) crashes! Check if there are any greater values first"
+get_next_boundary = "Edge case: what if the target is larger than all values?"
+
+[emotional_checkpoints]
+after_completion = """
+🏆 YOU'VE COMPLETED THE INTEGER CONTAINER CHALLENGE!
+
+You just built a fully functional data container with:
+- ADD with counting
+- REMOVE with validation
+- COUNT for duplicates
+- GET_MEDIAN with sorting
+- GET_NEXT with searching
+
+This is EXACTLY the pattern used in coding interviews.
+You're ready for the real thing! 🎯
+"""

@@ -1,0 +1,146 @@
+# Integer Container Stage 3: COUNT
+# Progressive challenge - Handling duplicates
+
+[challenge]
+id = "integer_container_stage_3"
+name = "Integer Container: COUNT"
+level = 2
+prerequisites = ["integer_container_stage_2"]
+stage = 3
+total_stages = 5
+
+[description]
+brief = "Count how many times a value appears in your container"
+detailed = """
+## Stage 3: Counting Duplicates
+
+Your container can have duplicates. Now you need to count them!
+
+**Commands:**
+- `["ADD", "5"]` → Add 5. Return count of 5s as a string (e.g., `"1"`, `"2"`)
+- `["REMOVE", "5"]` → Remove one 5. Return `"true"` or `"false"`
+- `["COUNT", "5"]` → Return how many 5s are in the container as a string
+
+**New behavior for ADD:**
+- ADD now returns the NEW count of that value (not empty string!)
+
+**Example:**
+```python
+queries = [
+    ["ADD", "5"],     # First 5 → "1"
+    ["ADD", "5"],     # Second 5 → "2"
+    ["ADD", "3"],     # First 3 → "1"
+    ["COUNT", "5"],   # → "2"
+    ["REMOVE", "5"],  # → "true", now one 5 left
+    ["COUNT", "5"]    # → "1"
+]
+# → ["1", "2", "1", "2", "true", "1"]
+```
+
+**Hint:** Python lists have a `.count()` method!
+"""
+
+[skeleton]
+code = '''
+def solution(queries):
+    results = []
+    container = []
+
+    for query in queries:
+        command = query[0]
+        value = int(query[1])
+
+        if command == "ADD":
+            container.append(value)
+            # Return the count of this value as a string
+            results.append(str(container.count(value)))
+
+        elif command == "REMOVE":
+            if value in container:
+                container.remove(value)
+                results.append("true")
+            else:
+                results.append("false")
+
+        elif command == "COUNT":
+            # Your code here:
+            # Return how many times value appears as a string
+            pass
+
+    return results
+'''
+
+[validation]
+type = "pytest"
+test_file = "test_integer_container_stage_3.py"
+
+[[tests.case]]
+name = "count_basics"
+input = [["ADD", "5"], ["ADD", "5"], ["COUNT", "5"]]
+expected = ["1", "2", "2"]
+
+[[tests.case]]
+name = "count_zero"
+input = [["COUNT", "5"]]
+expected = ["0"]
+
+[[tests.case]]
+name = "count_after_remove"
+input = [["ADD", "1"], ["ADD", "1"], ["ADD", "1"], ["REMOVE", "1"], ["COUNT", "1"]]
+expected = ["1", "2", "3", "true", "2"]
+
+[[tests.case]]
+name = "count_different_values"
+input = [["ADD", "1"], ["ADD", "2"], ["ADD", "1"], ["COUNT", "1"], ["COUNT", "2"], ["COUNT", "3"]]
+expected = ["1", "1", "2", "2", "1", "0"]
+
+[hints]
+level_1 = "Python lists have a .count() method: `my_list.count(value)`"
+level_2 = "Don't forget to convert the count to a string!"
+level_3 = """
+```python
+elif command == "COUNT":
+    results.append(str(container.count(value)))
+```
+"""
+
+[solution]
+code = '''
+def solution(queries):
+    results = []
+    container = []
+
+    for query in queries:
+        command = query[0]
+        value = int(query[1])
+
+        if command == "ADD":
+            container.append(value)
+            results.append(str(container.count(value)))
+
+        elif command == "REMOVE":
+            if value in container:
+                container.remove(value)
+                results.append("true")
+            else:
+                results.append("false")
+
+        elif command == "COUNT":
+            results.append(str(container.count(value)))
+
+    return results
+'''
+
+[meta]
+time_limit_seconds = 300
+speed_run_target = 90
+points = 100
+next_challenge = "integer_container_stage_4"
+
+[adaptive]
+fun_factor = "puzzle"
+weakness_signals = ["forgot_str_conversion", "count_vs_len_confusion"]
+
+[struggle_types]
+forgot_str_conversion = "Remember: results must be strings! Use str(count)"
+count_vs_len_confusion = ".count(x) counts how many x's; len() counts total elements"

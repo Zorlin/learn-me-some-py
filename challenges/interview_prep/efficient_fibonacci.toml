@@ -1,0 +1,136 @@
+# Efficient Fibonacci Challenge
+# Teaching O(n) iterative vs O(2^n) recursive
+
+[challenge]
+id = "efficient_fibonacci"
+name = "Efficient Fibonacci"
+level = 2
+prerequisites = ["fibonacci_sequence"]
+category = "interview_prep"
+
+[description]
+brief = "Optimize Fibonacci from O(2^n) to O(n)"
+detailed = """
+## The Problem with Recursion
+
+Your recursive Fibonacci works, but it's **incredibly slow** for large n.
+
+**Why?** Each call branches into TWO more calls:
+
+```
+                    fib(5)
+                   /      \
+              fib(4)      fib(3)
+             /    \       /    \
+         fib(3)  fib(2) fib(2) fib(1)
+         /   \     ...    ...
+     fib(2) fib(1)
+       ...
+```
+
+For `fib(50)`, this makes **billions** of redundant calls!
+
+- Recursive: O(2^n) - exponential, unusable for n > 40
+- Iterative: O(n) - linear, instant even for n = 10000
+
+**The Iterative Pattern:**
+
+Instead of branching backwards, step forwards:
+
+```python
+prev, curr = 0, 1          # Start with F(0), F(1)
+for _ in range(n - 1):     # Step forward n-1 times
+    prev, curr = curr, prev + curr  # Shift window
+# curr is now F(n)
+```
+
+**Your Task:**
+Implement `efficient_fibonacci(n)` using the iterative approach.
+It must handle n=1000 without timeout (recursive would take centuries).
+"""
+
+[skeleton]
+code = '''
+def efficient_fibonacci(n: int) -> int:
+    """
+    Return the nth Fibonacci number using O(n) iteration.
+
+    Must be fast enough to compute fib(1000) instantly.
+
+    The trick: instead of recursing backwards, iterate forwards.
+    Track the previous two values and shift them along.
+
+    Args:
+        n: The index in the sequence (0-indexed)
+
+    Returns:
+        The nth Fibonacci number
+    """
+    # Your code here - NO RECURSION!
+    pass
+'''
+
+[validation]
+type = "pytest"
+test_file = "test_efficient_fibonacci.py"
+
+[[tests.case]]
+name = "fib_0"
+input = 0
+expected = 0
+function = "efficient_fibonacci"
+
+[[tests.case]]
+name = "fib_1"
+input = 1
+expected = 1
+function = "efficient_fibonacci"
+
+[[tests.case]]
+name = "fib_10"
+input = 10
+expected = 55
+function = "efficient_fibonacci"
+
+[[tests.case]]
+name = "fib_50"
+input = 50
+expected = 12586269025
+function = "efficient_fibonacci"
+
+[hints]
+level_1 = "Start with prev=0, curr=1 (representing F(0) and F(1))"
+level_2 = "Use a for loop: range(n - 1) steps to get from F(1) to F(n)"
+level_3 = "Python tuple swap: prev, curr = curr, prev + curr"
+level_4 = """
+```python
+def efficient_fibonacci(n):
+    if n <= 1:
+        return n
+    prev, curr = 0, 1
+    for _ in range(n - 1):
+        prev, curr = curr, prev + curr
+    return curr
+```
+"""
+
+[solution]
+code = '''
+def efficient_fibonacci(n: int) -> int:
+    if n <= 1:
+        return n
+    prev, curr = 0, 1
+    for _ in range(n - 1):
+        prev, curr = curr, prev + curr
+    return curr
+'''
+
+[meta]
+time_limit_seconds = 120
+speed_run_target = 90
+points = 150
+source = "FIBONACCI_OPTIMIZATION"
+
+[adaptive]
+fun_factor = "optimization"
+weakness_signals = ["variable_swap", "loop_stepping", "base_case_handling"]

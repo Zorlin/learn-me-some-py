@@ -1,0 +1,107 @@
+# Lucky Numbers Challenge (Multi-Stage)
+# From synthesis/LUCKY - Divisibility and digit checking
+
+[challenge]
+id = "lucky_numbers"
+name = "Lucky Numbers"
+level = 2
+prerequisites = ["for_loops_basics", "if_else", "digit_extraction"]
+category = "interview_prep"
+
+[description]
+brief = "Print 1-100, replacing lucky numbers with 'Lucky!'"
+detailed = """
+## Lucky Number Printer
+
+Print numbers from 1 to 100, but replace any **lucky number** with "Lucky!"
+
+A number is **lucky** if:
+1. It is divisible by 7, **OR**
+2. It contains the digit 7
+
+**Expected output (first 20 lines):**
+```
+1
+2
+3
+4
+5
+6
+Lucky!
+8
+9
+10
+11
+12
+13
+Lucky!
+15
+16
+Lucky!
+18
+19
+20
+```
+
+**Numbers replaced:** 7, 14, 17, 21, 27, 28, 35, 37, 42, 47, 49, 56, 57, 63, 67, 70-79, 84, 87, 91, 97, 98
+"""
+
+[skeleton]
+code = '''
+def is_lucky(n: int) -> bool:
+    """
+    Check if a number is lucky.
+
+    Lucky means: divisible by 7 OR contains the digit 7
+
+    Args:
+        n: The number to check
+
+    Returns:
+        True if lucky, False otherwise
+    """
+    # Your code here
+    pass
+
+
+def solution() -> list:
+    """Return list of 1-100, replacing lucky numbers with 'Lucky!'"""
+    # Your code here - use is_lucky()!
+    pass
+'''
+
+[validation]
+type = "pytest"
+test_file = "test_lucky_numbers.py"
+
+[hints]
+level_1 = "Stage 1: Check divisibility with n % 7 == 0"
+level_2 = "Stage 1: Check if 7 is in the number with '7' in str(n)"
+level_3 = "Stage 1: Combine with OR: condition1 or condition2"
+level_4 = "Stage 2: Loop range(1, 101), append 'Lucky!' or str(i)"
+
+[solution]
+code = '''
+def is_lucky(n: int) -> bool:
+    return n % 7 == 0 or '7' in str(n)
+
+
+def solution() -> list:
+    results = []
+    for i in range(1, 101):
+        if is_lucky(i):
+            results.append("Lucky!")
+        else:
+            results.append(str(i))
+    return results
+'''
+
+[meta]
+time_limit_seconds = 180
+speed_run_target = 90
+points = 150
+source = "LUCKY"
+
+[adaptive]
+fun_factor = "game"
+weakness_signals = ["modulo_operator", "string_conversion", "or_logic", "list_building"]

@@ -1,0 +1,185 @@
+# Integer Container Stage 4: MEDIAN
+# Progressive challenge - The algorithm challenge
+
+[challenge]
+id = "integer_container_stage_4"
+name = "Integer Container: MEDIAN"
+level = 3
+prerequisites = ["integer_container_stage_3", "sorted_function"]
+stage = 4
+total_stages = 5
+
+[description]
+brief = "Find the median (middle value) of your container"
+detailed = """
+## Stage 4: Finding the Median
+
+The median is the "middle" value when numbers are sorted.
+
+**New Command:**
+- `["GET_MEDIAN"]` → Return the median as a string, or `""` if container is empty
+
+**Median Rules:**
+1. Sort the values first
+2. If ODD count: return the middle value
+3. If EVEN count: return the LEFT of the two middle values
+4. If empty: return `""`
+
+**Example:**
+```python
+# Container: [5, 10, 1]
+# Sorted:    [1, 5, 10]
+# Middle index: 1 (length 3, middle is index 1)
+# Median: 5
+
+# Container: [5, 10, 1, 4]
+# Sorted:    [1, 4, 5, 10]
+# Middle indices: 1 and 2 (values 4 and 5)
+# Take LEFT middle: 4
+```
+
+**The Formula:**
+```python
+sorted_list = sorted(container)
+middle_index = (len(sorted_list) - 1) // 2
+median = sorted_list[middle_index]
+```
+
+**Important:** Keep ADD/REMOVE/COUNT from previous stages!
+"""
+
+[skeleton]
+code = '''
+def solution(queries):
+    results = []
+    container = []
+
+    for query in queries:
+        command = query[0]
+        value = int(query[1]) if len(query) > 1 else None
+
+        if command == "ADD":
+            container.append(value)
+            results.append(str(container.count(value)))
+
+        elif command == "REMOVE":
+            if value in container:
+                container.remove(value)
+                results.append("true")
+            else:
+                results.append("false")
+
+        elif command == "COUNT":
+            results.append(str(container.count(value)))
+
+        elif command == "GET_MEDIAN":
+            # Your code here:
+            # 1. Handle empty container (return "")
+            # 2. Sort the container
+            # 3. Find the middle index: (len - 1) // 2
+            # 4. Return that element as a string
+            pass
+
+    return results
+'''
+
+[validation]
+type = "pytest"
+test_file = "test_integer_container_stage_4.py"
+
+[[tests.case]]
+name = "median_empty"
+input = [["GET_MEDIAN"]]
+expected = [""]
+
+[[tests.case]]
+name = "median_one_element"
+input = [["ADD", "5"], ["GET_MEDIAN"]]
+expected = ["1", "5"]
+
+[[tests.case]]
+name = "median_odd"
+input = [["ADD", "5"], ["ADD", "10"], ["ADD", "1"], ["GET_MEDIAN"]]
+expected = ["1", "1", "1", "5"]
+
+[[tests.case]]
+name = "median_even_left"
+input = [["ADD", "5"], ["ADD", "10"], ["ADD", "1"], ["ADD", "4"], ["GET_MEDIAN"]]
+expected = ["1", "1", "1", "1", "4"]
+
+[[tests.case]]
+name = "median_after_remove"
+input = [["ADD", "5"], ["ADD", "10"], ["ADD", "1"], ["ADD", "4"], ["REMOVE", "1"], ["GET_MEDIAN"]]
+expected = ["1", "1", "1", "1", "true", "5"]
+
+[[tests.case]]
+name = "median_with_negatives"
+input = [["ADD", "-5"], ["ADD", "0"], ["ADD", "5"], ["GET_MEDIAN"]]
+expected = ["1", "1", "1", "0"]
+
+[hints]
+level_1 = "Handle empty container first! Return empty string if nothing to median"
+level_2 = "Use sorted() to get a sorted COPY - don't modify the original container"
+level_3 = "The middle index for a list of length n is (n-1) // 2"
+level_4 = """
+Pattern:
+```python
+elif command == "GET_MEDIAN":
+    if len(container) == 0:
+        results.append("")
+    else:
+        sorted_vals = sorted(container)
+        mid = (len(sorted_vals) - 1) // 2
+        results.append(str(sorted_vals[mid]))
+```
+"""
+
+[solution]
+code = '''
+def solution(queries):
+    results = []
+    container = []
+
+    for query in queries:
+        command = query[0]
+        value = int(query[1]) if len(query) > 1 else None
+
+        if command == "ADD":
+            container.append(value)
+            results.append(str(container.count(value)))
+
+        elif command == "REMOVE":
+            if value in container:
+                container.remove(value)
+                results.append("true")
+            else:
+                results.append("false")
+
+        elif command == "COUNT":
+            results.append(str(container.count(value)))
+
+        elif command == "GET_MEDIAN":
+            if len(container) == 0:
+                results.append("")
+            else:
+                sorted_vals = sorted(container)
+                mid = (len(sorted_vals) - 1) // 2
+                results.append(str(sorted_vals[mid]))
+
+    return results
+'''
+
+[meta]
+time_limit_seconds = 300
+speed_run_target = 120
+points = 150
+next_challenge = "integer_container_stage_5"
+
+[adaptive]
+fun_factor = "puzzle"
+weakness_signals = ["median_empty_crash", "median_even_wrong", "sorted_mutation"]
+
+[struggle_types]
+median_empty_crash = "Accessing sorted_list[mid] when list is empty crashes! Check length first"
+median_even_wrong = "For even length, use (len-1)//2 to get the LEFT middle element"
+sorted_mutation = "sorted() returns a new list; sort() modifies in place. Use sorted() here!"

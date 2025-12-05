@@ -1,0 +1,478 @@
+# Integer Container - Multi-Stage Progressive Challenge
+# Based on progressive interview challenge format
+# Complete all 5 stages to master command-based data structure implementation
+
+[challenge]
+id = "integer_container"
+name = "Integer Container"
+level = 2
+prerequisites = ["lists", "for_loops_basics", "if_else"]
+category = "interview_prep"
+codesignal_flag = true
+
+[description]
+brief = "Build a command-based integer container, adding features stage by stage"
+detailed = """
+## The Integer Container Challenge
+
+You're building a data container that processes commands!
+
+This is a **5-stage progressive challenge** - each stage adds new commands:
+
+| Stage | New Commands | What You Learn |
+|-------|--------------|----------------|
+| 1 | ADD, EXISTS | Basic list operations |
+| 2 | + REMOVE | Safe deletion with checking |
+| 3 | + COUNT | Counting duplicates |
+| 4 | + GET_MEDIAN | Sorting and finding middle |
+| 5 | + GET_NEXT | Searching for next greater |
+
+**Command Format:**
+Commands come as `["COMMAND", "value"]` pairs. Values are STRINGS - convert to int!
+
+**Return Format:**
+Return a LIST of string results, one per command.
+
+Master each stage before moving on!
+"""
+
+[skeleton]
+code = '''
+def solution(queries):
+    """
+    Process a list of commands on an integer container.
+
+    Commands (added progressively):
+    - Stage 1: ADD, EXISTS
+    - Stage 2: + REMOVE
+    - Stage 3: + COUNT (ADD now returns count)
+    - Stage 4: + GET_MEDIAN
+    - Stage 5: + GET_NEXT
+
+    Args:
+        queries: List of [command, value] pairs (value is optional for some commands)
+
+    Returns:
+        List of string results for each command
+    """
+    results = []
+    container = []
+
+    for query in queries:
+        command = query[0]
+        value = int(query[1]) if len(query) > 1 else None
+
+        # Stage 1: ADD and EXISTS
+        if command == "ADD":
+            # TODO: Add value to container
+            # Stage 1-2: return ""
+            # Stage 3+: return count of this value as string
+            pass
+
+        elif command == "EXISTS":
+            # TODO: Return "true" if value in container, "false" otherwise
+            pass
+
+        # Stage 2: REMOVE
+        elif command == "REMOVE":
+            # TODO: Remove ONE instance of value
+            # Return "true" if found and removed, "false" if not found
+            pass
+
+        # Stage 3: COUNT
+        elif command == "COUNT":
+            # TODO: Return how many times value appears (as string)
+            pass
+
+        # Stage 4: GET_MEDIAN
+        elif command == "GET_MEDIAN":
+            # TODO: Return median of sorted container
+            # Even length: return LEFT middle
+            # Empty: return ""
+            pass
+
+        # Stage 5: GET_NEXT
+        elif command == "GET_NEXT":
+            # TODO: Return smallest value STRICTLY GREATER than value
+            # Return "" if none exists
+            pass
+
+    return results
+'''
+
+[validation]
+type = "pytest"
+test_file = "test_integer_container.py"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# STAGE 1: ADD and EXISTS
+# ═══════════════════════════════════════════════════════════════════════════════
+[stages.stage_1]
+name = "ADD & EXISTS"
+description = """
+## Stage 1: Basic Container Operations
+
+Build the foundation - add integers and check if they exist!
+
+**Commands:**
+- `["ADD", "5"]` → Add 5 to container. Return `""`
+- `["EXISTS", "5"]` → Check if 5 exists. Return `"true"` or `"false"`
+
+**Example:**
+```python
+queries = [["ADD", "1"], ["ADD", "2"], ["EXISTS", "1"], ["EXISTS", "3"]]
+# → ["", "", "true", "false"]
+```
+
+Remember: Values come as STRINGS. Convert with `int(query[1])`!
+"""
+
+[[stages.stage_1.tests.case]]
+name = "basic_add_exists"
+input = [["ADD", "1"], ["ADD", "2"], ["EXISTS", "1"], ["EXISTS", "3"]]
+expected = ["", "", "true", "false"]
+
+[[stages.stage_1.tests.case]]
+name = "empty_exists"
+input = [["EXISTS", "1"]]
+expected = ["false"]
+
+[[stages.stage_1.tests.case]]
+name = "duplicates_allowed"
+input = [["ADD", "5"], ["ADD", "5"], ["EXISTS", "5"]]
+expected = ["", "", "true"]
+
+[stages.stage_1.hints]
+level_1 = "Start with an empty list called `container`"
+level_2 = "Use `if command == 'ADD':` to check the command type"
+level_3 = "The `in` operator checks if a value is in a list"
+level_4 = """
+```python
+if command == "ADD":
+    container.append(value)
+    results.append("")
+elif command == "EXISTS":
+    results.append("true" if value in container else "false")
+```
+"""
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# STAGE 2: REMOVE
+# ═══════════════════════════════════════════════════════════════════════════════
+[stages.stage_2]
+name = "+ REMOVE"
+description = """
+## Stage 2: Removing Elements
+
+Now your container needs deletion!
+
+**New Command:**
+- `["REMOVE", "5"]` → Remove ONE instance of 5. Return `"true"` if removed, `"false"` if not found
+
+**Important:** If value appears multiple times, only remove ONE!
+
+**Example:**
+```python
+queries = [["ADD", "5"], ["ADD", "5"], ["REMOVE", "5"], ["REMOVE", "5"], ["REMOVE", "5"]]
+# → ["", "", "true", "true", "false"]  # Third remove fails - no more 5s
+```
+
+**Gotcha:** Check if value exists BEFORE calling `.remove()` - it crashes if not found!
+"""
+
+[[stages.stage_2.tests.case]]
+name = "basic_remove"
+input = [["ADD", "5"], ["REMOVE", "5"]]
+expected = ["", "true"]
+
+[[stages.stage_2.tests.case]]
+name = "remove_not_found"
+input = [["REMOVE", "5"]]
+expected = ["false"]
+
+[[stages.stage_2.tests.case]]
+name = "remove_one_of_many"
+input = [["ADD", "5"], ["ADD", "5"], ["REMOVE", "5"], ["REMOVE", "5"], ["REMOVE", "5"]]
+expected = ["", "", "true", "true", "false"]
+
+[stages.stage_2.hints]
+level_1 = "Check if value is in container BEFORE trying to remove"
+level_2 = "Use `if value in container:` before `container.remove(value)`"
+level_3 = """
+```python
+elif command == "REMOVE":
+    if value in container:
+        container.remove(value)
+        results.append("true")
+    else:
+        results.append("false")
+```
+"""
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# STAGE 3: COUNT (and ADD behavior change!)
+# ═══════════════════════════════════════════════════════════════════════════════
+[stages.stage_3]
+name = "+ COUNT"
+description = """
+## Stage 3: Counting Duplicates
+
+Count how many times a value appears!
+
+**New Command:**
+- `["COUNT", "5"]` → Return how many 5s are in container (as string)
+
+**⚠️ ADD behavior changes!**
+- ADD now returns the NEW count of that value (not empty string!)
+
+**Example:**
+```python
+queries = [["ADD", "5"], ["ADD", "5"], ["ADD", "3"], ["COUNT", "5"], ["COUNT", "3"]]
+# → ["1", "2", "1", "2", "1"]  # ADD returns counts now!
+```
+
+**Hint:** Python lists have `.count()` method!
+"""
+
+[[stages.stage_3.tests.case]]
+name = "count_basics"
+input = [["ADD", "5"], ["ADD", "5"], ["COUNT", "5"]]
+expected = ["1", "2", "2"]
+
+[[stages.stage_3.tests.case]]
+name = "count_zero"
+input = [["COUNT", "5"]]
+expected = ["0"]
+
+[[stages.stage_3.tests.case]]
+name = "count_after_remove"
+input = [["ADD", "1"], ["ADD", "1"], ["ADD", "1"], ["REMOVE", "1"], ["COUNT", "1"]]
+expected = ["1", "2", "3", "true", "2"]
+
+[stages.stage_3.hints]
+level_1 = "Python lists have a .count() method: `my_list.count(value)`"
+level_2 = "Don't forget to convert count to string with str()!"
+level_3 = "Update ADD to return str(container.count(value)) after appending"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# STAGE 4: GET_MEDIAN
+# ═══════════════════════════════════════════════════════════════════════════════
+[stages.stage_4]
+name = "+ GET_MEDIAN"
+description = """
+## Stage 4: Finding the Median
+
+The median is the middle value when sorted!
+
+**New Command:**
+- `["GET_MEDIAN"]` → Return median as string, or `""` if empty
+
+**Median Rules:**
+1. Sort the values
+2. **Odd count:** return middle value
+3. **Even count:** return LEFT of the two middles
+4. **Empty:** return `""`
+
+**Example:**
+```python
+# Container after adds: [5, 10, 1, 4]
+# Sorted: [1, 4, 5, 10]
+# Middle indices for length 4: positions 1 and 2 (values 4 and 5)
+# Return LEFT middle: 4
+
+["GET_MEDIAN"]  # → "4"
+```
+
+**The Formula:** `middle_index = (len(sorted_list) - 1) // 2`
+"""
+
+[[stages.stage_4.tests.case]]
+name = "median_empty"
+input = [["GET_MEDIAN"]]
+expected = [""]
+
+[[stages.stage_4.tests.case]]
+name = "median_odd"
+input = [["ADD", "5"], ["ADD", "10"], ["ADD", "1"], ["GET_MEDIAN"]]
+expected = ["1", "1", "1", "5"]
+
+[[stages.stage_4.tests.case]]
+name = "median_even"
+input = [["ADD", "5"], ["ADD", "10"], ["ADD", "1"], ["ADD", "4"], ["GET_MEDIAN"]]
+expected = ["1", "1", "1", "1", "4"]
+
+[stages.stage_4.hints]
+level_1 = "Handle empty container first - return empty string"
+level_2 = "Use sorted() to get a sorted COPY, don't modify original"
+level_3 = "Middle index: (len(sorted_list) - 1) // 2"
+level_4 = """
+```python
+elif command == "GET_MEDIAN":
+    if not container:
+        results.append("")
+    else:
+        s = sorted(container)
+        results.append(str(s[(len(s) - 1) // 2]))
+```
+"""
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# STAGE 5: GET_NEXT (Final Boss!)
+# ═══════════════════════════════════════════════════════════════════════════════
+[stages.stage_5]
+name = "+ GET_NEXT"
+description = """
+## Stage 5: Finding Next Greater Value 🏆
+
+The final challenge! Find the smallest value GREATER than a target.
+
+**New Command:**
+- `["GET_NEXT", "5"]` → Return smallest integer STRICTLY greater than 5, or `""` if none
+
+**Example:**
+```python
+# Container: [1, 2, 4]
+["GET_NEXT", "1"]  # → "2" (smallest > 1)
+["GET_NEXT", "2"]  # → "4" (smallest > 2)
+["GET_NEXT", "3"]  # → "4" (smallest > 3)
+["GET_NEXT", "4"]  # → ""  (nothing > 4)
+```
+
+**Approach 1 - Filter then min:**
+```python
+greater = [x for x in container if x > value]
+return str(min(greater)) if greater else ""
+```
+
+**Approach 2 - Sort then search:**
+```python
+for x in sorted(container):
+    if x > value:
+        return str(x)
+return ""
+```
+"""
+
+[[stages.stage_5.tests.case]]
+name = "get_next_basic"
+input = [["ADD", "1"], ["ADD", "2"], ["ADD", "4"], ["GET_NEXT", "1"]]
+expected = ["1", "1", "1", "2"]
+
+[[stages.stage_5.tests.case]]
+name = "get_next_none"
+input = [["ADD", "1"], ["ADD", "2"], ["GET_NEXT", "5"]]
+expected = ["1", "1", ""]
+
+[[stages.stage_5.tests.case]]
+name = "get_next_empty"
+input = [["GET_NEXT", "5"]]
+expected = [""]
+
+[[stages.stage_5.tests.case]]
+name = "full_workflow"
+input = [["ADD", "1"], ["ADD", "2"], ["ADD", "2"], ["ADD", "4"], ["GET_NEXT", "1"], ["GET_NEXT", "2"], ["GET_NEXT", "4"], ["GET_MEDIAN"]]
+expected = ["1", "1", "2", "1", "2", "4", "", "2"]
+
+[stages.stage_5.hints]
+level_1 = "STRICTLY greater means > not >="
+level_2 = "min([]) crashes! Check if list has elements first"
+level_3 = """
+```python
+elif command == "GET_NEXT":
+    greater = [x for x in container if x > value]
+    results.append(str(min(greater)) if greater else "")
+```
+"""
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SOLUTION (Final complete version)
+# ═══════════════════════════════════════════════════════════════════════════════
+[solution]
+code = '''
+def solution(queries):
+    results = []
+    container = []
+
+    for query in queries:
+        command = query[0]
+        value = int(query[1]) if len(query) > 1 else None
+
+        if command == "ADD":
+            container.append(value)
+            results.append(str(container.count(value)))
+
+        elif command == "EXISTS":
+            results.append("true" if value in container else "false")
+
+        elif command == "REMOVE":
+            if value in container:
+                container.remove(value)
+                results.append("true")
+            else:
+                results.append("false")
+
+        elif command == "COUNT":
+            results.append(str(container.count(value)))
+
+        elif command == "GET_MEDIAN":
+            if not container:
+                results.append("")
+            else:
+                s = sorted(container)
+                results.append(str(s[(len(s) - 1) // 2]))
+
+        elif command == "GET_NEXT":
+            greater = [x for x in container if x > value]
+            results.append(str(min(greater)) if greater else "")
+
+    return results
+'''
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# METADATA
+# ═══════════════════════════════════════════════════════════════════════════════
+[meta]
+time_limit_seconds = 600
+speed_run_target = 300
+points = 500
+xp_reward = 150
+category = "interview_prep"
+
+[hints]
+level_1 = "Each stage builds on the previous - don't delete working code!"
+level_2 = "String conversion is crucial - all results must be strings"
+level_3 = "Check before you remove - avoid ValueError crashes"
+
+[adaptive]
+fun_factor = "puzzle"
+weakness_signals = ["command_dispatch", "string_int_confusion", "remove_crash", "median_formula", "strictly_greater"]
+project_themes = ["database", "cache", "inventory", "key_value_store"]
+
+[struggle_types]
+command_dispatch = "Missing if/elif branch for a command type"
+string_int_confusion = "Values come as strings! Use int(query[1]) to convert"
+boolean_string_confusion = "Return 'true'/'false' strings, not Python True/False"
+remove_without_check = "Calling .remove() without checking first crashes on missing values"
+forgot_str_conversion = "All results must be strings - use str() on numbers"
+median_empty_crash = "Check for empty container before calculating median"
+median_formula_wrong = "For left-middle on even length, use (len-1)//2"
+strictly_greater_bug = "GET_NEXT needs > not >= (strictly greater)"
+empty_min_crash = "min([]) crashes - check if list has elements first"
+
+[emotional_checkpoints]
+after_stage_1 = "🎯 Basic container working! You've got the command pattern down."
+after_stage_3 = "📊 Halfway there! Your container now tracks counts."
+after_completion = """
+🏆 **INTEGER CONTAINER COMPLETE!**
+
+You just built a fully functional data container with:
+- ADD with counting
+- EXISTS for checking
+- REMOVE with validation
+- COUNT for duplicates
+- GET_MEDIAN with sorting
+- GET_NEXT with searching
+
+This is EXACTLY the pattern used in coding interviews.
+You're ready for the real thing! 🎯
+"""

@@ -1,0 +1,184 @@
+# Ada Integer Parser Challenge
+# From synthesis/RECOVERY - Advanced string parsing with base conversion
+
+[challenge]
+id = "ada_integer_parser"
+name = "Ada Integer Parser"
+level = 4
+prerequisites = ["string_operations", "if_else", "type_conversion"]
+category = "interview_prep"
+
+[description]
+brief = "Validate Ada-style integer representations"
+detailed = """
+## Ada Integer Notation
+
+In the Ada programming language, integers can be represented in two ways:
+
+### Format 1: Simple Decimal
+A sequence of digits 0-9 (can contain underscores as separators):
+- `123_456_789` ✓
+- `42` ✓
+- `1_000_000` ✓
+
+### Format 2: Base Notation
+`base#digits#` where:
+- `base` is 2-16 (written in decimal)
+- `digits` are valid for that base (0-9, a-f, A-F)
+- Underscores allowed as separators
+
+**Examples:**
+- `16#123abc#` ✓ (hexadecimal)
+- `2#1010#` ✓ (binary)
+- `10#123#` ✓ (decimal with explicit base)
+- `10#123abc#` ✗ (a,b,c not valid in base 10)
+- `10##` ✗ (no digits)
+- `17#123#` ✗ (base > 16)
+
+**Valid digits by base:**
+- Base 2: 0-1
+- Base 8: 0-7
+- Base 10: 0-9
+- Base 16: 0-9, a-f, A-F
+
+**Your Task:**
+Return `True` if the string is a valid Ada integer, `False` otherwise.
+"""
+
+[skeleton]
+code = '''
+def solution(line: str) -> bool:
+    """
+    Check if line is a valid Ada-style integer representation.
+
+    Valid formats:
+    1. Simple decimal: digits and underscores (e.g., "123_456")
+    2. Base notation: base#digits# (e.g., "16#abc#")
+
+    Args:
+        line: The string to validate
+
+    Returns:
+        True if valid Ada integer, False otherwise
+    """
+    # Remove underscores (they're just separators)
+    line = line.replace('_', '')
+
+    # Check if it's base notation (contains #)
+    if '#' in line:
+        # Parse base#digits# format
+        # Your code here
+        pass
+    else:
+        # Simple decimal: just digits
+        # Your code here
+        pass
+
+
+# Test cases
+print(solution("123_456_789"))  # True
+print(solution("16#123abc#"))   # True
+print(solution("10#123abc#"))   # False
+print(solution("10##"))         # False
+'''
+
+[validation]
+type = "pytest"
+test_file = "test_ada_integer_parser.py"
+
+[[tests.case]]
+name = "simple_decimal"
+input = "123_456_789"
+expected = true
+
+[[tests.case]]
+name = "hex_valid"
+input = "16#123abc#"
+expected = true
+
+[[tests.case]]
+name = "decimal_invalid_digits"
+input = "10#123abc#"
+expected = false
+
+[[tests.case]]
+name = "empty_digits"
+input = "10##"
+expected = false
+
+[[tests.case]]
+name = "binary_valid"
+input = "2#1010#"
+expected = true
+
+[[tests.case]]
+name = "base_too_high"
+input = "17#123#"
+expected = false
+
+[hints]
+level_1 = "First remove all underscores with .replace('_', '')"
+level_2 = "Check if '#' is in the string to determine format"
+level_3 = "For base notation, split on '#' - you should get [base, digits, '']"
+level_4 = """
+For validating digits in a base:
+```python
+valid_chars = '0123456789abcdef'[:base]
+for char in digits.lower():
+    if char not in valid_chars:
+        return False
+```
+"""
+
+[solution]
+code = '''
+def solution(line: str) -> bool:
+    # Remove underscores (separators)
+    line = line.replace('_', '')
+
+    if '#' in line:
+        # Base notation: base#digits#
+        parts = line.split('#')
+        if len(parts) != 3 or parts[2] != '':
+            return False
+
+        base_str, digits = parts[0], parts[1]
+
+        # Validate base
+        if not base_str.isdigit():
+            return False
+        base = int(base_str)
+        if not (2 <= base <= 16):
+            return False
+
+        # Must have at least one digit
+        if not digits:
+            return False
+
+        # Validate digits for this base
+        valid_chars = '0123456789abcdef'[:base]
+        for char in digits.lower():
+            if char not in valid_chars:
+                return False
+
+        return True
+    else:
+        # Simple decimal: all digits
+        return line.isdigit() and len(line) > 0
+
+
+print(solution("123_456_789"))
+print(solution("16#123abc#"))
+print(solution("10#123abc#"))
+print(solution("10##"))
+'''
+
+[meta]
+time_limit_seconds = 300
+speed_run_target = 180
+points = 200
+source = "RECOVERY"
+
+[adaptive]
+fun_factor = "puzzle"
+weakness_signals = ["string_split", "base_conversion", "validation_logic"]

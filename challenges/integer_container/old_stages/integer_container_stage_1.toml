@@ -1,0 +1,154 @@
+# Integer Container Stage 1: ADD and EXISTS
+# Progressive challenge - Foundation level
+
+[challenge]
+id = "integer_container_stage_1"
+name = "Integer Container: ADD & EXISTS"
+level = 2
+prerequisites = ["lists", "for_loops_basics", "if_else"]
+stage = 1
+total_stages = 5
+
+[description]
+brief = "Build a container that can add integers and check if they exist"
+detailed = """
+## The Integer Container Challenge
+
+You're building the foundation of a data store that processes commands!
+
+**Commands:**
+- `["ADD", "5"]` → Add the integer 5 to your container. Return `""`
+- `["EXISTS", "5"]` → Check if 5 is in the container. Return `"true"` or `"false"`
+
+**Important:**
+- Commands come as `[command, value]` pairs where value is a STRING
+- Convert the string to an int when needed!
+- Return a LIST of string results
+
+**Example:**
+```python
+queries = [
+    ["ADD", "1"],
+    ["ADD", "2"],
+    ["EXISTS", "1"],
+    ["EXISTS", "3"]
+]
+# → ["", "", "true", "false"]
+```
+
+This is Stage 1 of 5. Master this before moving on!
+"""
+
+[skeleton]
+code = '''
+def solution(queries):
+    """
+    Process a list of ADD and EXISTS commands.
+
+    Args:
+        queries: List of [command, value] pairs
+
+    Returns:
+        List of string results for each command
+    """
+    results = []
+    container = []
+
+    for query in queries:
+        command = query[0]
+        value = int(query[1])
+
+        # Your code here:
+        # - If command is "ADD": add value to container, append "" to results
+        # - If command is "EXISTS": check if value in container,
+        #   append "true" or "false" to results
+        pass
+
+    return results
+'''
+
+[validation]
+type = "pytest"
+test_file = "test_integer_container_stage_1.py"
+
+[[tests.case]]
+name = "basic_add_exists"
+input = [["ADD", "1"], ["ADD", "2"], ["EXISTS", "1"], ["EXISTS", "3"]]
+expected = ["", "", "true", "false"]
+
+[[tests.case]]
+name = "empty_exists"
+input = [["EXISTS", "1"]]
+expected = ["false"]
+
+[[tests.case]]
+name = "add_then_exists"
+input = [["ADD", "5"], ["EXISTS", "5"]]
+expected = ["", "true"]
+
+[[tests.case]]
+name = "duplicates_allowed"
+input = [["ADD", "5"], ["ADD", "5"], ["EXISTS", "5"]]
+expected = ["", "", "true"]
+
+[[tests.case]]
+name = "negative_numbers"
+input = [["ADD", "-10"], ["EXISTS", "-10"], ["EXISTS", "10"]]
+expected = ["", "true", "false"]
+
+[hints]
+level_1 = "Start with an empty list called `container`"
+level_2 = "Use `if command == 'ADD':` to check the command type"
+level_3 = "The `in` operator checks if a value is in a list: `if value in container`"
+level_4 = """
+Pattern:
+```python
+if command == "ADD":
+    container.append(value)
+    results.append("")
+elif command == "EXISTS":
+    if value in container:
+        results.append("true")
+    else:
+        results.append("false")
+```
+"""
+
+[solution]
+code = '''
+def solution(queries):
+    results = []
+    container = []
+
+    for query in queries:
+        command = query[0]
+        value = int(query[1])
+
+        if command == "ADD":
+            container.append(value)
+            results.append("")
+        elif command == "EXISTS":
+            if value in container:
+                results.append("true")
+            else:
+                results.append("false")
+
+    return results
+'''
+
+[meta]
+time_limit_seconds = 300
+speed_run_target = 90
+points = 100
+next_challenge = "integer_container_stage_2"
+
+[adaptive]
+fun_factor = "puzzle"
+weakness_signals = ["command_dispatch_missing", "string_vs_int_confusion", "boolean_vs_string"]
+project_themes = ["database", "cache", "inventory"]
+
+[struggle_types]
+# Custom struggle patterns for The Director
+command_dispatch_missing = "Missing branch for a command - make sure you handle both ADD and EXISTS"
+string_vs_int_confusion = "Remember: query values come as strings! Use int(query[1]) to convert"
+boolean_vs_string = "Return strings 'true'/'false', not Python booleans True/False"

@@ -1,0 +1,142 @@
+# Integer Container Stage 2: ADD and REMOVE
+# Progressive challenge - Building up
+
+[challenge]
+id = "integer_container_stage_2"
+name = "Integer Container: REMOVE"
+level = 2
+prerequisites = ["integer_container_stage_1"]
+stage = 2
+total_stages = 5
+
+[description]
+brief = "Add removal capability to your container"
+detailed = """
+## Stage 2: Removing Elements
+
+Now your container needs to support deletion!
+
+**Commands:**
+- `["ADD", "5"]` → Add 5. Return `""`
+- `["REMOVE", "5"]` → Remove ONE instance of 5. Return `"true"` if found and removed, `"false"` if not found
+
+**Important:**
+- If the value appears multiple times, only remove ONE instance
+- The list method `.remove()` does exactly this!
+
+**Example:**
+```python
+queries = [
+    ["ADD", "1"],
+    ["ADD", "2"],
+    ["ADD", "2"],     # Now we have [1, 2, 2]
+    ["REMOVE", "2"],  # Removes one 2 → [1, 2]
+    ["REMOVE", "3"],  # 3 not found
+    ["REMOVE", "2"]   # Removes the last 2 → [1]
+]
+# → ["", "", "", "true", "false", "true"]
+```
+
+**Gotcha:** What if you try to remove something that doesn't exist?
+"""
+
+[skeleton]
+code = '''
+def solution(queries):
+    results = []
+    container = []
+
+    for query in queries:
+        command = query[0]
+        value = int(query[1])
+
+        if command == "ADD":
+            container.append(value)
+            results.append("")
+        elif command == "REMOVE":
+            # Your code here:
+            # - If value is in container, remove it and append "true"
+            # - If value is NOT in container, append "false"
+            # Hint: Check BEFORE you try to remove!
+            pass
+
+    return results
+'''
+
+[validation]
+type = "pytest"
+test_file = "test_integer_container_stage_2.py"
+
+[[tests.case]]
+name = "basic_remove"
+input = [["ADD", "5"], ["REMOVE", "5"]]
+expected = ["", "true"]
+
+[[tests.case]]
+name = "remove_not_found"
+input = [["REMOVE", "5"]]
+expected = ["false"]
+
+[[tests.case]]
+name = "remove_one_of_many"
+input = [["ADD", "5"], ["ADD", "5"], ["REMOVE", "5"], ["REMOVE", "5"], ["REMOVE", "5"]]
+expected = ["", "", "true", "true", "false"]
+
+[[tests.case]]
+name = "mixed_operations"
+input = [["ADD", "1"], ["ADD", "2"], ["REMOVE", "1"], ["REMOVE", "1"], ["ADD", "1"], ["REMOVE", "1"]]
+expected = ["", "", "true", "false", "", "true"]
+
+[hints]
+level_1 = "Check if the value is in the container BEFORE trying to remove"
+level_2 = "The `in` operator helps: `if value in container:`"
+level_3 = "`container.remove(value)` removes the first occurrence"
+level_4 = """
+Pattern:
+```python
+elif command == "REMOVE":
+    if value in container:
+        container.remove(value)
+        results.append("true")
+    else:
+        results.append("false")
+```
+"""
+
+[solution]
+code = '''
+def solution(queries):
+    results = []
+    container = []
+
+    for query in queries:
+        command = query[0]
+        value = int(query[1])
+
+        if command == "ADD":
+            container.append(value)
+            results.append("")
+        elif command == "REMOVE":
+            if value in container:
+                container.remove(value)
+                results.append("true")
+            else:
+                results.append("false")
+
+    return results
+'''
+
+[meta]
+time_limit_seconds = 300
+speed_run_target = 90
+points = 100
+next_challenge = "integer_container_stage_3"
+
+[adaptive]
+fun_factor = "puzzle"
+weakness_signals = ["remove_without_check", "value_error_unhandled"]
+project_themes = ["database", "cache", "inventory"]
+
+[struggle_types]
+remove_without_check = "Calling .remove() without checking if value exists first will crash!"
+value_error_unhandled = "list.remove(x) raises ValueError if x not in list - check first!"
