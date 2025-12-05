@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { useGamepadStore } from '@/stores/gamepad'
 import { useGamepadNav } from '@/composables/useGamepadNav'
 import { usePlayerStore } from '@/stores/player'
+import { api } from '@/api/client'
 import SecuritySettings from '@/components/settings/SecuritySettings.vue'
 
 const router = useRouter()
@@ -91,9 +92,8 @@ async function fetchDirectorState() {
   directorLoading.value = true
   directorError.value = null
   try {
-    const response = await fetch(`/api/director/state?player_id=${playerStore.playerId}`)
-    if (!response.ok) throw new Error('Failed to fetch Director state')
-    directorState.value = await response.json()
+    const response = await api.get<DirectorState>('/director/state')
+    directorState.value = response.data
   } catch (e) {
     directorError.value = e instanceof Error ? e.message : 'Unknown error'
   } finally {
@@ -285,8 +285,8 @@ function saveAutoAdvance(value: boolean) {
 async function practiceConcept(concept: string) {
   // Find a challenge that teaches this concept and navigate to it
   try {
-    const response = await fetch(`/api/director/practice-challenge?concept=${encodeURIComponent(concept)}`)
-    const data = await response.json()
+    const response = await api.get<{ found: boolean; challenge_id?: string }>(`/director/practice-challenge?concept=${encodeURIComponent(concept)}`)
+    const data = response.data
 
     if (data.found && data.challenge_id) {
       router.push(`/challenge/${data.challenge_id}`)

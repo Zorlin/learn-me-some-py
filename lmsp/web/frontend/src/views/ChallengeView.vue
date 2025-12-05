@@ -156,6 +156,7 @@ const testResultsForDisplay = computed(() => {
     passing: gameStore.validationResult.tests_passing,
     total: gameStore.validationResult.tests_total,
     output: gameStore.validationResult.output,
+    stdout: gameStore.validationResult.stdout,
     error: gameStore.validationResult.error,
   }
 })

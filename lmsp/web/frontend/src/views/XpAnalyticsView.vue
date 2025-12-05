@@ -11,6 +11,7 @@ import { ref, onMounted, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePlayerStore } from '@/stores/player'
 import { useGamepadNav } from '@/composables/useGamepadNav'
+import { api } from '@/api/client'
 
 const router = useRouter()
 const playerStore = usePlayerStore()
@@ -391,12 +392,16 @@ async function fetchXpHistory() {
   isLoading.value = true
   try {
     // Always fetch raw events - no period param = no aggregation
-    const response = await fetch('/api/xp/history')
-    const data = await response.json()
+    // Player ID comes from headers (set by api client), not URL params
+    const response = await api.get<{
+      data: XpEvent[]
+      total_xp: number
+      total_events: number
+    }>('/xp/history')
 
-    allEvents.value = data.data || []
-    totalXp.value = data.total_xp
-    totalEvents.value = data.total_events
+    allEvents.value = response.data.data || []
+    totalXp.value = response.data.total_xp
+    totalEvents.value = response.data.total_events
 
     // Reset pan/zoom on data change
     resetView()

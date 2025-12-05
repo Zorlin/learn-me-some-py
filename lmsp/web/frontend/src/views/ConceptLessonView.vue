@@ -11,7 +11,7 @@
 import { onMounted, onUnmounted, ref, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { marked } from 'marked'
-import { conceptsApi, type ConceptLesson } from '@/api/client'
+import { api, conceptsApi, type ConceptLesson } from '@/api/client'
 import { useGamepadStore } from '@/stores/gamepad'
 import { useGamepadNav } from '@/composables/useGamepadNav'
 import CodeEditor from '@/components/game/CodeEditor.vue'
@@ -70,6 +70,7 @@ const testResult = ref<{
   passing: number
   total: number
   output: string
+  stdout?: string
   error?: string
   xp_earned?: number
   xp_reason?: string
@@ -308,22 +309,19 @@ async function runTests() {
   testResult.value = null
 
   try {
-    const response = await fetch('/api/code/submit', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        lesson_id: lesson.value.id,
-        code: tryItCode.value,
-      }),
+    const response = await api.post('/code/submit', {
+      lesson_id: lesson.value.id,
+      code: tryItCode.value,
     })
 
-    const data = await response.json()
+    const data = response.data
 
     testResult.value = {
       success: data.success,
       passing: data.tests_passing,
       total: data.tests_total,
       output: data.output || '',
+      stdout: data.stdout || '',
       error: data.error,
       xp_earned: data.xp_earned,
       xp_reason: data.xp_reason,
