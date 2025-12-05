@@ -1,0 +1,84 @@
+# Level 1: Digit Extraction
+# Foundation for digit manipulation problems
+
+[concept]
+id = "digit_extraction"
+name = "Extracting Digits from Numbers"
+level = 1
+category = "math_operations"
+order = 5
+
+[content]
+lesson = """
+## Your Task: Sum the Digits of a Two-Digit Number
+
+Given a number like 42, return 4 + 2 = 6.
+
+## The Two Operators You Need
+
+**`//` (integer division)** - Gets the tens digit
+**`%` (modulo)** - Gets the ones digit
+
+```python
+n = 42
+tens = n // 10   # 4
+ones = n % 10    # 2
+```
+
+## The Solution Pattern
+
+```python
+def solution(n):
+    tens = n // 10
+    ones = n % 10
+    return tens + ones
+```
+
+That's it! Extract both digits, add them together.
+
+## Examples
+
+```python
+solution(42)  # → 6  (4 + 2)
+solution(29)  # → 11 (2 + 9)
+solution(10)  # → 1  (1 + 0)
+solution(99)  # → 18 (9 + 9)
+```
+
+## Why It Works
+
+- `n // 10` divides and drops the remainder → gives the left digit
+- `n % 10` gives the remainder after dividing by 10 → gives the right digit
+"""
+
+[content.try_it]
+prompt = "Write a function that returns the sum of digits of a two-digit number"
+starter = '''
+def solution(n):
+    # n is guaranteed to be between 10 and 99
+    # Return the sum of its two digits
+    pass
+'''
+solution = '''
+def solution(n):
+    # n is guaranteed to be between 10 and 99
+    # Return the sum of its two digits
+    tens = n // 10
+    ones = n % 10
+    return tens + ones
+'''
+
+[validation]
+type = "pytest"
+test_file = "test_digit_extraction.py"
+
+[connections]
+prerequisites = ["basic_operators", "variables"]
+enables = ["integer_container", "while_loops_basics"]
+used_in = ["digit_sum_challenge"]
+see_also = ["type_conversion"]
+
+[meta]
+time_to_read = 35
+difficulty = "beginner"
+tags = ["math", "operators", "digits", "interview_prep"]
