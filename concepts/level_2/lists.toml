@@ -99,6 +99,10 @@ for game in games:
     print(game)
 '''
 
+[validation]
+type = "pytest"
+test_file = "test_lists.py"
+
 [connections]
 prerequisites = ["variables", "for_loops_basics"]
 enables = ["list_comprehensions", "tuples", "sets"]
