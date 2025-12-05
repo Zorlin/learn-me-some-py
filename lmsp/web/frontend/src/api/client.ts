@@ -20,11 +20,26 @@ async function request<T>(
 ): Promise<ApiResponse<T>> {
   const url = path.startsWith('/api') ? path : `${BASE_URL}${path}`
 
+  // Build headers - always include session for auth
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  }
+
+  // Add session token if available (for server-side player_id lookup)
+  const sessionId = localStorage.getItem('lmsp_session')
+  if (sessionId) {
+    headers['X-Session-ID'] = sessionId
+  }
+
+  // Also send player_id header as fallback for profiles without passwords
+  const playerId = localStorage.getItem('lmsp_player_id')
+  if (playerId) {
+    headers['X-Player-ID'] = playerId
+  }
+
   const options: RequestInit = {
     method,
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers,
   }
 
   if (body) {
