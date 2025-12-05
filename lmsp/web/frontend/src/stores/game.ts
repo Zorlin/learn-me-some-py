@@ -5,9 +5,10 @@
  * Manages current challenge, code, and game phase.
  */
 
-import { defineStore } from 'pinia'
+import { defineStore, storeToRefs } from 'pinia'
 import { ref, computed } from 'vue'
 import { api } from '@/api/client'
+import { useAuthStore } from '@/stores/auth'
 
 export interface ChallengeStage {
   stage_number: number
@@ -81,6 +82,7 @@ export interface ValidationResult {
   tests_total: number
   time_seconds: number
   output: string
+  stdout?: string  // User print() output, separate from test output
   error?: string
   xp_earned?: number
   xp_reason?: string
@@ -113,6 +115,10 @@ export interface ValidationResult {
 export type GamePhase = 'menu' | 'selecting' | 'coding' | 'testing' | 'feedback' | 'complete'
 
 export const useGameStore = defineStore('game', () => {
+  // Get player ID from auth store (multi-user support)
+  const authStore = useAuthStore()
+  const { playerId } = storeToRefs(authStore)
+
   // State
   const currentChallenge = ref<Challenge | null>(null)
   const code = ref('')
@@ -418,7 +424,7 @@ export const useGameStore = defineStore('game', () => {
       const payload: Record<string, unknown> = {
         challenge_id: currentChallenge.value.id,
         code: code.value,
-        player_id: 'default', // TODO: Get from player store
+        player_id: playerId.value,
         solve_time: currentSolveTime, // Send wall-clock coding time to backend
       }
 

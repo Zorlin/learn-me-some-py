@@ -3,11 +3,13 @@
  * ===================
  *
  * Manages player profile, achievements, and progress.
+ * Uses auth store for player ID (multi-user support).
  */
 
-import { defineStore } from 'pinia'
+import { defineStore, storeToRefs } from 'pinia'
 import { ref, computed } from 'vue'
 import { api } from '@/api/client'
+import { useAuthStore } from '@/stores/auth'
 
 export interface Achievement {
   id: string
@@ -32,6 +34,10 @@ export interface PlayerProfile {
 }
 
 export const usePlayerStore = defineStore('player', () => {
+  // Get player ID from auth store
+  const authStore = useAuthStore()
+  const { playerId: authPlayerId } = storeToRefs(authStore)
+
   // State
   const profile = ref<PlayerProfile | null>(null)
   const achievements = ref<Achievement[]>([])
@@ -39,7 +45,7 @@ export const usePlayerStore = defineStore('player', () => {
   const error = ref<string | null>(null)
 
   // Computed
-  const playerId = computed(() => profile.value?.player_id || 'default')
+  const playerId = computed(() => authPlayerId.value || profile.value?.player_id || '')
   const totalXP = computed(() => profile.value?.xp || 0)
   const playerLevel = computed(() => profile.value?.level || 0)
   const displayName = computed(() => profile.value?.display_name || profile.value?.player_id || 'Player')
@@ -52,11 +58,16 @@ export const usePlayerStore = defineStore('player', () => {
 
   // Actions
   async function loadProfile() {
+    if (!playerId.value) {
+      console.warn('No player ID set, cannot load profile')
+      return
+    }
+
     isLoading.value = true
     error.value = null
 
     try {
-      const response = await api.get('/api/profile?player_id=default')
+      const response = await api.get(`/api/profile?player_id=${playerId.value}`)
       profile.value = response.data
     } catch (e: unknown) {
       error.value = e instanceof Error ? e.message : 'Failed to load profile'
@@ -66,11 +77,16 @@ export const usePlayerStore = defineStore('player', () => {
   }
 
   async function loadAchievements() {
+    if (!playerId.value) {
+      console.warn('No player ID set, cannot load achievements')
+      return
+    }
+
     isLoading.value = true
     error.value = null
 
     try {
-      const response = await api.get('/api/achievements?player_id=default')
+      const response = await api.get(`/api/achievements?player_id=${playerId.value}`)
       achievements.value = [
         ...response.data.unlocked.map((a: Achievement) => ({ ...a, unlocked: true })),
         ...response.data.in_progress.map((a: Achievement) => ({ ...a, unlocked: false })),
@@ -83,10 +99,12 @@ export const usePlayerStore = defineStore('player', () => {
   }
 
   async function recordEmotionalFeedback(trigger: 'RT' | 'LT', value: number, context: string) {
+    if (!playerId.value) return
+
     // Legacy method - prefer recordSatisfaction for new code
+    // player_id comes from headers (set by api client)
     try {
       await api.post('/api/emotional/record', {
-        player_id: 'default',
         enjoyment: trigger === 'RT' ? value : 0,
         frustration: trigger === 'LT' ? value : 0,
         context,
@@ -114,9 +132,11 @@ export const usePlayerStore = defineStore('player', () => {
     stage?: number,
     interacted: boolean = true
   ): Promise<{ skipped: boolean; mastery_factor?: number }> {
+    if (!playerId.value) return { skipped: false }
+
     try {
+      // player_id comes from headers (set by api client)
       const response = await api.post('/api/emotional/record', {
-        player_id: 'default',
         enjoyment,
         frustration,
         challenge_id: challengeId,
@@ -135,9 +155,11 @@ export const usePlayerStore = defineStore('player', () => {
   }
 
   async function setDisplayName(newName: string): Promise<boolean> {
+    if (!playerId.value) return false
+
     try {
       const response = await api.post('/api/profile/display-name', {
-        player_id: 'default',
+        player_id: playerId.value,
         display_name: newName,
       })
       if (response.data.success && profile.value) {

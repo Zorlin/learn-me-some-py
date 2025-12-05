@@ -23,10 +23,10 @@ export interface GamepadComboInfo {
 }
 
 export const useAuthStore = defineStore('auth', () => {
-  // State
+  // State - load playerId from localStorage if available
   const isAuthenticated = ref(false)
   const sessionId = ref<string | null>(null)
-  const playerId = ref('default')
+  const playerId = ref(localStorage.getItem('lmsp_player_id') || '')
   const authStatus = ref<AuthStatus | null>(null)
   const comboInfo = ref<GamepadComboInfo | null>(null)
   const isLoading = ref(false)
@@ -40,6 +40,17 @@ export const useAuthStore = defineStore('auth', () => {
   const needsAuth = computed(() => authStatus.value?.needs_auth ?? false)
   const hasPassword = computed(() => authStatus.value?.has_password ?? false)
   const hasGamepadCombo = computed(() => authStatus.value?.has_gamepad_combo ?? false)
+  const hasProfile = computed(() => !!playerId.value)
+
+  // Set player ID and persist to localStorage
+  function setPlayerId(id: string) {
+    playerId.value = id
+    if (id) {
+      localStorage.setItem('lmsp_player_id', id)
+    } else {
+      localStorage.removeItem('lmsp_player_id')
+    }
+  }
 
   // Actions
   async function checkAuthStatus() {
@@ -303,8 +314,10 @@ export const useAuthStore = defineStore('auth', () => {
     needsAuth,
     hasPassword,
     hasGamepadCombo,
+    hasProfile,
 
     // Actions
+    setPlayerId,
     checkAuthStatus,
     loginWithPassword,
     loginWithGamepadCombo,

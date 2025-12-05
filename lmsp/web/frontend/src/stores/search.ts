@@ -13,6 +13,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import FlexSearch from 'flexsearch'
+import { api } from '@/api/client'
 
 export interface SearchResult {
   id: string
@@ -60,17 +61,17 @@ export const useSearchStore = defineStore('search', () => {
 
     try {
       // Fetch all concepts
-      const conceptsRes = await fetch('/api/lessons')
+      const conceptsRes = await api.get<any>('/lessons')
       if (conceptsRes.ok) {
-        const data = await conceptsRes.json()
+        const data = conceptsRes.data
         const categories = data.categories || data
 
         for (const [category, concepts] of Object.entries(categories)) {
           for (const concept of concepts as any[]) {
             // Fetch full concept content
-            const fullRes = await fetch(`/api/lessons/${concept.id}`)
+            const fullRes = await api.get<any>(`/lessons/${concept.id}`)
             if (fullRes.ok) {
-              const full = await fullRes.json()
+              const full = fullRes.data
               const item: IndexedItem = {
                 id: `concept:${concept.id}`,
                 type: 'concept',
@@ -89,15 +90,15 @@ export const useSearchStore = defineStore('search', () => {
       }
 
       // Fetch all challenges
-      const challengesRes = await fetch('/api/challenges')
+      const challengesRes = await api.get<any[]>('/challenges')
       if (challengesRes.ok) {
-        const challenges = await challengesRes.json()
+        const challenges = challengesRes.data
 
         for (const challenge of challenges) {
           // Fetch full challenge content
-          const fullRes = await fetch(`/api/challenges/${challenge.id}`)
+          const fullRes = await api.get<any>(`/challenges/${challenge.id}`)
           if (fullRes.ok) {
-            const full = await fullRes.json()
+            const full = fullRes.data
 
             // Index the main challenge
             const item: IndexedItem = {
