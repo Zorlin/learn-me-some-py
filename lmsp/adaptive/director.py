@@ -45,6 +45,17 @@ class StruggleType(Enum):
     ACCIDENTAL_NONE_OUTPUT = "accidental_none"  # output has extra "None" from print() return value
     FSTRING_SYNTAX = "fstring_syntax"  # f-string mistakes: forgot f prefix, wrong braces, etc.
 
+    # Container/query-processing challenges
+    RETURN_IN_LOOP = "return_in_loop"  # Using return inside loop instead of append() - exits immediately!
+    CONTAINER_STATE_BUG = "container_state"  # Forgetting to initialize or track container state
+    COMMAND_DISPATCH_MISSING = "command_dispatch"  # Missing if/elif branch for a command
+    BOOLEAN_VS_STRING_RESULT = "boolean_vs_string"  # Returning True/False instead of "true"/"false"
+    MEDIAN_EMPTY_CRASH = "median_empty"  # Accessing median when container is empty
+    MEDIAN_EVEN_ODD = "median_even_odd"  # Wrong middle index for even vs odd length
+    GET_NEXT_BOUNDARY = "get_next_boundary"  # GET_NEXT when target >= all values
+    REMOVE_WITHOUT_CHECK = "remove_without_check"  # Calling .remove() without checking existence
+    INTEGER_DIVISION_FLOAT = "int_div_float"  # Using / instead of // for integer division
+
 
 @dataclass
 class Struggle:
@@ -607,6 +618,42 @@ class Director:
                         code_context=obs.code[-500:] if obs.code else None,
                     ))
 
+        # RETURN_IN_LOOP: Using return inside a loop instead of results.append()
+        # Pattern: for ... in ...: ... return ... (return inside loop body)
+        # This exits immediately instead of building a list!
+        if obs.code:
+            # Check for return statement inside a for loop (indented under it)
+            # Look for pattern: for line, then indented return
+            has_for_loop = re.search(r'\bfor\s+\w+\s+in\s+', obs.code)
+            if has_for_loop:
+                # Check if there's a return inside the loop body (not at function end)
+                # Simple heuristic: return appears between 'for' and the end, with higher indentation
+                lines = obs.code.split('\n')
+                in_loop = False
+                loop_indent = 0
+                for line in lines:
+                    stripped = line.lstrip()
+                    current_indent = len(line) - len(stripped)
+
+                    if stripped.startswith('for ') and ' in ' in stripped:
+                        in_loop = True
+                        loop_indent = current_indent
+                    elif in_loop and current_indent <= loop_indent and stripped and not stripped.startswith('#'):
+                        # Dedented back out of loop
+                        in_loop = False
+                    elif in_loop and stripped.startswith('return ') and current_indent > loop_indent:
+                        # Found return inside loop!
+                        # Check if result looks truncated (got single value or short list)
+                        if (error_text and ('got:' in error_text or 'expected' in error_text)) or \
+                           (obs.output and obs.output.strip() in ['', '""', "''", 'true', 'false']):
+                            struggles.append(Struggle(
+                                type=StruggleType.RETURN_IN_LOOP,
+                                description="Using 'return' inside loop - exits after first iteration!",
+                                error_message="Use results.append() to build the list, then return results at the END",
+                                code_context=obs.code[-500:] if obs.code else None,
+                            ))
+                            break
+
         # FSTRING_SYNTAX: Forgot f prefix or wrong braces
         # Pattern: return "{item}" when they meant f"{item}"
         if obs.code and obs.output:
@@ -1007,6 +1054,61 @@ Respond with JSON:
                 content="👻 **The mysterious 'None' in your output!**\n\nThis usually means:\n\n1. **Nested print:** `print(print('hi'))` → prints 'hi' then 'None'\n   ✅ Fix: Just `print('hi')`\n\n2. **Mixed return + print:** Function prints AND returns\n   ✅ Fix: Pick one based on what the challenge wants\n\n3. **Printing a None value:** A variable or function returned None\n   ✅ Fix: Check what you're printing - is it what you expect?\n\nRemember: `print()` returns `None`, so printing the result of print() gives you None!",
                 reason="Output contains unexpected 'None' - likely from print() return value",
                 confidence=0.92,
+            ),
+            # Container/query-processing challenges
+            StruggleType.RETURN_IN_LOOP: DirectorIntervention(
+                type="micro_lesson",
+                content="🔄 **Return vs Append in loops!**\n\nWhen building a list of results inside a loop, DON'T use `return` - it exits immediately!\n\n❌ **Wrong:**\n```python\nfor query in queries:\n    if command == 'ADD':\n        return ''  # EXITS the function after first query!\n```\n\n✅ **Right:**\n```python\nresults = []\nfor query in queries:\n    if command == 'ADD':\n        results.append('')  # Adds to list, continues loop\nreturn results  # Returns the full list at the END\n```\n\n`return` = exit function NOW\n`append` = add to list, keep going",
+                reason="Using return inside loop exits immediately instead of building result list",
+                confidence=0.95,
+            ),
+            StruggleType.CONTAINER_STATE_BUG: DirectorIntervention(
+                type="micro_lesson",
+                content="📦 **Container state tracking!**\n\nWhen building a container (list/dict that processes queries), you need:\n\n1. **Initialize before the loop:** `container = []` or `results = []`\n2. **Track BOTH the data AND the results separately**\n3. **Don't reset state inside the loop!**\n\n```python\nresults = []      # Track outputs\ncontainer = []    # Track actual data\nfor query in queries:\n    # Process each query, update BOTH\n```",
+                reason="Container state not properly initialized or tracked across queries",
+                confidence=0.9,
+            ),
+            StruggleType.COMMAND_DISPATCH_MISSING: DirectorIntervention(
+                type="micro_lesson",
+                content="🎯 **Missing command handler!**\n\nWhen processing queries like `['ADD', '5']` or `['REMOVE', '3']`, you need:\n\n```python\nif command == 'ADD':\n    # handle ADD\nelif command == 'REMOVE':\n    # handle REMOVE\nelif command == 'COUNT':\n    # handle COUNT\n# ... ALL commands need handlers!\n```\n\n**Check:** Does your code handle EVERY command type the challenge mentions?",
+                reason="Missing if/elif branch for one of the command types",
+                confidence=0.9,
+            ),
+            StruggleType.BOOLEAN_VS_STRING_RESULT: DirectorIntervention(
+                type="micro_lesson",
+                content="🔤 **Boolean vs String result!**\n\nMany challenges want string output, not Python booleans:\n\n❌ **Wrong:** `return True` or `results.append(True)`\n✅ **Right:** `return \"true\"` or `results.append(\"true\")`\n\n**Python booleans:** `True`, `False` (capital, no quotes)\n**String results:** `\"true\"`, `\"false\"` (lowercase, with quotes)\n\nCheck what the challenge expects - usually it's the string version!",
+                reason="Returning Python boolean instead of string 'true'/'false'",
+                confidence=0.95,
+            ),
+            StruggleType.MEDIAN_EMPTY_CRASH: DirectorIntervention(
+                type="micro_lesson",
+                content="📊 **Median of empty list crashes!**\n\nYou can't get the median of nothing:\n\n❌ `sorted([])[len([])//2]` → IndexError!\n\n**Always check first:**\n```python\nif len(container) == 0:\n    results.append(\"\")  # Empty string for no median\nelse:\n    # Safe to calculate median now\n```",
+                reason="Trying to access median when container is empty",
+                confidence=0.95,
+            ),
+            StruggleType.MEDIAN_EVEN_ODD: DirectorIntervention(
+                type="micro_lesson",
+                content="📐 **Median index formula!**\n\nFor a sorted list, the 'lower median' index is:\n\n```python\nmiddle_index = (len(sorted_list) - 1) // 2\n```\n\n**Examples:**\n- `[1, 5, 9]` → index (3-1)//2 = 1 → value 5 ✓\n- `[1, 4, 5, 10]` → index (4-1)//2 = 1 → value 4 ✓\n\n**Remember:** Sort first, then index into the sorted list!",
+                reason="Wrong middle index calculation for median",
+                confidence=0.9,
+            ),
+            StruggleType.GET_NEXT_BOUNDARY: DirectorIntervention(
+                type="micro_lesson",
+                content="🔍 **GET_NEXT boundary case!**\n\nWhen finding 'next greater' value:\n\n```python\ngreater = [x for x in container if x > target]\nif greater:\n    return str(min(greater))  # Smallest of the greater values\nelse:\n    return \"\"  # Nothing is greater!\n```\n\n**Edge cases:**\n- Target >= all values → return \"\"\n- Empty container → return \"\"\n- Multiple equal values → still find next GREATER",
+                reason="GET_NEXT returns wrong result when target >= all values",
+                confidence=0.9,
+            ),
+            StruggleType.REMOVE_WITHOUT_CHECK: DirectorIntervention(
+                type="micro_lesson",
+                content="🗑️ **REMOVE needs a check first!**\n\nCalling `.remove(x)` on a list crashes if x isn't there:\n\n❌ `container.remove(5)` → ValueError if 5 not in list!\n\n**Always check:**\n```python\nif value in container:\n    container.remove(value)\n    results.append(\"true\")\nelse:\n    results.append(\"false\")\n```",
+                reason="Calling .remove() without checking if value exists",
+                confidence=0.95,
+            ),
+            StruggleType.INTEGER_DIVISION_FLOAT: DirectorIntervention(
+                type="micro_lesson",
+                content="➗ **Integer division: // not /**\n\nPython has TWO division operators:\n\n- `/` → float division: `5 / 2` = `2.5`\n- `//` → integer division: `5 // 2` = `2`\n\n**For indices, always use //**:\n```python\nmiddle = len(data) // 2  # Integer index!\n```\n\nList indices must be integers, not floats!",
+                reason="Using / instead of // for integer division (especially for indices)",
+                confidence=0.95,
             ),
         }
 
