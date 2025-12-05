@@ -272,7 +272,68 @@ class LMSPDatabase:
             )
         """)
 
+        # Lesson/challenge access tracking - when user opens a lesson
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS lesson_access (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                player_id TEXT NOT NULL,
+                lesson_id TEXT NOT NULL,
+                lesson_type TEXT NOT NULL DEFAULT 'challenge',
+                accessed_at TEXT NOT NULL,
+                FOREIGN KEY (player_id) REFERENCES players(player_id)
+            )
+        """)
+
+        # Speedrun runs - tracks each interview prep attempt
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS speedrun_runs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                run_id TEXT UNIQUE NOT NULL,
+                player_id TEXT NOT NULL,
+                run_type TEXT NOT NULL DEFAULT 'interview_prep',
+                started_at TEXT NOT NULL,
+                ended_at TEXT,
+                total_time_seconds REAL,
+                total_items INTEGER NOT NULL,
+                completed_items INTEGER DEFAULT 0,
+                total_attempts INTEGER DEFAULT 0,
+                total_failures INTEGER DEFAULT 0,
+                status TEXT DEFAULT 'in_progress',
+                notes TEXT,
+                FOREIGN KEY (player_id) REFERENCES players(player_id)
+            )
+        """)
+
+        # Speedrun splits - per-item timing within a run
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS speedrun_splits (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                run_id TEXT NOT NULL,
+                item_id TEXT NOT NULL,
+                item_order INTEGER NOT NULL,
+                accessed_at TEXT,
+                completed_at TEXT,
+                solve_time_seconds REAL,
+                attempts INTEGER DEFAULT 0,
+                failures INTEGER DEFAULT 0,
+                status TEXT DEFAULT 'pending',
+                FOREIGN KEY (run_id) REFERENCES speedrun_runs(run_id)
+            )
+        """)
+
         # Indexes for common queries
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_lesson_access_player
+            ON lesson_access(player_id, lesson_id, accessed_at)
+        """)
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_speedrun_runs_player
+            ON speedrun_runs(player_id, started_at)
+        """)
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_speedrun_splits_run
+            ON speedrun_splits(run_id, item_order)
+        """)
         cursor.execute("""
             CREATE INDEX IF NOT EXISTS idx_completions_player
             ON completions(player_id)
@@ -1064,17 +1125,39 @@ class LMSPDatabase:
     def load_director_observations(
         self,
         player_id: str,
-        limit: int = 100
+        limit: int = 100,
+        since: Optional[str] = None,
+        challenge_id: Optional[str] = None
     ) -> list[dict]:
-        """Load recent observations for a player."""
+        """Load recent observations for a player.
+
+        Args:
+            player_id: Player to load observations for
+            limit: Max observations to return
+            since: Only return observations after this ISO timestamp
+            challenge_id: Only return observations for this challenge
+        """
         with self._get_connection() as conn:
             cursor = conn.cursor()
+
+            conditions = ["player_id = ?"]
+            params: list = [player_id]
+
+            if since:
+                conditions.append("timestamp > ?")
+                params.append(since)
+            if challenge_id:
+                conditions.append("challenge_id = ?")
+                params.append(challenge_id)
+
+            params.append(limit)
+
             cursor.execute(
-                """SELECT * FROM director_observations
-                   WHERE player_id = ?
+                f"""SELECT * FROM director_observations
+                   WHERE {' AND '.join(conditions)}
                    ORDER BY timestamp DESC
                    LIMIT ?""",
-                (player_id, limit)
+                params
             )
             return [
                 {
@@ -1243,6 +1326,270 @@ class LMSPDatabase:
                 "total_failures": row["total_failures"],
                 "first_try_successes": row["first_try_successes"],
                 "last_success_time": row["last_success_time"],
+            }
+
+    # =========================================================================
+    # Lesson Access Tracking
+    # =========================================================================
+
+    def record_lesson_access(
+        self,
+        player_id: str,
+        lesson_id: str,
+        lesson_type: str = "challenge"
+    ) -> str:
+        """
+        Record when a player accesses a lesson/challenge.
+        Returns the access timestamp.
+        """
+        now = datetime.now().isoformat()
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """INSERT INTO lesson_access
+                   (player_id, lesson_id, lesson_type, accessed_at)
+                   VALUES (?, ?, ?, ?)""",
+                (player_id, lesson_id, lesson_type, now)
+            )
+        return now
+
+    def get_lesson_access(
+        self,
+        player_id: str,
+        lesson_id: str,
+        since: Optional[str] = None
+    ) -> Optional[dict]:
+        """
+        Get the most recent access time for a lesson.
+        If 'since' is provided, only returns access after that time.
+        """
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            if since:
+                cursor.execute(
+                    """SELECT * FROM lesson_access
+                       WHERE player_id = ? AND lesson_id = ? AND accessed_at > ?
+                       ORDER BY accessed_at DESC LIMIT 1""",
+                    (player_id, lesson_id, since)
+                )
+            else:
+                cursor.execute(
+                    """SELECT * FROM lesson_access
+                       WHERE player_id = ? AND lesson_id = ?
+                       ORDER BY accessed_at DESC LIMIT 1""",
+                    (player_id, lesson_id)
+                )
+            row = cursor.fetchone()
+            if not row:
+                return None
+            return {
+                "lesson_id": row["lesson_id"],
+                "lesson_type": row["lesson_type"],
+                "accessed_at": row["accessed_at"],
+            }
+
+    def get_all_lesson_access(
+        self,
+        player_id: str,
+        since: Optional[str] = None
+    ) -> list[dict]:
+        """
+        Get all lesson access records for a player.
+        If 'since' is provided, only returns access after that time.
+        """
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            if since:
+                cursor.execute(
+                    """SELECT * FROM lesson_access
+                       WHERE player_id = ? AND accessed_at > ?
+                       ORDER BY accessed_at DESC""",
+                    (player_id, since)
+                )
+            else:
+                cursor.execute(
+                    """SELECT * FROM lesson_access
+                       WHERE player_id = ?
+                       ORDER BY accessed_at DESC LIMIT 100""",
+                    (player_id,)
+                )
+            return [
+                {
+                    "lesson_id": row["lesson_id"],
+                    "lesson_type": row["lesson_type"],
+                    "accessed_at": row["accessed_at"],
+                }
+                for row in cursor.fetchall()
+            ]
+
+    # =========================================================================
+    # Speedrun Logging - Persistent run history for graphs and proof
+    # =========================================================================
+
+    def create_speedrun(
+        self,
+        run_id: str,
+        player_id: str,
+        item_ids: list[str],
+        run_type: str = "interview_prep",
+        notes: str = ""
+    ) -> str:
+        """
+        Create a new speedrun and initialize splits for all items.
+        Returns the run_id.
+        """
+        now = datetime.now().isoformat()
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            # Create the run
+            cursor.execute(
+                """INSERT INTO speedrun_runs
+                   (run_id, player_id, run_type, started_at, total_items, notes)
+                   VALUES (?, ?, ?, ?, ?, ?)""",
+                (run_id, player_id, run_type, now, len(item_ids), notes)
+            )
+            # Create splits for each item
+            for i, item_id in enumerate(item_ids):
+                cursor.execute(
+                    """INSERT INTO speedrun_splits
+                       (run_id, item_id, item_order, status)
+                       VALUES (?, ?, ?, 'pending')""",
+                    (run_id, item_id, i)
+                )
+        return run_id
+
+    def update_speedrun_split(
+        self,
+        run_id: str,
+        item_id: str,
+        accessed_at: Optional[str] = None,
+        completed_at: Optional[str] = None,
+        solve_time_seconds: Optional[float] = None,
+        attempts: Optional[int] = None,
+        failures: Optional[int] = None,
+        status: Optional[str] = None
+    ):
+        """Update a split within a run."""
+        updates = []
+        params = []
+        if accessed_at is not None:
+            updates.append("accessed_at = ?")
+            params.append(accessed_at)
+        if completed_at is not None:
+            updates.append("completed_at = ?")
+            params.append(completed_at)
+        if solve_time_seconds is not None:
+            updates.append("solve_time_seconds = ?")
+            params.append(solve_time_seconds)
+        if attempts is not None:
+            updates.append("attempts = ?")
+            params.append(attempts)
+        if failures is not None:
+            updates.append("failures = ?")
+            params.append(failures)
+        if status is not None:
+            updates.append("status = ?")
+            params.append(status)
+
+        if not updates:
+            return
+
+        params.extend([run_id, item_id])
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                f"""UPDATE speedrun_splits
+                   SET {', '.join(updates)}
+                   WHERE run_id = ? AND item_id = ?""",
+                params
+            )
+
+    def complete_speedrun(
+        self,
+        run_id: str,
+        total_time_seconds: float,
+        completed_items: int,
+        total_attempts: int,
+        total_failures: int,
+        status: str = "completed"
+    ):
+        """Mark a speedrun as complete with final stats."""
+        now = datetime.now().isoformat()
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """UPDATE speedrun_runs
+                   SET ended_at = ?, total_time_seconds = ?,
+                       completed_items = ?, total_attempts = ?,
+                       total_failures = ?, status = ?
+                   WHERE run_id = ?""",
+                (now, total_time_seconds, completed_items,
+                 total_attempts, total_failures, status, run_id)
+            )
+
+    def get_speedrun(self, run_id: str) -> Optional[dict]:
+        """Get a speedrun by ID."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT * FROM speedrun_runs WHERE run_id = ?",
+                (run_id,)
+            )
+            row = cursor.fetchone()
+            if not row:
+                return None
+            return dict(row)
+
+    def get_speedrun_splits(self, run_id: str) -> list[dict]:
+        """Get all splits for a run, ordered by item_order."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """SELECT * FROM speedrun_splits
+                   WHERE run_id = ?
+                   ORDER BY item_order""",
+                (run_id,)
+            )
+            return [dict(row) for row in cursor.fetchall()]
+
+    def get_speedrun_history(
+        self,
+        player_id: str,
+        run_type: str = "interview_prep",
+        limit: int = 50
+    ) -> list[dict]:
+        """Get speedrun history for a player, most recent first."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """SELECT * FROM speedrun_runs
+                   WHERE player_id = ? AND run_type = ?
+                   ORDER BY started_at DESC
+                   LIMIT ?""",
+                (player_id, run_type, limit)
+            )
+            return [dict(row) for row in cursor.fetchall()]
+
+    def get_speedrun_stats(self, player_id: str, run_type: str = "interview_prep") -> dict:
+        """Get aggregate stats for speedruns."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            # Total runs
+            cursor.execute(
+                """SELECT COUNT(*) as total,
+                          COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed,
+                          MIN(total_time_seconds) as best_time,
+                          AVG(total_time_seconds) as avg_time
+                   FROM speedrun_runs
+                   WHERE player_id = ? AND run_type = ? AND status = 'completed'""",
+                (player_id, run_type)
+            )
+            row = cursor.fetchone()
+            return {
+                "total_runs": row["total"] or 0,
+                "completed_runs": row["completed"] or 0,
+                "best_time": row["best_time"],
+                "avg_time": row["avg_time"],
             }
 
 

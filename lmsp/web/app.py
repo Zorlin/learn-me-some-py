@@ -666,10 +666,14 @@ async def get_all_challenge_progress(player_id: str = "default"):
 
 
 @app.get("/api/challenges/{challenge_id}")
-async def get_challenge(challenge_id: str):
-    """Get a specific challenge."""
+async def get_challenge(challenge_id: str, player_id: str = "default"):
+    """Get a specific challenge and record access."""
     try:
         challenge = challenge_loader.load(challenge_id)
+
+        # Record that this player accessed this challenge
+        db = get_database()
+        db.record_lesson_access(player_id, challenge_id, "challenge")
 
         # Build stages data if this is a multi-stage challenge
         stages_data = []
@@ -702,6 +706,69 @@ async def get_challenge(challenge_id: str):
         })
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail=f"Challenge '{challenge_id}' not found")
+
+
+@app.get("/api/lesson-access/{lesson_id}")
+async def get_lesson_access(lesson_id: str, player_id: str = "default", since: Optional[str] = None):
+    """
+    Get the most recent access time for a lesson/challenge.
+
+    Query params:
+    - player_id: Player to check (default: "default")
+    - since: Only return access after this ISO timestamp
+
+    Returns: {lesson_id, lesson_type, accessed_at} or null if not accessed
+    """
+    db = get_database()
+    access = db.get_lesson_access(player_id, lesson_id, since)
+    return JSONResponse({"access": access})
+
+
+@app.get("/api/lesson-access")
+async def get_all_lesson_access(player_id: str = "default", since: Optional[str] = None):
+    """
+    Get all lesson access records for a player.
+
+    Query params:
+    - player_id: Player to check (default: "default")
+    - since: Only return access after this ISO timestamp
+
+    Returns: {accesses: [{lesson_id, lesson_type, accessed_at}, ...]}
+    """
+    db = get_database()
+    accesses = db.get_all_lesson_access(player_id, since)
+    return JSONResponse({"accesses": accesses})
+
+
+@app.get("/api/observations")
+async def get_observations(
+    player_id: str = "default",
+    since: Optional[str] = None,
+    challenge_id: Optional[str] = None,
+    limit: int = 50
+):
+    """
+    Get recent Director observations (attempts) for a player.
+
+    Real-time feedback for the interview timer - see successes AND failures as they happen.
+
+    Query params:
+    - player_id: Player to check (default: "default")
+    - since: Only return observations after this ISO timestamp
+    - challenge_id: Only return observations for this specific challenge
+    - limit: Max observations to return (default: 50)
+
+    Returns: {observations: [{challenge_id, success, error, tests_passing, tests_total,
+                              time_seconds, attempt_number, timestamp}, ...]}
+    """
+    db = get_database()
+    observations = db.load_director_observations(
+        player_id,
+        limit=min(limit, 100),
+        since=since,
+        challenge_id=challenge_id
+    )
+    return JSONResponse({"observations": observations})
 
 
 @app.post("/api/code/submit")
@@ -1758,10 +1825,14 @@ async def get_skill_tree(player_id: str = "default", include: str = "both"):
 
 @app.get("/api/concepts/{concept_id}")
 async def get_concept(concept_id: str, player_id: str = "default"):
-    """Get detailed info about a specific concept."""
+    """Get detailed info about a specific concept and record access."""
     concept = concept_dag.get_concept(concept_id)
     if not concept:
         raise HTTPException(status_code=404, detail=f"Concept '{concept_id}' not found")
+
+    # Record that this player accessed this concept
+    db = get_database()
+    db.record_lesson_access(player_id, concept_id, "concept")
 
     engine = get_adaptive_engine(player_id)
     mastery = engine.profile.mastery_levels.get(concept_id, 0)
@@ -1916,18 +1987,18 @@ async def get_lesson_solution(lesson_id: str):
 
 @app.post("/api/lessons/{lesson_id}/mark-seen")
 async def mark_lesson_seen(lesson_id: str, player_id: str = "default"):
-    """Mark a lesson as seen (player opened it)."""
+    """Mark a lesson as seen (player opened it). Records access time for timer tracking."""
     loader = get_lesson_loader()
     lesson = loader.get(lesson_id)
 
     if not lesson:
         raise HTTPException(status_code=404, detail=f"Lesson '{lesson_id}' not found")
 
-    # TODO: Save to database
-    # db = get_database()
-    # db.mark_lesson_seen(player_id, lesson_id)
+    # Record lesson access for timer tracking
+    db = get_database()
+    accessed_at = db.record_lesson_access(player_id, lesson_id, "concept")
 
-    return JSONResponse({"success": True, "status": "seen"})
+    return JSONResponse({"success": True, "status": "seen", "accessed_at": accessed_at})
 
 
 @app.post("/api/lessons/{lesson_id}/mark-understood")
