@@ -36,6 +36,7 @@ web = [
     "uvicorn[standard]>=0.30.0",
     "jinja2>=3.1.0",
     "python-multipart>=0.0.9",
+    "bcrypt>=4.0.0",               # Password hashing (never roll your own crypto)
 ]
 
 [project.scripts]
