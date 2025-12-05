@@ -19,7 +19,7 @@ Usage:
 from pathlib import Path
 from typing import Optional
 
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException, Depends, Header
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -70,6 +70,39 @@ concept_dag.load_all()
 # Global state (adaptive engines and achievement managers are session-based)
 _adaptive_engines: dict[str, AdaptiveEngine] = {}
 _achievement_managers: dict[str, AchievementManager] = {}
+
+
+def get_current_player(
+    x_session_id: Optional[str] = Header(None),
+    x_player_id: Optional[str] = Header(None),
+) -> str:
+    """
+    Extract player_id from request headers.
+
+    Priority:
+    1. X-Session-ID header -> validate session -> get player_id from DB
+    2. X-Player-ID header -> use directly (for profiles without passwords)
+    3. Return "default" as fallback
+
+    This is more secure than URL params since:
+    - Session tokens are cryptographically random
+    - Headers aren't logged in URLs
+    - Can't be shared accidentally via copy/paste URL
+    """
+    db = get_database()
+
+    # Try session-based auth first (most secure)
+    if x_session_id:
+        player_id = db.verify_session(x_session_id)
+        if player_id:
+            return player_id
+
+    # Fall back to player_id header (for passwordless profiles)
+    if x_player_id:
+        return x_player_id
+
+    # Default fallback
+    return "default"
 
 
 def get_player_completions(player_id: str) -> dict:
@@ -539,7 +572,7 @@ def get_achievement_manager(player_id: str) -> AchievementManager:
 
 
 @app.get("/api/profile")
-async def get_profile(player_id: str = "default"):
+async def get_profile(player_id: str = Depends(get_current_player)):
     """Get player profile data."""
     db = get_database()
     engine = get_adaptive_engine(player_id)
@@ -599,7 +632,7 @@ async def set_display_name(request: Request):
 
 
 @app.get("/api/challenges")
-async def list_challenges(level: Optional[int] = None, player_id: str = "default"):
+async def list_challenges(level: Optional[int] = None, player_id: str = Depends(get_current_player)):
     """List available challenges with progress data."""
     all_challenge_ids = challenge_loader.list_challenges()
 
@@ -642,7 +675,7 @@ async def list_challenges(level: Optional[int] = None, player_id: str = "default
 
 
 @app.get("/api/challenges/progress")
-async def get_all_challenge_progress(player_id: str = "default"):
+async def get_all_challenge_progress(player_id: str = Depends(get_current_player)):
     """Get progress/retention data for all challenges."""
     db = get_database()
     completions = db.get_completions(player_id)
@@ -666,7 +699,7 @@ async def get_all_challenge_progress(player_id: str = "default"):
 
 
 @app.get("/api/challenges/{challenge_id}")
-async def get_challenge(challenge_id: str, player_id: str = "default"):
+async def get_challenge(challenge_id: str, player_id: str = Depends(get_current_player)):
     """Get a specific challenge and record access."""
     try:
         challenge = challenge_loader.load(challenge_id)
@@ -709,7 +742,7 @@ async def get_challenge(challenge_id: str, player_id: str = "default"):
 
 
 @app.get("/api/lesson-access/{lesson_id}")
-async def get_lesson_access(lesson_id: str, player_id: str = "default", since: Optional[str] = None):
+async def get_lesson_access(lesson_id: str, player_id: str = Depends(get_current_player), since: Optional[str] = None):
     """
     Get the most recent access time for a lesson/challenge.
 
@@ -725,7 +758,7 @@ async def get_lesson_access(lesson_id: str, player_id: str = "default", since: O
 
 
 @app.get("/api/lesson-access")
-async def get_all_lesson_access(player_id: str = "default", since: Optional[str] = None):
+async def get_all_lesson_access(player_id: str = Depends(get_current_player), since: Optional[str] = None):
     """
     Get all lesson access records for a player.
 
@@ -742,7 +775,7 @@ async def get_all_lesson_access(player_id: str = "default", since: Optional[str]
 
 @app.get("/api/observations")
 async def get_observations(
-    player_id: str = "default",
+    player_id: str = Depends(get_current_player),
     since: Optional[str] = None,
     challenge_id: Optional[str] = None,
     limit: int = 50
@@ -772,7 +805,7 @@ async def get_observations(
 
 
 @app.post("/api/code/submit")
-async def submit_code(request: Request):
+async def submit_code(request: Request, player_id: str = Depends(get_current_player)):
     """Submit code for validation with XP and mastery tracking.
 
     Accepts either challenge_id (for challenges) or lesson_id (for concept try_it).
@@ -782,7 +815,6 @@ async def submit_code(request: Request):
     challenge_id = data.get("challenge_id")
     lesson_id = data.get("lesson_id")  # For concept try_it exercises
     code = data.get("code", "")
-    player_id = data.get("player_id", "default")
     is_spaced_repetition = data.get("is_spaced_repetition", False)
     current_stage = data.get("stage", None)  # For multi-stage challenges
     solve_time = data.get("solve_time", None)  # Wall-clock coding time from frontend
@@ -833,6 +865,7 @@ async def submit_code(request: Request):
             "tests_passing": result.tests_passing,
             "tests_total": result.tests_total,
             "output": result.output,
+            "stdout": result.stdout,  # User print() output, separate from test output
             "error": result.error,
             "test_results": [
                 {
@@ -928,6 +961,7 @@ async def submit_code(request: Request):
             "tests_total": result.tests_total,
             "time_seconds": actual_solve_time,  # Return the actual solve time, not test execution time
             "output": result.output,
+            "stdout": result.stdout,  # User print() output, separate from test output
         }
 
         # Add multi-stage information
@@ -1228,7 +1262,7 @@ async def run_code(request: Request):
 
 
 @app.get("/api/achievements")
-async def list_achievements(player_id: str = "default"):
+async def list_achievements(player_id: str = Depends(get_current_player)):
     """List player achievements with progress."""
     achievement_mgr = get_achievement_manager(player_id)
     stats = achievement_mgr.get_achievement_stats()
@@ -1265,7 +1299,7 @@ async def list_achievements(player_id: str = "default"):
 
 @app.get("/api/xp/history")
 async def get_xp_history(
-    player_id: str = "default",
+    player_id: str = Depends(get_current_player),
     start_time: Optional[str] = None,
     end_time: Optional[str] = None,
     period: Optional[str] = None
@@ -1309,12 +1343,14 @@ async def get_xp_history(
 
 
 @app.post("/api/emotional/record")
-async def record_emotional_feedback(request: Request):
+async def record_emotional_feedback(
+    request: Request,
+    player_id: str = Depends(get_current_player)
+):
     """
     Record emotional feedback (RT/LT trigger values).
 
     Body:
-        player_id: Player identifier
         enjoyment: Satisfaction rating 0.0-1.0
         frustration: Frustration rating 0.0-1.0
         challenge_id: Optional challenge ID
@@ -1324,7 +1360,6 @@ async def record_emotional_feedback(request: Request):
                    If false and both values are 0, treat as "skipped"
     """
     data = await request.json()
-    player_id = data.get("player_id", "default")
     enjoyment = data.get("enjoyment", 0.0)
     frustration = data.get("frustration", 0.0)
     challenge_id = data.get("challenge_id")
@@ -1332,9 +1367,9 @@ async def record_emotional_feedback(request: Request):
     context = data.get("context", "")
     interacted = data.get("interacted", True)
 
-    # Detect "skipped" - 0%/0% with no interaction means user skipped rating
-    # This is different from deliberately rating 0%/0% (which would be strange but valid)
-    skipped = (enjoyment == 0 and frustration == 0 and not interacted)
+    # Detect "skipped" - 0%/0% always means skip (neutral = no opinion = skip)
+    # There's no meaningful "deliberately neutral" rating - it's just a skip
+    skipped = (enjoyment == 0 and frustration == 0)
 
     # Store to database
     db = get_database()
@@ -1376,7 +1411,7 @@ async def record_emotional_feedback(request: Request):
 
 
 @app.get("/api/recommendations")
-async def get_recommendations(player_id: str = "default"):
+async def get_recommendations(player_id: str = Depends(get_current_player)):
     """
     Get adaptive learning recommendations powered by The Director.
 
@@ -1605,7 +1640,7 @@ async def get_recommendations(player_id: str = "default"):
 
 
 @app.get("/api/skill-tree")
-async def get_skill_tree(player_id: str = "default", include: str = "both"):
+async def get_skill_tree(player_id: str = Depends(get_current_player), include: str = "both"):
     """
     Get unified skill tree data with concepts AND challenges.
 
@@ -1824,7 +1859,7 @@ async def get_skill_tree(player_id: str = "default", include: str = "both"):
 
 
 @app.get("/api/concepts/{concept_id}")
-async def get_concept(concept_id: str, player_id: str = "default"):
+async def get_concept(concept_id: str, player_id: str = Depends(get_current_player)):
     """Get detailed info about a specific concept and record access."""
     concept = concept_dag.get_concept(concept_id)
     if not concept:
@@ -1867,7 +1902,7 @@ async def get_concept(concept_id: str, player_id: str = "default"):
 
 
 @app.get("/api/lessons")
-async def get_lessons(player_id: str = "default"):
+async def get_lessons(player_id: str = Depends(get_current_player)):
     """
     Get all concept lessons grouped by category.
 
@@ -1924,7 +1959,7 @@ async def get_lessons(player_id: str = "default"):
 
 
 @app.get("/api/lessons/{lesson_id}")
-async def get_lesson(lesson_id: str, player_id: str = "default"):
+async def get_lesson(lesson_id: str, player_id: str = Depends(get_current_player)):
     """
     Get a single concept lesson with full content.
 
@@ -1986,7 +2021,7 @@ async def get_lesson_solution(lesson_id: str):
 
 
 @app.post("/api/lessons/{lesson_id}/mark-seen")
-async def mark_lesson_seen(lesson_id: str, player_id: str = "default"):
+async def mark_lesson_seen(lesson_id: str, player_id: str = Depends(get_current_player)):
     """Mark a lesson as seen (player opened it). Records access time for timer tracking."""
     loader = get_lesson_loader()
     lesson = loader.get(lesson_id)
@@ -2002,7 +2037,7 @@ async def mark_lesson_seen(lesson_id: str, player_id: str = "default"):
 
 
 @app.post("/api/lessons/{lesson_id}/mark-understood")
-async def mark_lesson_understood(lesson_id: str, player_id: str = "default"):
+async def mark_lesson_understood(lesson_id: str, player_id: str = Depends(get_current_player)):
     """Mark a lesson as understood (player clicked 'Got it!')."""
     loader = get_lesson_loader()
     lesson = loader.get(lesson_id)
@@ -2018,7 +2053,7 @@ async def mark_lesson_understood(lesson_id: str, player_id: str = "default"):
 
 
 @app.get("/api/lessons/for-challenge/{challenge_id}")
-async def get_lessons_for_challenge(challenge_id: str, player_id: str = "default"):
+async def get_lessons_for_challenge(challenge_id: str, player_id: str = Depends(get_current_player)):
     """
     Get concept lessons relevant to a challenge.
 
@@ -2048,7 +2083,7 @@ async def get_lessons_for_challenge(challenge_id: str, player_id: str = "default
 
 
 @app.get("/api/director/state")
-async def get_director_state(player_id: str = "default"):
+async def get_director_state(player_id: str = Depends(get_current_player)):
     """
     Get The Director's current state for a player.
 
@@ -2109,7 +2144,7 @@ async def get_practice_challenge(concept: str):
 
 
 @app.get("/api/director/intervention")
-async def get_director_intervention(player_id: str = "default", force: bool = False):
+async def get_director_intervention(player_id: str = Depends(get_current_player), force: bool = False):
     """
     Explicitly request a Director intervention.
 
@@ -2245,12 +2280,173 @@ async def resolve_director_struggle(request: Request):
 
 
 # ============================================================================
+# Player Profiles API
+# ============================================================================
+
+
+@app.get("/api/players")
+async def list_players():
+    """List all player profiles for the profile picker."""
+    db = get_database()
+    players = db.list_players()
+    return JSONResponse({"players": players})
+
+
+@app.post("/api/players")
+async def create_player(request: Request):
+    """Create a new player profile."""
+    data = await request.json()
+    player_id = data.get("player_id", "").strip().lower()
+    display_name = data.get("display_name", "").strip()
+
+    if not player_id:
+        return JSONResponse({
+            "success": False,
+            "error": "Player ID is required",
+        }, status_code=400)
+
+    # Validate player_id format (alphanumeric + underscore, 2-20 chars)
+    import re
+    if not re.match(r'^[a-z0-9_]{2,20}$', player_id):
+        return JSONResponse({
+            "success": False,
+            "error": "Player ID must be 2-20 characters, lowercase letters, numbers, and underscores only",
+        }, status_code=400)
+
+    db = get_database()
+
+    # Check if player already exists
+    existing_players = db.list_players()
+    if any(p["player_id"] == player_id for p in existing_players):
+        return JSONResponse({
+            "success": False,
+            "error": f"Player '{player_id}' already exists",
+        }, status_code=409)
+
+    # Create the player
+    player = db.get_or_create_player(player_id)
+
+    # Set display name if provided
+    if display_name:
+        db.set_display_name(player_id, display_name)
+
+    return JSONResponse({
+        "success": True,
+        "player": {
+            "player_id": player_id,
+            "display_name": display_name or None,
+            "total_xp": 0,
+        }
+    })
+
+
+@app.post("/api/players/migrate")
+async def migrate_player(request: Request):
+    """Migrate all data from one player to another.
+
+    Used for "Import existing" feature - migrate default profile to a named profile.
+    """
+    data = await request.json()
+    from_player_id = data.get("from_player_id", "").strip()
+    to_player_id = data.get("to_player_id", "").strip().lower()
+    display_name = data.get("display_name", "").strip()
+    delete_source = data.get("delete_source", True)
+
+    if not from_player_id:
+        return JSONResponse({
+            "success": False,
+            "error": "Source player ID is required",
+        }, status_code=400)
+
+    if not to_player_id:
+        return JSONResponse({
+            "success": False,
+            "error": "Destination player ID is required",
+        }, status_code=400)
+
+    # Validate to_player_id format
+    import re
+    if not re.match(r'^[a-z0-9_]{2,20}$', to_player_id):
+        return JSONResponse({
+            "success": False,
+            "error": "Player ID must be 2-20 characters, lowercase letters, numbers, and underscores only",
+        }, status_code=400)
+
+    db = get_database()
+
+    # Check if destination already exists
+    existing_players = db.list_players()
+    if any(p["player_id"] == to_player_id for p in existing_players):
+        return JSONResponse({
+            "success": False,
+            "error": f"Player '{to_player_id}' already exists",
+        }, status_code=409)
+
+    try:
+        stats = db.migrate_player_data(
+            from_player_id=from_player_id,
+            to_player_id=to_player_id,
+            delete_source=delete_source
+        )
+
+        # Set display name if provided
+        if display_name:
+            db.set_display_name(to_player_id, display_name)
+
+        # Get the migrated player's info
+        players = db.list_players()
+        new_player = next((p for p in players if p["player_id"] == to_player_id), None)
+
+        return JSONResponse({
+            "success": True,
+            "player": new_player,
+            "migration_stats": stats,
+        })
+    except ValueError as e:
+        return JSONResponse({
+            "success": False,
+            "error": str(e),
+        }, status_code=404)
+    except Exception as e:
+        return JSONResponse({
+            "success": False,
+            "error": f"Migration failed: {str(e)}",
+        }, status_code=500)
+
+
+# ============================================================================
 # Security & Authentication API
 # ============================================================================
 
 
+@app.post("/api/auth/identify-by-combo")
+async def identify_by_combo(request: Request):
+    """Identify which player(s) match a gamepad combo.
+
+    Used for quick-login from profile picker - enter combo, get logged in.
+    Returns matching player_ids (usually 0 or 1, but could be multiple on conflict).
+    """
+    data = await request.json()
+    combo = data.get("combo", [])
+
+    if not combo or not isinstance(combo, list):
+        return JSONResponse({
+            "success": False,
+            "error": "Combo sequence required",
+        }, status_code=400)
+
+    db = get_database()
+    matching_players = db.identify_players_by_combo(combo)
+
+    return JSONResponse({
+        "success": True,
+        "matching_players": matching_players,
+        "count": len(matching_players),
+    })
+
+
 @app.get("/api/auth/status")
-async def get_auth_status(player_id: str = "default"):
+async def get_auth_status(player_id: str = Depends(get_current_player)):
     """Check if player has security enabled and what methods are available."""
     db = get_database()
     player = db.get_or_create_player(player_id)
@@ -2422,7 +2618,7 @@ async def set_gamepad_combo(request: Request):
 
 
 @app.get("/api/auth/get-gamepad-combo")
-async def get_gamepad_combo(player_id: str = "default"):
+async def get_gamepad_combo(player_id: str = Depends(get_current_player)):
     """Get current gamepad combo (without revealing full sequence for security)."""
     db = get_database()
     combo = db.get_gamepad_combo(player_id)

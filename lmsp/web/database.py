@@ -28,10 +28,34 @@ from typing import Optional
 from dataclasses import dataclass, field
 from contextlib import contextmanager
 
+import bcrypt  # Never roll your own crypto - use industry standard bcrypt
+
 
 # Database location
 DB_DIR = Path(__file__).parent.parent.parent / "data"
 DB_PATH = DB_DIR / "lmsp.db"
+
+
+def calculate_level(xp: int) -> int:
+    """
+    Calculate player level from XP.
+
+    Progressive system where each level requires more XP:
+    - Level 1: 0-99 XP
+    - Level 2: 100-299 XP (need 100 more)
+    - Level 3: 300-599 XP (need 300 more)
+    - Level 4: 600-999 XP (need 400 more)
+    - etc.
+
+    This is the SINGLE SOURCE OF TRUTH for level calculation.
+    Frontend should use backend-provided level, not calculate it.
+    """
+    level = 1
+    threshold = 100
+    while xp >= threshold:
+        level += 1
+        threshold += level * 100
+    return level
 
 
 @dataclass
@@ -40,11 +64,12 @@ class PlayerData:
     player_id: str
     display_name: Optional[str] = None  # Friendly name shown in UI
     password_hash: Optional[str] = None
-    salt: Optional[str] = None
+    salt: Optional[str] = None  # Deprecated - bcrypt embeds salt in hash
     total_xp: int = 0
     created_at: str = ""
     last_active: str = ""
     gamepad_combo: Optional[str] = None  # JSON-encoded combo sequence
+    is_admin: bool = False  # First created player is admin
 
 
 @dataclass
@@ -125,6 +150,17 @@ class LMSPDatabase:
         columns = [row[1] for row in cursor.fetchall()]
         if "display_name" not in columns:
             cursor.execute("ALTER TABLE players ADD COLUMN display_name TEXT")
+
+        # Migration: Add is_admin column if it doesn't exist
+        if "is_admin" not in columns:
+            cursor.execute("ALTER TABLE players ADD COLUMN is_admin INTEGER DEFAULT 0")
+            # Make the first existing player (by created_at) the admin
+            cursor.execute("""
+                UPDATE players SET is_admin = 1
+                WHERE player_id = (
+                    SELECT player_id FROM players ORDER BY created_at ASC LIMIT 1
+                )
+            """)
 
         # Completions table
         cursor.execute("""
@@ -458,36 +494,197 @@ class LMSPDatabase:
             )
             return cursor.fetchone()["total_xp"]
 
+    def list_players(self) -> list[dict]:
+        """List all players with basic profile info for the profile picker."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT player_id, display_name, total_xp, created_at, last_active,
+                       password_hash IS NOT NULL as has_password,
+                       gamepad_combo IS NOT NULL as has_gamepad_combo,
+                       COALESCE(is_admin, 0) as is_admin
+                FROM players
+                ORDER BY last_active DESC
+            """)
+            rows = cursor.fetchall()
+            return [
+                {
+                    "player_id": row["player_id"],
+                    "display_name": row["display_name"],
+                    "total_xp": row["total_xp"],
+                    "level": calculate_level(row["total_xp"]),  # Backend is source of truth
+                    "created_at": row["created_at"],
+                    "last_active": row["last_active"],
+                    "has_password": bool(row["has_password"]),
+                    "has_gamepad_combo": bool(row["has_gamepad_combo"]),
+                    "is_admin": bool(row["is_admin"]),
+                }
+                for row in rows
+            ]
+
+    def identify_players_by_combo(self, combo: list[str]) -> list[str]:
+        """Find player(s) whose gamepad combo matches the given sequence.
+
+        Returns list of player_ids that match. Usually 0 or 1, but could be
+        multiple if users set the same combo (edge case for conflict handling).
+        """
+        import json
+        combo_json = json.dumps(combo)
+
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT player_id FROM players WHERE gamepad_combo = ?",
+                (combo_json,)
+            )
+            return [row["player_id"] for row in cursor.fetchall()]
+
+    def migrate_player_data(
+        self,
+        from_player_id: str,
+        to_player_id: str,
+        delete_source: bool = True
+    ) -> dict:
+        """
+        Migrate all data from one player_id to another.
+
+        Used for "Import existing" feature - migrate default profile to named profile.
+
+        Args:
+            from_player_id: Source player to migrate from
+            to_player_id: Destination player to migrate to
+            delete_source: If True, delete the source player after migration
+
+        Returns:
+            Dict with migration stats (tables affected, rows migrated)
+        """
+        stats = {
+            "completions": 0,
+            "mastery": 0,
+            "xp_history": 0,
+            "emotional_feedback": 0,
+            "director_observations": 0,
+            "director_mastery": 0,
+            "director_struggles": 0,
+            "director_state": 0,
+            "lesson_access": 0,
+            "speedrun_runs": 0,
+            "speedrun_splits": 0,
+            "sessions": 0,
+        }
+
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+
+            # Check source exists
+            cursor.execute(
+                "SELECT * FROM players WHERE player_id = ?",
+                (from_player_id,)
+            )
+            source = cursor.fetchone()
+            if not source:
+                raise ValueError(f"Source player '{from_player_id}' not found")
+
+            # Create destination if doesn't exist, or get existing
+            now = datetime.now().isoformat()
+            cursor.execute(
+                "SELECT * FROM players WHERE player_id = ?",
+                (to_player_id,)
+            )
+            dest = cursor.fetchone()
+
+            if dest:
+                # Merge XP into existing destination
+                cursor.execute(
+                    "UPDATE players SET total_xp = total_xp + ? WHERE player_id = ?",
+                    (source["total_xp"], to_player_id)
+                )
+            else:
+                # Create new destination with source's data
+                cursor.execute(
+                    """INSERT INTO players
+                       (player_id, display_name, password_hash, salt, total_xp,
+                        created_at, last_active, gamepad_combo, is_admin)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (to_player_id, source["display_name"], source["password_hash"],
+                     source["salt"], source["total_xp"], now, now,
+                     source["gamepad_combo"], source["is_admin"])
+                )
+
+            # Migrate all related tables
+            tables_with_player_id = [
+                "completions",
+                "mastery",
+                "xp_history",
+                "emotional_feedback",
+                "director_observations",
+                "director_mastery",
+                "director_struggles",
+                "director_state",
+                "lesson_access",
+                "speedrun_runs",
+                "sessions",
+            ]
+
+            for table in tables_with_player_id:
+                cursor.execute(
+                    f"UPDATE {table} SET player_id = ? WHERE player_id = ?",
+                    (to_player_id, from_player_id)
+                )
+                stats[table] = cursor.rowcount
+
+            # Migrate speedrun_splits via run_id (indirect relationship)
+            cursor.execute(
+                """UPDATE speedrun_splits SET run_id = run_id
+                   WHERE run_id IN (SELECT run_id FROM speedrun_runs WHERE player_id = ?)""",
+                (to_player_id,)  # Already updated, just count
+            )
+            # Count splits that belong to migrated runs
+            cursor.execute(
+                """SELECT COUNT(*) FROM speedrun_splits
+                   WHERE run_id IN (SELECT run_id FROM speedrun_runs WHERE player_id = ?)""",
+                (to_player_id,)
+            )
+            stats["speedrun_splits"] = cursor.fetchone()[0]
+
+            # Delete source player if requested
+            if delete_source:
+                cursor.execute(
+                    "DELETE FROM players WHERE player_id = ?",
+                    (from_player_id,)
+                )
+
+        return stats
+
     # =========================================================================
     # Password & Authentication
     # =========================================================================
 
     def set_password(self, player_id: str, password: str) -> bool:
-        """Set or update player password."""
+        """Set or update player password using bcrypt."""
         self.get_or_create_player(player_id)  # Ensure player exists
 
-        salt = secrets.token_hex(16)
-        password_hash = hashlib.pbkdf2_hmac(
-            'sha256',
+        # Use bcrypt with automatic salt generation (cost factor 12)
+        password_hash = bcrypt.hashpw(
             password.encode('utf-8'),
-            salt.encode('utf-8'),
-            100000
-        ).hex()
+            bcrypt.gensalt(rounds=12)
+        ).decode('utf-8')
 
         with self._get_connection() as conn:
             cursor = conn.cursor()
+            # bcrypt embeds the salt in the hash, so salt column is NULL for bcrypt
             cursor.execute(
-                "UPDATE players SET password_hash = ?, salt = ? WHERE player_id = ?",
-                (password_hash, salt, player_id)
+                "UPDATE players SET password_hash = ?, salt = NULL WHERE player_id = ?",
+                (password_hash, player_id)
             )
             return True
 
     def verify_password(self, player_id: str, password: str) -> bool:
-        """Verify player password."""
+        """Verify player password using bcrypt."""
         with self._get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT password_hash, salt FROM players WHERE player_id = ?",
+                "SELECT password_hash FROM players WHERE player_id = ?",
                 (player_id,)
             )
             row = cursor.fetchone()
@@ -495,14 +692,10 @@ class LMSPDatabase:
             if not row or not row["password_hash"]:
                 return False
 
-            test_hash = hashlib.pbkdf2_hmac(
-                'sha256',
+            return bcrypt.checkpw(
                 password.encode('utf-8'),
-                row["salt"].encode('utf-8'),
-                100000
-            ).hex()
-
-            return secrets.compare_digest(test_hash, row["password_hash"])
+                row["password_hash"].encode('utf-8')
+            )
 
     def has_password(self, player_id: str) -> bool:
         """Check if player has a password set."""
@@ -1068,19 +1261,11 @@ class LMSPDatabase:
         mastered_concepts = len([m for m in mastery.values() if m >= 4.0])
         learning_concepts = len([m for m in mastery.values() if 0 < m < 4.0])
 
-        # Calculate level from XP
-        xp = player.total_xp
-        level = 1
-        threshold = 100
-        while xp >= threshold:
-            level += 1
-            threshold += level * 100
-
         return {
             "player_id": player_id,
             "display_name": player.display_name,
             "total_xp": player.total_xp,
-            "level": level,
+            "level": calculate_level(player.total_xp),  # Use single source of truth
             "total_attempts": total_attempts,
             "unique_challenges": unique_challenges,
             "mastered_concepts": mastered_concepts,
