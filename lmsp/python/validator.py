@@ -44,6 +44,7 @@ class ValidationResult:
     error: Optional[str]
     time_seconds: float
     test_results: list[TestResult]
+    stdout: str = ""  # Captured print() output from user code
 
     @property
     def tests_passing(self) -> int:
@@ -535,7 +536,8 @@ def player_file():
                 output=result["output"],
                 error=result.get("error"),
                 time_seconds=time.time() - start_time,
-                test_results=result["test_results"]
+                test_results=result["test_results"],
+                stdout=result.get("stdout", "")
             )
 
     def _find_test_file(self, item_id: str, test_file: str) -> Optional[Path]:
@@ -588,11 +590,13 @@ def player_file():
 
             output = result.stdout + result.stderr
             test_results = self._parse_pytest_output(output)
+            stdout = self._extract_captured_stdout(output)
             success = result.returncode == 0
 
             return {
                 "success": success,
                 "output": output,
+                "stdout": stdout,
                 "error": None if success else "Some tests failed",
                 "test_results": test_results
             }
@@ -601,6 +605,7 @@ def player_file():
             return {
                 "success": False,
                 "output": "",
+                "stdout": "",
                 "error": f"Tests timed out after {self.timeout_seconds}s",
                 "test_results": []
             }
@@ -608,9 +613,34 @@ def player_file():
             return {
                 "success": False,
                 "output": "",
+                "stdout": "",
                 "error": f"Pytest error: {e}",
                 "test_results": []
             }
+
+    def _extract_captured_stdout(self, output: str) -> str:
+        """Extract captured stdout sections from pytest output.
+
+        Pytest captures print() statements and shows them like:
+        --------------------------- Captured stdout call ---------------------------
+        Hello World
+        some output
+        """
+        import re
+
+        stdout_parts = []
+
+        # Match "Captured stdout call", "Captured stdout setup", etc.
+        pattern = r'-+ Captured stdout (?:call|setup|teardown) -+\n(.*?)(?=-{20,}|$|\n\n[A-Z])'
+        matches = re.findall(pattern, output, re.DOTALL)
+
+        for match in matches:
+            # Clean up the captured output
+            cleaned = match.strip()
+            if cleaned:
+                stdout_parts.append(cleaned)
+
+        return '\n'.join(stdout_parts)
 
     def _parse_pytest_output(self, output: str) -> list[TestResult]:
         """Parse pytest output to extract test results."""
