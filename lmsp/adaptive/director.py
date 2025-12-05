@@ -363,7 +363,16 @@ class Director:
         Process emotional feedback.
 
         Called when learner rates their experience.
+
+        Selection bias insight: pissed users WILL rate, happy/neutral often don't.
+        So any rating submission is data - even 0/0 means "not mad enough to complain".
         """
+        # Neutral (0/0) = weak "not frustrated" signal
+        # They bothered to submit but aren't expressing frustration = slight decay
+        if enjoyment == 0 and frustration == 0:
+            self._frustration_level *= 0.95  # 5% decay - weak positive signal
+            return
+
         # Blend with existing frustration level
         self._frustration_level = (self._frustration_level * 0.7) + (frustration * 0.3)
 
