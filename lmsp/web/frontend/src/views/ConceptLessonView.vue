@@ -13,10 +13,12 @@ import { useRoute, useRouter } from 'vue-router'
 import { marked } from 'marked'
 import { api, conceptsApi, type ConceptLesson } from '@/api/client'
 import { useGamepadStore } from '@/stores/gamepad'
+import { usePlayerStore } from '@/stores/player'
 import { useGamepadNav } from '@/composables/useGamepadNav'
 import CodeEditor from '@/components/game/CodeEditor.vue'
 import TestResults from '@/components/game/TestResults.vue'
 import EmotionalFeedback from '@/components/input/EmotionalFeedback.vue'
+import { LogIn } from 'lucide-vue-next'
 
 // Phase: same as ChallengeView for consistency
 type LessonPhase = 'coding' | 'feedback' | 'complete'
@@ -24,7 +26,11 @@ type LessonPhase = 'coding' | 'feedback' | 'complete'
 const route = useRoute()
 const router = useRouter()
 const gamepadStore = useGamepadStore()
+const playerStore = usePlayerStore()
 const lesson = ref<ConceptLesson | null>(null)
+
+// Guest mode - user is browsing without logging in
+const isGuest = computed(() => !playerStore.playerId)
 const isLoading = ref(true)
 const tryItCode = ref('')
 
@@ -511,66 +517,88 @@ const conceptContext = computed(() => {
 
             <!-- Action Buttons -->
             <div class="flex flex-col gap-2 mt-4">
-              <!-- Success: Submit Solution (same as ChallengeView) -->
-              <button
-                v-if="testResult?.success"
-                class="oled-button-success gamepad-focusable animate-pulse"
-                @click="proceedToFeedback"
-              >
-                ✅ Submit Solution
-              </button>
-
-              <button
-                v-if="lesson.try_it"
-                class="oled-button-primary gamepad-focusable"
-                :disabled="isRunning"
-                @click="runTests"
-              >
-                {{ isRunning ? '⏳ Running...' : '▶ Run Tests' }}
-              </button>
-
-              <!-- Hint button: dimmed if no real hints -->
-              <button
-                v-if="lesson.try_it"
-                class="oled-button gamepad-focusable"
-                :class="{ 'opacity-50': !hasRealHints }"
-                @click="hasRealHints ? requestHint() : showNoHintsMessage()"
-              >
-                <span :class="{ 'grayscale': !hasRealHints }">💡</span>
-                {{ !hasRealHints ? 'No hints available' : hintLevel === 0 ? 'Need a hint?' : hintLevel === 2 ? 'Show solution' : 'Another hint' }}
-              </button>
-
-              <!-- No Hints Available Panel -->
-              <div v-if="showNoHintsPanel" class="mt-2 p-3 bg-oled-muted border border-oled-border rounded-lg">
-                <div class="flex items-center justify-between mb-2">
-                  <span class="text-sm text-text-muted">💡 No hints yet</span>
+              <!-- Guest Mode: Sign in prompt (only if lesson has try_it) -->
+              <template v-if="isGuest && lesson.try_it">
+                <div class="p-4 bg-accent-primary/5 border border-accent-primary/20 rounded-lg">
+                  <div class="flex items-center gap-2 mb-2">
+                    <LogIn :size="18" class="text-accent-primary" />
+                    <span class="font-medium text-text-primary">Want to try the code?</span>
+                  </div>
+                  <p class="text-sm text-text-secondary mb-3">
+                    Sign in to run code, track your learning, and earn XP!
+                  </p>
                   <button
-                    class="text-text-muted hover:text-text-secondary text-sm"
-                    @click="showNoHintsPanel = false"
-                  >✕</button>
-                </div>
-                <p class="text-sm text-text-secondary mb-2">
-                  This concept doesn't have handcrafted hints yet.
-                  The lesson content and examples should help guide you!
-                </p>
-                <div v-if="isDev" class="pt-2 border-t border-oled-border">
-                  <p class="text-xs text-text-muted mb-2">🔧 Dev Mode</p>
-                  <button
-                    class="text-xs text-accent-secondary hover:text-accent-primary"
-                    @click="createHintsPlaceholder"
+                    class="oled-button-primary w-full gamepad-focusable"
+                    @click="router.push('/profiles')"
                   >
-                    + Create hints for this lesson
+                    Sign In to Try It
                   </button>
                 </div>
-              </div>
+              </template>
 
-              <button
-                v-if="codeHasChanged"
-                class="oled-button text-accent-warning gamepad-focusable"
-                @click="resetCode"
-              >
-                🔄 Reset to Start
-              </button>
+              <!-- Logged In: Full action buttons -->
+              <template v-else-if="!isGuest">
+                <!-- Success: Submit Solution (same as ChallengeView) -->
+                <button
+                  v-if="testResult?.success"
+                  class="oled-button-success gamepad-focusable animate-pulse"
+                  @click="proceedToFeedback"
+                >
+                  ✅ Submit Solution
+                </button>
+
+                <button
+                  v-if="lesson.try_it"
+                  class="oled-button-primary gamepad-focusable"
+                  :disabled="isRunning"
+                  @click="runTests"
+                >
+                  {{ isRunning ? '⏳ Running...' : '▶ Run Tests' }}
+                </button>
+
+                <!-- Hint button: dimmed if no real hints -->
+                <button
+                  v-if="lesson.try_it"
+                  class="oled-button gamepad-focusable"
+                  :class="{ 'opacity-50': !hasRealHints }"
+                  @click="hasRealHints ? requestHint() : showNoHintsMessage()"
+                >
+                  <span :class="{ 'grayscale': !hasRealHints }">💡</span>
+                  {{ !hasRealHints ? 'No hints available' : hintLevel === 0 ? 'Need a hint?' : hintLevel === 2 ? 'Show solution' : 'Another hint' }}
+                </button>
+
+                <!-- No Hints Available Panel -->
+                <div v-if="showNoHintsPanel" class="mt-2 p-3 bg-oled-muted border border-oled-border rounded-lg">
+                  <div class="flex items-center justify-between mb-2">
+                    <span class="text-sm text-text-muted">💡 No hints yet</span>
+                    <button
+                      class="text-text-muted hover:text-text-secondary text-sm"
+                      @click="showNoHintsPanel = false"
+                    >✕</button>
+                  </div>
+                  <p class="text-sm text-text-secondary mb-2">
+                    This concept doesn't have handcrafted hints yet.
+                    The lesson content and examples should help guide you!
+                  </p>
+                  <div v-if="isDev" class="pt-2 border-t border-oled-border">
+                    <p class="text-xs text-text-muted mb-2">🔧 Dev Mode</p>
+                    <button
+                      class="text-xs text-accent-secondary hover:text-accent-primary"
+                      @click="createHintsPlaceholder"
+                    >
+                      + Create hints for this lesson
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  v-if="codeHasChanged"
+                  class="oled-button text-accent-warning gamepad-focusable"
+                  @click="resetCode"
+                >
+                  🔄 Reset to Start
+                </button>
+              </template>
 
               <button
                 class="oled-button gamepad-focusable"
@@ -638,15 +666,24 @@ const conceptContext = computed(() => {
         <div class="lg:col-span-2 space-y-6">
           <!-- Code Editor (if has try_it) - FIRST -->
           <div v-if="lesson.try_it">
+            <!-- Guest Preview Banner -->
+            <div v-if="isGuest" class="mb-4 p-3 bg-oled-panel border border-oled-border rounded-lg flex items-center gap-3">
+              <div class="text-2xl">👀</div>
+              <div>
+                <div class="text-sm font-medium text-text-primary">Preview Mode</div>
+                <div class="text-xs text-text-muted">Sign in to edit code and run tests</div>
+              </div>
+            </div>
+
             <CodeEditor
               :code="tryItCode"
-              :readonly="isRunning"
+              :readonly="isGuest || isRunning"
               @update:code="tryItCode = $event"
             />
 
-            <!-- Test Results -->
+            <!-- Test Results (logged-in users only) -->
             <TestResults
-              v-if="testResult"
+              v-if="testResult && !isGuest"
               :results="testResult"
               :challenge="conceptContext"
               class="mt-6"

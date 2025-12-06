@@ -4,15 +4,21 @@ import { useRoute, useRouter } from 'vue-router'
 import { marked } from 'marked'
 import { useGameStore } from '@/stores/game'
 import { useGamepadStore } from '@/stores/gamepad'
+import { usePlayerStore } from '@/stores/player'
 import { useGamepadNav } from '@/composables/useGamepadNav'
 import CodeEditor from '@/components/game/CodeEditor.vue'
 import TestResults from '@/components/game/TestResults.vue'
 import EmotionalFeedback from '@/components/input/EmotionalFeedback.vue'
+import { LogIn } from 'lucide-vue-next'
 
 const route = useRoute()
 const router = useRouter()
 const gameStore = useGameStore()
 const gamepadStore = useGamepadStore()
+const playerStore = usePlayerStore()
+
+// Guest mode - user is browsing without logging in
+const isGuest = computed(() => !playerStore.playerId)
 
 // Timer display - updates every second
 const displayedTime = ref(0)
@@ -266,8 +272,9 @@ function advanceStage() {
                 <div v-if="gameStore.isReplayMode" class="px-2 py-0.5 text-xs font-medium bg-accent-primary/20 text-accent-primary border border-accent-primary/30 rounded">
                   🔄 Replay Mode
                 </div>
-                <!-- Timer with tooltip -->
+                <!-- Timer with tooltip (hidden for guests) -->
                 <div
+                  v-if="!isGuest"
                   class="ml-auto timer-display relative"
                   :class="{ 'timer-paused': gameStore.timerPaused }"
                   @mouseenter="showTimerTooltip = true"
@@ -335,8 +342,8 @@ function advanceStage() {
                   : gameStore.currentChallenge.description_brief }}
               </p>
 
-              <!-- Gamepad Controls -->
-              <div v-if="gamepadStore.connected" class="border-t border-oled-border pt-4 mt-4">
+              <!-- Gamepad Controls (hidden for guests) -->
+              <div v-if="gamepadStore.connected && !isGuest" class="border-t border-oled-border pt-4 mt-4">
                 <div class="text-sm text-text-muted mb-2">Controls</div>
                 <div class="grid grid-cols-2 gap-2 text-sm">
                   <div><span class="gamepad-button">X</span> Run Tests</div>
@@ -371,53 +378,78 @@ function advanceStage() {
 
               <!-- Action Buttons -->
               <div class="flex flex-col gap-2 mt-4">
-                <!-- Stage complete: go to feedback then advance to next stage -->
-                <button
-                  v-if="stageComplete && hasNextStage && !challengeComplete"
-                  class="oled-button-success gamepad-focusable animate-pulse"
-                  @click="gameStore.proceedToFeedback"
-                >
-                  ✅ Continue to Stage {{ gameStore.validationResult?.next_stage }}
-                </button>
+                <!-- Guest Mode: Sign in prompt -->
+                <template v-if="isGuest">
+                  <div class="p-4 bg-accent-primary/5 border border-accent-primary/20 rounded-lg">
+                    <div class="flex items-center gap-2 mb-2">
+                      <LogIn :size="18" class="text-accent-primary" />
+                      <span class="font-medium text-text-primary">Want to try this challenge?</span>
+                    </div>
+                    <p class="text-sm text-text-secondary mb-3">
+                      Sign in to run your code, track progress, and earn XP!
+                    </p>
+                    <button
+                      class="oled-button-primary w-full gamepad-focusable"
+                      @click="router.push('/profiles')"
+                    >
+                      Sign In to Start Coding
+                    </button>
+                  </div>
+                  <button class="oled-button gamepad-focusable" @click="requestHint">
+                    💡 Preview a hint
+                  </button>
+                </template>
 
-                <!-- Challenge complete (single-stage or final stage) -->
-                <button
-                  v-else-if="gameStore.validationResult?.success && (!isMultiStage || challengeComplete)"
-                  class="oled-button-success gamepad-focusable"
-                  @click="gameStore.proceedToFeedback"
-                >
-                  ✅ Submit Solution
-                </button>
+                <!-- Logged In: Full action buttons -->
+                <template v-else>
+                  <!-- Stage complete: go to feedback then advance to next stage -->
+                  <button
+                    v-if="stageComplete && hasNextStage && !challengeComplete"
+                    class="oled-button-success gamepad-focusable animate-pulse"
+                    @click="gameStore.proceedToFeedback"
+                  >
+                    ✅ Continue to Stage {{ gameStore.validationResult?.next_stage }}
+                  </button>
 
-                <button
-                  class="oled-button-primary gamepad-focusable"
-                  :disabled="gameStore.isSubmitting"
-                  @click="runTests"
-                >
-                  {{ gameStore.isSubmitting ? '⏳ Running...' : '▶ Run Tests' }}
-                </button>
-                <button class="oled-button gamepad-focusable" @click="requestHint">
-                  💡 Need a hint?
-                </button>
+                  <!-- Challenge complete (single-stage or final stage) -->
+                  <button
+                    v-else-if="gameStore.validationResult?.success && (!isMultiStage || challengeComplete)"
+                    class="oled-button-success gamepad-focusable"
+                    @click="gameStore.proceedToFeedback"
+                  >
+                    ✅ Submit Solution
+                  </button>
 
-                <!-- View Previous Solution (only in replay mode) -->
-                <button
-                  v-if="gameStore.isReplayMode"
-                  class="oled-button gamepad-focusable"
-                  :class="{ 'border-accent-primary text-accent-primary': isViewingPreviousSolution }"
-                  @click="togglePreviousSolution"
-                >
-                  {{ isViewingPreviousSolution ? '📝 Back to Current Work' : '👀 View Previous Solution' }}
-                </button>
+                  <button
+                    class="oled-button-primary gamepad-focusable"
+                    :disabled="gameStore.isSubmitting"
+                    @click="runTests"
+                  >
+                    {{ gameStore.isSubmitting ? '⏳ Running...' : '▶ Run Tests' }}
+                  </button>
+                  <button class="oled-button gamepad-focusable" @click="requestHint">
+                    💡 Need a hint?
+                  </button>
 
-                <!-- Reset button (only show if code differs from skeleton) -->
-                <button
-                  v-if="gameStore.hasSavedCode()"
-                  class="oled-button text-accent-warning gamepad-focusable"
-                  @click="confirmReset"
-                >
-                  🔄 Reset to Start
-                </button>
+                  <!-- View Previous Solution (only in replay mode) -->
+                  <button
+                    v-if="gameStore.isReplayMode"
+                    class="oled-button gamepad-focusable"
+                    :class="{ 'border-accent-primary text-accent-primary': isViewingPreviousSolution }"
+                    @click="togglePreviousSolution"
+                  >
+                    {{ isViewingPreviousSolution ? '📝 Back to Current Work' : '👀 View Previous Solution' }}
+                  </button>
+
+                  <!-- Reset button (only show if code differs from skeleton) -->
+                  <button
+                    v-if="gameStore.hasSavedCode()"
+                    class="oled-button text-accent-warning gamepad-focusable"
+                    @click="confirmReset"
+                  >
+                    🔄 Reset to Start
+                  </button>
+                </template>
               </div>
 
               <!-- Stage completion message -->
@@ -453,19 +485,44 @@ function advanceStage() {
 
           <!-- Code Editor -->
           <div class="lg:col-span-2">
+            <!-- Guest Preview Banner -->
+            <div v-if="isGuest" class="mb-4 p-3 bg-oled-panel border border-oled-border rounded-lg flex items-center gap-3">
+              <div class="text-2xl">👀</div>
+              <div>
+                <div class="text-sm font-medium text-text-primary">Preview Mode</div>
+                <div class="text-xs text-text-muted">Sign in to edit code and run tests</div>
+              </div>
+            </div>
+
             <CodeEditor
               :code="gameStore.code"
-              :readonly="gameStore.phase === 'testing'"
+              :readonly="isGuest || gameStore.phase === 'testing'"
               @update:code="gameStore.updateCode"
             />
 
-            <!-- Test Results -->
+            <!-- Test Results (logged-in users only) -->
             <TestResults
-              v-if="testResultsForDisplay"
+              v-if="testResultsForDisplay && !isGuest"
               :results="testResultsForDisplay"
               :challenge="challengeContext"
               class="mt-6"
             />
+
+            <!-- Sample Output Preview (guests only) -->
+            <div v-if="isGuest" class="mt-6 oled-panel">
+              <div class="flex items-center gap-2 mb-3">
+                <span class="text-lg">📋</span>
+                <span class="font-medium text-text-primary">Sample Output</span>
+                <span class="text-xs text-text-muted ml-auto">What running code looks like</span>
+              </div>
+              <div class="bg-oled-black border border-oled-border rounded-lg p-4 font-mono text-sm">
+                <div class="text-accent-success mb-2">✓ Test 1: Basic functionality... PASSED</div>
+                <div class="text-accent-success mb-2">✓ Test 2: Edge cases... PASSED</div>
+                <div class="text-text-muted text-xs mt-3 pt-3 border-t border-oled-border">
+                  Sign in to run your own code and see real test results!
+                </div>
+              </div>
+            </div>
 
             <!-- Director Intervention & Suggested Lessons -->
             <div

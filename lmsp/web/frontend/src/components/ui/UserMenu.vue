@@ -3,10 +3,8 @@
  * User Menu Component
  * ===================
  *
- * Profile avatar with dropdown menu for:
- * - View Profile
- * - Switch User
- * - Logout
+ * Profile avatar with dropdown menu for logged-in users.
+ * Shows simplified "Guest" display for non-logged-in users.
  */
 
 import { ref, computed, onMounted, onUnmounted } from 'vue'
@@ -14,7 +12,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { usePlayerStore } from '@/stores/player'
 import { api } from '@/api/client'
-import { User, Users, LogOut, Shield } from 'lucide-vue-next'
+import { User, Users, LogOut, Shield, LogIn } from 'lucide-vue-next'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -23,14 +21,23 @@ const playerStore = usePlayerStore()
 const isOpen = ref(false)
 const menuRef = ref<HTMLElement | null>(null)
 
-// Get first letter of display name for avatar
-const avatarLetter = computed(() => {
-  const name = playerStore.displayName || playerStore.playerId || 'U'
-  return name.charAt(0).toUpperCase()
+// Check if user is logged in (has a player ID)
+const isLoggedIn = computed(() => !!playerStore.playerId)
+
+// Display name - "Guest" for non-logged-in users
+const displayName = computed(() => {
+  if (!isLoggedIn.value) return 'Guest'
+  return playerStore.displayName || playerStore.playerId
 })
 
-// Generate a consistent color from the player ID
+// Get first letter of display name for avatar
+const avatarLetter = computed(() => {
+  return displayName.value.charAt(0).toUpperCase()
+})
+
+// Generate a consistent color from the player ID (grey for guests)
 const avatarColor = computed(() => {
+  if (!isLoggedIn.value) return 'hsl(0, 0%, 40%)' // Grey for guests
   const id = playerStore.playerId || 'default'
   let hash = 0
   for (let i = 0; i < id.length; i++) {
@@ -53,9 +60,9 @@ async function checkAdminStatus() {
   }
 
   try {
-    // Try to access admin endpoint - if it works, we're an admin
-    await api.get('/admin/settings')
-    isAdmin.value = true
+    // Try to access admin endpoint - if it succeeds (ok: true), we're an admin
+    const response = await api.get('/admin/settings')
+    isAdmin.value = response.ok
   } catch {
     isAdmin.value = false
   }
@@ -81,6 +88,11 @@ function goToProfile() {
 function goToAdmin() {
   closeMenu()
   router.push('/admin')
+}
+
+function goToProfiles() {
+  closeMenu()
+  router.push('/profiles')
 }
 
 async function switchUser() {
@@ -140,9 +152,11 @@ onUnmounted(() => {
       class="user-avatar gamepad-focusable w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white transition-all hover:ring-2 hover:ring-accent-primary focus:ring-2 focus:ring-accent-primary"
       :style="{ backgroundColor: avatarColor }"
       @click.stop="toggleMenu"
-      :title="playerStore.displayName || playerStore.playerId"
+      :title="displayName"
     >
-      {{ avatarLetter }}
+      <!-- Silhouette icon for guests, letter for logged-in users -->
+      <User v-if="!isLoggedIn" :size="18" class="text-white/70" />
+      <span v-else>{{ avatarLetter }}</span>
     </button>
 
     <!-- Dropdown Menu -->
@@ -154,15 +168,29 @@ onUnmounted(() => {
         <!-- User Info Header -->
         <div class="px-4 py-3 border-b border-oled-border">
           <p class="text-sm font-medium text-white truncate">
-            {{ playerStore.displayName || playerStore.playerId }}
+            {{ displayName }}
           </p>
-          <p v-if="playerStore.displayName && playerStore.playerId !== playerStore.displayName" class="text-xs text-text-muted truncate">
+          <p v-if="isLoggedIn && playerStore.displayName && playerStore.playerId !== playerStore.displayName" class="text-xs text-text-muted truncate">
             {{ playerStore.playerId }}
+          </p>
+          <p v-if="!isLoggedIn" class="text-xs text-text-muted">
+            Not signed in
           </p>
         </div>
 
-        <!-- Menu Items -->
-        <div class="py-1">
+        <!-- Guest Menu Items -->
+        <div v-if="!isLoggedIn" class="py-1">
+          <button
+            class="menu-item gamepad-focusable w-full px-4 py-2 text-left text-sm text-accent-primary hover:text-white hover:bg-oled-border/50 transition-colors flex items-center gap-3"
+            @click="goToProfiles"
+          >
+            <LogIn :size="18" />
+            Sign In
+          </button>
+        </div>
+
+        <!-- Logged-in Menu Items -->
+        <div v-else class="py-1">
           <button
             class="menu-item gamepad-focusable w-full px-4 py-2 text-left text-sm text-text-secondary hover:text-white hover:bg-oled-border/50 transition-colors flex items-center gap-3"
             @click="goToProfile"

@@ -3,7 +3,9 @@
  * ========================
  *
  * SPA routing for LMSP.
- * Includes profile picker as entry point for multi-user support.
+ * - Public routes: accessible without login
+ * - Guest routes: browsable without login (read-only, no code execution)
+ * - Protected routes: require login
  */
 
 import { createRouter, createWebHistory } from 'vue-router'
@@ -21,26 +23,31 @@ const router = createRouter({
       path: '/',
       name: 'home',
       component: () => import('@/views/HomeView.vue'),
+      // Home requires login - guests go to profile picker
     },
     {
       path: '/challenges',
       name: 'challenges',
       component: () => import('@/views/ChallengesView.vue'),
+      meta: { guest: true }, // Guests can browse challenges
     },
     {
       path: '/challenge/:id',
       name: 'challenge',
       component: () => import('@/views/ChallengeView.vue'),
+      meta: { guest: true }, // Guests can view (but not run code)
     },
     {
       path: '/concepts',
       name: 'concepts',
       component: () => import('@/views/ConceptsView.vue'),
+      meta: { guest: true }, // Guests can browse concepts
     },
     {
       path: '/concept/:id',
       name: 'concept',
       component: () => import('@/views/ConceptLessonView.vue'),
+      meta: { guest: true }, // Guests can view lessons
     },
     {
       // Alias: /concepts/foo -> /concept/foo (common typo)
@@ -51,26 +58,31 @@ const router = createRouter({
       path: '/progress',
       name: 'progress',
       component: () => import('@/views/ProgressView.vue'),
+      // Requires login - progress is personal
     },
     {
       path: '/skill-tree',
       name: 'skill-tree',
       component: () => import('@/views/SkillTreeView.vue'),
+      meta: { guest: true }, // Guests can view the skill tree
     },
     {
       path: '/settings/:tab?',
       name: 'settings',
       component: () => import('@/views/SettingsView.vue'),
+      // Requires login - settings are personal
     },
     {
       path: '/achievements',
       name: 'achievements',
       component: () => import('@/views/AchievementsView.vue'),
+      // Requires login - achievements are personal
     },
     {
       path: '/xp-analytics',
       name: 'xp-analytics',
       component: () => import('@/views/XpAnalyticsView.vue'),
+      // Requires login - analytics are personal
     },
     {
       path: '/admin/:tab?',
@@ -81,23 +93,29 @@ const router = createRouter({
   ],
 })
 
-// Navigation guard: redirect to profile picker if no profile selected
+// Navigation guard: handle public, guest, and protected routes
 router.beforeEach((to, _from, next) => {
   const playerId = localStorage.getItem('lmsp_player_id')
 
-  // If going to public route (profile picker), allow
+  // Public routes (profile picker) - always allow
   if (to.meta.public) {
     next()
     return
   }
 
-  // If no profile selected, redirect to profile picker
+  // Guest-accessible routes - allow without login
+  if (to.meta.guest) {
+    next()
+    return
+  }
+
+  // Protected routes - require login
   if (!playerId) {
     next({ name: 'profiles' })
     return
   }
 
-  // Profile selected, continue
+  // Logged in, continue
   next()
 })
 
