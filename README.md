@@ -167,6 +167,15 @@ project_themes = ["api", "database", "game_state"]  # What projects use this?
 
 ## Getting Started
 
+### Prerequisites
+
+**System packages (Debian/Ubuntu):**
+
+```bash
+sudo apt-get update
+sudo apt-get install -y python3-pip python3-venv libglib2.0-0
+```
+
 ### Installation
 
 ```bash
@@ -174,11 +183,29 @@ project_themes = ["api", "database", "game_state"]  # What projects use this?
 git clone <repo-url>
 cd learn-me-some-py
 
-# Install the package in development mode
+# Create virtual environment
+python3 -m venv .venv
+source .venv/bin/activate
+
+# Install with all dependencies (recommended)
+pip install -e ".[dev,multiplayer,web]"
+
+# Or install minimal (core only)
 pip install -e .
 
-# Or install with all development dependencies
-pip install -e ".[dev]"
+# Or install specific extras:
+# pip install -e ".[dev]"         # Development tools (pytest, ruff, mypy)
+# pip install -e ".[multiplayer]" # AI player support (anthropic, websockets)
+# pip install -e ".[web]"         # Web UI (fastapi, uvicorn, jinja2)
+```
+
+### Activating the Environment
+
+Every time you work on LMSP:
+
+```bash
+cd learn-me-some-py
+source .venv/bin/activate
 ```
 
 ### Running LMSP

@@ -198,6 +198,10 @@ def solution(scenario):
         }
 '''
 
+[validation]
+type = "pytest"
+test_file = "test_context_manager.py"
+
 [meta]
 time_limit_seconds = 900   # 15 minutes
 speed_run_target = 300     # 5 minutes
