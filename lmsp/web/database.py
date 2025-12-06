@@ -357,6 +357,42 @@ class LMSPDatabase:
             )
         """)
 
+        # Node settings table (registration mode, etc.)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS node_settings (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+        """)
+
+        # Initialize default settings
+        cursor.execute("""
+            INSERT OR IGNORE INTO node_settings (key, value, updated_at)
+            VALUES ('registration_mode', 'open', datetime('now'))
+        """)
+
+        # Invite codes table
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS invite_codes (
+                code TEXT PRIMARY KEY,
+                created_by TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                expires_at TEXT,
+                max_uses INTEGER DEFAULT 1,
+                uses INTEGER DEFAULT 0,
+                note TEXT,
+                active INTEGER DEFAULT 1,
+                FOREIGN KEY (created_by) REFERENCES players(player_id)
+            )
+        """)
+
+        # Track which invite code was used by each player
+        cursor.execute("PRAGMA table_info(players)")
+        columns = [row[1] for row in cursor.fetchall()]
+        if "invited_by_code" not in columns:
+            cursor.execute("ALTER TABLE players ADD COLUMN invited_by_code TEXT")
+
         # Indexes for common queries
         cursor.execute("""
             CREATE INDEX IF NOT EXISTS idx_lesson_access_player
@@ -1275,6 +1311,306 @@ class LMSPDatabase:
             "has_password": bool(player.password_hash),
             "has_gamepad_combo": bool(player.gamepad_combo),
         }
+
+    # =========================================================================
+    # Admin Operations
+    # =========================================================================
+
+    def is_admin(self, player_id: str) -> bool:
+        """Check if a player is an admin."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT is_admin FROM players WHERE player_id = ?",
+                (player_id,)
+            )
+            row = cursor.fetchone()
+            return bool(row and row["is_admin"])
+
+    def set_admin(self, player_id: str, is_admin: bool) -> bool:
+        """Set or remove admin status for a player."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "UPDATE players SET is_admin = ? WHERE player_id = ?",
+                (1 if is_admin else 0, player_id)
+            )
+            return cursor.rowcount > 0
+
+    def delete_player(self, player_id: str) -> dict:
+        """
+        Delete a player and all their associated data.
+        Returns stats about what was deleted.
+        """
+        stats = {
+            "player": 0,
+            "completions": 0,
+            "mastery": 0,
+            "xp_history": 0,
+            "emotional_feedback": 0,
+            "director_observations": 0,
+            "director_mastery": 0,
+            "director_struggles": 0,
+            "director_state": 0,
+            "lesson_access": 0,
+            "speedrun_runs": 0,
+            "speedrun_splits": 0,
+            "sessions": 0,
+        }
+
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+
+            # Delete from all related tables
+            tables = [
+                "completions",
+                "mastery",
+                "xp_history",
+                "emotional_feedback",
+                "director_observations",
+                "director_mastery",
+                "director_struggles",
+                "director_state",
+                "lesson_access",
+                "sessions",
+            ]
+
+            for table in tables:
+                cursor.execute(
+                    f"DELETE FROM {table} WHERE player_id = ?",
+                    (player_id,)
+                )
+                stats[table] = cursor.rowcount
+
+            # Delete speedrun splits via run_id
+            cursor.execute(
+                """DELETE FROM speedrun_splits
+                   WHERE run_id IN (SELECT run_id FROM speedrun_runs WHERE player_id = ?)""",
+                (player_id,)
+            )
+            stats["speedrun_splits"] = cursor.rowcount
+
+            # Delete speedrun runs
+            cursor.execute(
+                "DELETE FROM speedrun_runs WHERE player_id = ?",
+                (player_id,)
+            )
+            stats["speedrun_runs"] = cursor.rowcount
+
+            # Finally delete the player
+            cursor.execute(
+                "DELETE FROM players WHERE player_id = ?",
+                (player_id,)
+            )
+            stats["player"] = cursor.rowcount
+
+        return stats
+
+    def get_node_stats(self) -> dict:
+        """Get aggregate statistics across all players on this node."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+
+            # Player counts
+            cursor.execute("SELECT COUNT(*) as total FROM players")
+            total_players = cursor.fetchone()["total"]
+
+            cursor.execute(
+                "SELECT COUNT(*) as active FROM players WHERE last_active > datetime('now', '-7 days')"
+            )
+            active_players = cursor.fetchone()["active"]
+
+            cursor.execute("SELECT SUM(total_xp) as total_xp FROM players")
+            total_xp = cursor.fetchone()["total_xp"] or 0
+
+            # Challenge stats
+            cursor.execute(
+                "SELECT COUNT(*) as total, SUM(count) as attempts FROM completions"
+            )
+            row = cursor.fetchone()
+            unique_completions = row["total"] or 0
+            total_attempts = row["attempts"] or 0
+
+            # Director stats
+            cursor.execute(
+                "SELECT COUNT(*) as total FROM director_observations"
+            )
+            total_observations = cursor.fetchone()["total"]
+
+            # Session stats
+            cursor.execute(
+                "SELECT COUNT(*) as total FROM sessions WHERE expires_at > datetime('now')"
+            )
+            active_sessions = cursor.fetchone()["total"]
+
+            # Top players by XP
+            cursor.execute(
+                """SELECT player_id, display_name, total_xp
+                   FROM players ORDER BY total_xp DESC LIMIT 10"""
+            )
+            top_players = [
+                {
+                    "player_id": row["player_id"],
+                    "display_name": row["display_name"],
+                    "total_xp": row["total_xp"],
+                    "level": calculate_level(row["total_xp"]),
+                }
+                for row in cursor.fetchall()
+            ]
+
+            return {
+                "total_players": total_players,
+                "active_players_7d": active_players,
+                "total_xp": total_xp,
+                "unique_completions": unique_completions,
+                "total_attempts": total_attempts,
+                "total_observations": total_observations,
+                "active_sessions": active_sessions,
+                "top_players": top_players,
+            }
+
+    # =========================================================================
+    # Settings & Invite Codes
+    # =========================================================================
+
+    def get_setting(self, key: str, default: str = "") -> str:
+        """Get a node setting value."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT value FROM node_settings WHERE key = ?",
+                (key,)
+            )
+            row = cursor.fetchone()
+            return row["value"] if row else default
+
+    def set_setting(self, key: str, value: str) -> bool:
+        """Set a node setting value."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """INSERT INTO node_settings (key, value, updated_at)
+                   VALUES (?, ?, datetime('now'))
+                   ON CONFLICT(key) DO UPDATE SET value = ?, updated_at = datetime('now')""",
+                (key, value, value)
+            )
+            return True
+
+    def get_registration_mode(self) -> str:
+        """Get registration mode: 'open', 'invite_only', or 'closed'."""
+        return self.get_setting("registration_mode", "open")
+
+    def set_registration_mode(self, mode: str) -> bool:
+        """Set registration mode."""
+        if mode not in ("open", "invite_only", "closed"):
+            raise ValueError(f"Invalid registration mode: {mode}")
+        return self.set_setting("registration_mode", mode)
+
+    def create_invite_code(
+        self,
+        created_by: str,
+        max_uses: int = 1,
+        expires_days: Optional[int] = None,
+        note: str = ""
+    ) -> str:
+        """Create a new invite code."""
+        code = secrets.token_urlsafe(8)  # Short, URL-safe code
+        now = datetime.now()
+        expires_at = None
+        if expires_days:
+            expires_at = (now + timedelta(days=expires_days)).isoformat()
+
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """INSERT INTO invite_codes
+                   (code, created_by, created_at, expires_at, max_uses, note)
+                   VALUES (?, ?, ?, ?, ?, ?)""",
+                (code, created_by, now.isoformat(), expires_at, max_uses, note)
+            )
+        return code
+
+    def list_invite_codes(self, include_inactive: bool = False) -> list[dict]:
+        """List all invite codes."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            if include_inactive:
+                cursor.execute(
+                    "SELECT * FROM invite_codes ORDER BY created_at DESC"
+                )
+            else:
+                cursor.execute(
+                    """SELECT * FROM invite_codes
+                       WHERE active = 1 AND (expires_at IS NULL OR expires_at > datetime('now'))
+                       ORDER BY created_at DESC"""
+                )
+            return [
+                {
+                    "code": row["code"],
+                    "created_by": row["created_by"],
+                    "created_at": row["created_at"],
+                    "expires_at": row["expires_at"],
+                    "max_uses": row["max_uses"],
+                    "uses": row["uses"],
+                    "note": row["note"],
+                    "active": bool(row["active"]),
+                }
+                for row in cursor.fetchall()
+            ]
+
+    def validate_invite_code(self, code: str) -> tuple[bool, str]:
+        """
+        Validate an invite code.
+        Returns (is_valid, error_message).
+        """
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT * FROM invite_codes WHERE code = ?",
+                (code,)
+            )
+            row = cursor.fetchone()
+
+            if not row:
+                return False, "Invalid invite code"
+            if not row["active"]:
+                return False, "Invite code has been deactivated"
+            if row["expires_at"] and datetime.fromisoformat(row["expires_at"]) < datetime.now():
+                return False, "Invite code has expired"
+            if row["uses"] >= row["max_uses"]:
+                return False, "Invite code has reached maximum uses"
+
+            return True, ""
+
+    def use_invite_code(self, code: str, player_id: str) -> bool:
+        """Mark an invite code as used by a player."""
+        valid, _ = self.validate_invite_code(code)
+        if not valid:
+            return False
+
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            # Increment uses
+            cursor.execute(
+                "UPDATE invite_codes SET uses = uses + 1 WHERE code = ?",
+                (code,)
+            )
+            # Record which code the player used
+            cursor.execute(
+                "UPDATE players SET invited_by_code = ? WHERE player_id = ?",
+                (code, player_id)
+            )
+            return True
+
+    def deactivate_invite_code(self, code: str) -> bool:
+        """Deactivate an invite code."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "UPDATE invite_codes SET active = 0 WHERE code = ?",
+                (code,)
+            )
+            return cursor.rowcount > 0
 
     # =========================================================================
     # The Director - Adaptive AI Persistence

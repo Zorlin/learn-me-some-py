@@ -13,7 +13,8 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { usePlayerStore } from '@/stores/player'
-import { User, Users, LogOut } from 'lucide-vue-next'
+import { api } from '@/api/client'
+import { User, Users, LogOut, Shield } from 'lucide-vue-next'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -39,6 +40,19 @@ const avatarColor = computed(() => {
   return `hsl(${hue}, 70%, 50%)`
 })
 
+// Admin status
+const isAdmin = ref(false)
+
+async function checkAdminStatus() {
+  try {
+    // Try to access admin endpoint - if it works, we're an admin
+    await api.get('/admin/settings')
+    isAdmin.value = true
+  } catch {
+    isAdmin.value = false
+  }
+}
+
 function toggleMenu() {
   isOpen.value = !isOpen.value
 }
@@ -50,6 +64,11 @@ function closeMenu() {
 function goToProfile() {
   closeMenu()
   router.push('/settings/profile')
+}
+
+function goToAdmin() {
+  closeMenu()
+  router.push('/admin')
 }
 
 function switchUser() {
@@ -84,6 +103,7 @@ function handleKeydown(event: KeyboardEvent) {
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
   document.addEventListener('keydown', handleKeydown)
+  checkAdminStatus()
 })
 
 onUnmounted(() => {
@@ -128,6 +148,16 @@ onUnmounted(() => {
           >
             <User :size="18" />
             Profile
+          </button>
+
+          <!-- Admin link (only shown for admins) -->
+          <button
+            v-if="isAdmin"
+            class="menu-item gamepad-focusable w-full px-4 py-2 text-left text-sm text-accent-primary hover:text-accent-primary hover:bg-oled-border/50 transition-colors flex items-center gap-3"
+            @click="goToAdmin"
+          >
+            <Shield :size="18" />
+            Admin Panel
           </button>
 
           <button

@@ -72,6 +72,12 @@ const router = createRouter({
       name: 'xp-analytics',
       component: () => import('@/views/XpAnalyticsView.vue'),
     },
+    {
+      path: '/admin/:tab?',
+      name: 'admin',
+      component: () => import('@/views/AdminView.vue'),
+      meta: { requiresAdmin: true },
+    },
   ],
 })
 

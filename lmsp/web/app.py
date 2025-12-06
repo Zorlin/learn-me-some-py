@@ -2731,6 +2731,240 @@ async def logout(request: Request):
 
 
 # ============================================================================
+# Admin API Endpoints
+# ============================================================================
+
+
+def require_admin(player_id: str = Depends(get_current_player)) -> str:
+    """Dependency that requires the current user to be an admin."""
+    db = get_database()
+    if not db.is_admin(player_id):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return player_id
+
+
+@app.get("/api/admin/users")
+async def admin_list_users(admin_id: str = Depends(require_admin)):
+    """List all users with their stats (admin only)."""
+    db = get_database()
+    players = db.list_players()
+
+    # Enrich with stats for each player
+    users = []
+    for player in players:
+        player_id = player["player_id"]
+        completions = db.get_completions(player_id)
+        xp = db.get_player_xp(player_id)
+
+        users.append({
+            "player_id": player_id,
+            "display_name": player.get("display_name"),
+            "created_at": player.get("created_at"),
+            "is_admin": db.is_admin(player_id),
+            "has_password": player.get("has_password", False),
+            "has_gamepad_combo": player.get("has_gamepad_combo", False),
+            "total_xp": xp,
+            "challenges_completed": len(completions),
+            "invited_by_code": player.get("invited_by_code"),
+        })
+
+    return JSONResponse({"users": users})
+
+
+@app.get("/api/admin/users/{player_id}")
+async def admin_get_user(player_id: str, admin_id: str = Depends(require_admin)):
+    """Get detailed info for a specific user (admin only)."""
+    db = get_database()
+    players = db.list_players()
+
+    # Find the player
+    player = next((p for p in players if p["player_id"] == player_id), None)
+    if not player:
+        raise HTTPException(status_code=404, detail=f"Player '{player_id}' not found")
+
+    completions = db.get_completions(player_id)
+    xp = db.get_player_xp(player_id)
+
+    return JSONResponse({
+        "player_id": player_id,
+        "display_name": player.get("display_name"),
+        "created_at": player.get("created_at"),
+        "is_admin": db.is_admin(player_id),
+        "has_password": player.get("has_password", False),
+        "has_gamepad_combo": player.get("has_gamepad_combo", False),
+        "total_xp": xp,
+        "challenges_completed": len(completions),
+        "invited_by_code": player.get("invited_by_code"),
+    })
+
+
+@app.put("/api/admin/users/{player_id}")
+async def admin_update_user(player_id: str, request: Request, admin_id: str = Depends(require_admin)):
+    """Update a user's properties (admin only)."""
+    data = await request.json()
+    db = get_database()
+
+    # Check player exists
+    players = db.list_players()
+    player = next((p for p in players if p["player_id"] == player_id), None)
+    if not player:
+        raise HTTPException(status_code=404, detail=f"Player '{player_id}' not found")
+
+    # Update display name if provided
+    if "display_name" in data:
+        db.set_display_name(player_id, data["display_name"])
+
+    # Update admin status if provided
+    if "is_admin" in data:
+        # Prevent removing your own admin status
+        if player_id == admin_id and not data["is_admin"]:
+            raise HTTPException(status_code=400, detail="Cannot remove your own admin status")
+        db.set_admin(player_id, data["is_admin"])
+
+    return JSONResponse({
+        "success": True,
+        "message": f"User '{player_id}' updated",
+    })
+
+
+@app.delete("/api/admin/users/{player_id}")
+async def admin_delete_user(player_id: str, admin_id: str = Depends(require_admin)):
+    """Delete a user and all their data (admin only)."""
+    db = get_database()
+
+    # Prevent self-deletion
+    if player_id == admin_id:
+        raise HTTPException(status_code=400, detail="Cannot delete yourself")
+
+    # Check player exists
+    players = db.list_players()
+    player = next((p for p in players if p["player_id"] == player_id), None)
+    if not player:
+        raise HTTPException(status_code=404, detail=f"Player '{player_id}' not found")
+
+    result = db.delete_player(player_id)
+
+    return JSONResponse({
+        "success": result["success"],
+        "message": f"Deleted player '{player_id}' and {result['deleted_completions']} completions, {result['deleted_xp_events']} XP events",
+        "deleted": result,
+    })
+
+
+@app.get("/api/admin/stats")
+async def admin_get_stats(admin_id: str = Depends(require_admin)):
+    """Get node-wide statistics (admin only)."""
+    db = get_database()
+    stats = db.get_node_stats()
+    return JSONResponse(stats)
+
+
+@app.get("/api/admin/settings")
+async def admin_get_settings(admin_id: str = Depends(require_admin)):
+    """Get node settings (admin only)."""
+    db = get_database()
+    return JSONResponse({
+        "registration_mode": db.get_registration_mode(),
+    })
+
+
+@app.put("/api/admin/settings")
+async def admin_update_settings(request: Request, admin_id: str = Depends(require_admin)):
+    """Update node settings (admin only)."""
+    data = await request.json()
+    db = get_database()
+
+    if "registration_mode" in data:
+        mode = data["registration_mode"]
+        if mode not in ("open", "invite_only", "closed"):
+            raise HTTPException(status_code=400, detail="Invalid registration mode. Must be 'open', 'invite_only', or 'closed'")
+        db.set_registration_mode(mode)
+
+    return JSONResponse({
+        "success": True,
+        "message": "Settings updated",
+    })
+
+
+@app.get("/api/admin/invites")
+async def admin_list_invites(admin_id: str = Depends(require_admin), include_inactive: bool = False):
+    """List all invite codes (admin only)."""
+    db = get_database()
+    invites = db.list_invite_codes(include_inactive=include_inactive)
+    return JSONResponse({"invites": invites})
+
+
+@app.post("/api/admin/invites")
+async def admin_create_invite(request: Request, admin_id: str = Depends(require_admin)):
+    """Create a new invite code (admin only)."""
+    data = await request.json()
+    db = get_database()
+
+    max_uses = data.get("max_uses", 1)
+    expires_in_days = data.get("expires_in_days")
+    note = data.get("note")
+
+    code = db.create_invite_code(
+        created_by=admin_id,
+        max_uses=max_uses,
+        expires_in_days=expires_in_days,
+        note=note,
+    )
+
+    return JSONResponse({
+        "success": True,
+        "code": code,
+        "message": f"Invite code created: {code}",
+    })
+
+
+@app.delete("/api/admin/invites/{code}")
+async def admin_deactivate_invite(code: str, admin_id: str = Depends(require_admin)):
+    """Deactivate an invite code (admin only)."""
+    db = get_database()
+
+    success = db.deactivate_invite_code(code)
+    if not success:
+        raise HTTPException(status_code=404, detail=f"Invite code '{code}' not found")
+
+    return JSONResponse({
+        "success": True,
+        "message": f"Invite code '{code}' deactivated",
+    })
+
+
+# Public endpoint for checking registration mode (needed before login)
+@app.get("/api/registration-mode")
+async def get_registration_mode():
+    """Get registration mode (public - needed for signup flow)."""
+    db = get_database()
+    return JSONResponse({
+        "mode": db.get_registration_mode(),
+    })
+
+
+@app.post("/api/validate-invite")
+async def validate_invite_code(request: Request):
+    """Validate an invite code (public - needed for signup flow)."""
+    data = await request.json()
+    code = data.get("code")
+
+    if not code:
+        return JSONResponse({
+            "valid": False,
+            "message": "No invite code provided",
+        }, status_code=400)
+
+    db = get_database()
+    valid, message = db.validate_invite_code(code)
+
+    return JSONResponse({
+        "valid": valid,
+        "message": message,
+    })
+
+
+# ============================================================================
 # Static File Serving - Vue.js SPA
 # ============================================================================
 
