@@ -13,8 +13,32 @@
 import { ref, onMounted, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useGamepadNav } from '@/composables/useGamepadNav'
+import { useAuthStore } from '@/stores/auth'
 import { api } from '@/api/client'
-import { Users, BarChart3, Settings, Ticket, Trash2, Shield, ShieldOff, Copy, Check, X } from 'lucide-vue-next'
+import { Users, BarChart3, Settings, Ticket, Trash2, Shield, ShieldOff, Copy, Check, X, AlertCircle, CheckCircle } from 'lucide-vue-next'
+
+const authStore = useAuthStore()
+
+// Toast notification system
+interface Toast {
+  id: number
+  type: 'success' | 'error'
+  message: string
+}
+const toasts = ref<Toast[]>([])
+let toastId = 0
+
+function showToast(type: 'success' | 'error', message: string) {
+  const id = ++toastId
+  toasts.value.push({ id, type, message })
+  setTimeout(() => {
+    toasts.value = toasts.value.filter(t => t.id !== id)
+  }, 4000)
+}
+
+function dismissToast(id: number) {
+  toasts.value = toasts.value.filter(t => t.id !== id)
+}
 
 const router = useRouter()
 const route = useRoute()
@@ -131,10 +155,16 @@ async function saveUser() {
       display_name: editDisplayName.value || null,
       is_admin: editIsAdmin.value,
     })
+    showToast('success', `Updated ${editingUser.value.player_id}`)
     editingUser.value = null
     await fetchUsers()
   } catch (e: any) {
-    alert(e.response?.data?.detail || 'Failed to save user')
+    const detail = e.response?.data?.detail
+    if (detail) {
+      showToast('error', detail)
+    } else {
+      showToast('error', 'Failed to save user. Check your connection.')
+    }
   } finally {
     saving.value = false
   }
@@ -144,10 +174,16 @@ async function deleteUser(playerId: string) {
   deleting.value = true
   try {
     await api.delete(`/admin/users/${playerId}`)
+    showToast('success', `Deleted user ${playerId}`)
     deleteConfirm.value = null
     await fetchUsers()
   } catch (e: any) {
-    alert(e.response?.data?.detail || 'Failed to delete user')
+    const detail = e.response?.data?.detail
+    if (detail) {
+      showToast('error', detail)
+    } else {
+      showToast('error', 'Failed to delete user. Check your connection.')
+    }
   } finally {
     deleting.value = false
   }
@@ -163,6 +199,7 @@ interface NodeStats {
   total_xp_earned: number
   players_with_password: number
   players_with_gamepad: number
+  players_secured: number  // Has password OR gamepad (no double-counting)
   challenges_completed_last_7_days: number
   active_players_last_7_days: number
 }
@@ -211,8 +248,14 @@ async function saveRegistrationMode(mode: RegistrationMode) {
   try {
     await api.put('/admin/settings', { registration_mode: mode })
     registrationMode.value = mode
+    showToast('success', `Registration mode set to ${mode.replace('_', ' ')}`)
   } catch (e: any) {
-    alert(e.response?.data?.detail || 'Failed to save settings')
+    const detail = e.response?.data?.detail
+    if (detail) {
+      showToast('error', detail)
+    } else {
+      showToast('error', 'Failed to save settings. Check your connection.')
+    }
   } finally {
     settingsSaving.value = false
   }
@@ -263,7 +306,7 @@ async function createInvite() {
   try {
     const response = await api.post<{ code: string }>('/admin/invites', {
       max_uses: newInviteMaxUses.value,
-      expires_in_days: newInviteExpiresDays.value,
+      expires_in_days: newInviteExpiresDays.value || null,
       note: newInviteNote.value || null,
     })
     // Reset form
@@ -272,10 +315,19 @@ async function createInvite() {
     newInviteNote.value = ''
     // Copy to clipboard
     await copyToClipboard(response.data.code)
+    showToast('success', `Invite code ${response.data.code} created and copied!`)
     // Refresh list
     await fetchInvites()
   } catch (e: any) {
-    alert(e.response?.data?.detail || 'Failed to create invite')
+    console.error('Create invite error:', e)
+    const detail = e.response?.data?.detail
+    if (detail) {
+      showToast('error', detail)
+    } else if (e.response?.status === 403) {
+      showToast('error', 'Admin access required to create invites')
+    } else {
+      showToast('error', 'Failed to create invite. Check your connection.')
+    }
   } finally {
     creatingInvite.value = false
   }
@@ -284,9 +336,15 @@ async function createInvite() {
 async function deactivateInvite(code: string) {
   try {
     await api.delete(`/admin/invites/${code}`)
+    showToast('success', `Invite code ${code} deactivated`)
     await fetchInvites()
   } catch (e: any) {
-    alert(e.response?.data?.detail || 'Failed to deactivate invite')
+    const detail = e.response?.data?.detail
+    if (detail) {
+      showToast('error', detail)
+    } else {
+      showToast('error', 'Failed to deactivate invite. Check your connection.')
+    }
   }
 }
 
@@ -350,9 +408,8 @@ onMounted(() => {
 // Computed stats
 const securityRate = computed(() => {
   if (!stats.value || stats.value.total_players === 0) return 0
-  return Math.round(
-    ((stats.value.players_with_password + stats.value.players_with_gamepad) / stats.value.total_players) * 100
-  )
+  // Use players_secured (has password OR gamepad) - no double-counting
+  return Math.round((stats.value.players_secured / stats.value.total_players) * 100)
 })
 </script>
 
@@ -660,14 +717,22 @@ const securityRate = computed(() => {
                 />
               </div>
               <div>
-                <label class="text-sm text-text-muted block mb-2">Expires In (days)</label>
-                <input
-                  v-model.number="newInviteExpiresDays"
-                  type="number"
-                  min="1"
-                  placeholder="Never"
-                  class="w-full px-4 py-2 bg-oled-black border border-oled-border rounded-lg text-text-primary placeholder-text-muted focus:border-accent-primary focus:outline-none"
-                />
+                <label class="text-sm text-text-muted block mb-2">Expires in</label>
+                <div class="relative">
+                  <input
+                    v-model.number="newInviteExpiresDays"
+                    type="number"
+                    min="1"
+                    placeholder="never"
+                    class="w-full px-4 py-2 pr-14 bg-oled-black border border-oled-border rounded-lg text-text-primary placeholder-text-muted focus:border-accent-primary focus:outline-none"
+                  />
+                  <span
+                    v-if="newInviteExpiresDays"
+                    class="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none"
+                  >
+                    days
+                  </span>
+                </div>
               </div>
               <div>
                 <label class="text-sm text-text-muted block mb-2">Note (optional)</label>
@@ -768,6 +833,33 @@ const securityRate = computed(() => {
 
       </div>
     </main>
+
+    <!-- Toast Notifications -->
+    <Teleport to="body">
+      <div class="fixed top-4 right-4 z-[100] flex flex-col gap-2 max-w-sm">
+        <TransitionGroup name="toast">
+          <div
+            v-for="toast in toasts"
+            :key="toast.id"
+            class="flex items-center gap-3 px-4 py-3 rounded-lg shadow-xl border backdrop-blur-sm"
+            :class="{
+              'bg-accent-success/10 border-accent-success/30 text-accent-success': toast.type === 'success',
+              'bg-red-500/10 border-red-500/30 text-red-400': toast.type === 'error'
+            }"
+          >
+            <CheckCircle v-if="toast.type === 'success'" :size="20" />
+            <AlertCircle v-else :size="20" />
+            <span class="flex-1 text-sm">{{ toast.message }}</span>
+            <button
+              class="p-1 hover:opacity-70 transition-opacity"
+              @click="dismissToast(toast.id)"
+            >
+              <X :size="16" />
+            </button>
+          </div>
+        </TransitionGroup>
+      </div>
+    </Teleport>
 
     <!-- Edit User Modal -->
     <Teleport to="body">
@@ -876,5 +968,25 @@ const securityRate = computed(() => {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* Toast transitions */
+.toast-enter-active,
+.toast-leave-active {
+  transition: all 0.3s ease;
+}
+
+.toast-enter-from {
+  opacity: 0;
+  transform: translateX(100%);
+}
+
+.toast-leave-to {
+  opacity: 0;
+  transform: translateX(100%);
+}
+
+.toast-move {
+  transition: transform 0.3s ease;
 }
 </style>
