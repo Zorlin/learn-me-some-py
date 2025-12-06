@@ -11,19 +11,28 @@
 import { onMounted, onUnmounted, ref } from 'vue'
 import { useGamepadStore } from '@/stores/gamepad'
 import { useSearchStore } from '@/stores/search'
-import GamepadStatus from '@/components/input/GamepadStatus.vue'
+import { usePlayerStore } from '@/stores/player'
+import { useAuthStore } from '@/stores/auth'
+import UserMenu from '@/components/ui/UserMenu.vue'
 import AchievementPopup from '@/components/progress/AchievementPopup.vue'
 import GamepadOverlay from '@/components/ui/GamepadOverlay.vue'
 import SearchOverlay from '@/components/ui/SearchOverlay.vue'
 
 const gamepadStore = useGamepadStore()
 const searchStore = useSearchStore()
+const playerStore = usePlayerStore()
+const authStore = useAuthStore()
 const showAchievement = ref(false)
 const currentAchievement = ref<{name: string, description: string, tier: string} | null>(null)
 
-// Listen for gamepad connections
+// Listen for gamepad connections and load player profile
 onMounted(() => {
   gamepadStore.startPolling()
+
+  // Load player profile if we have a player ID
+  if (authStore.playerId) {
+    playerStore.loadProfile()
+  }
 
   // Listen for achievement events
   window.addEventListener('lmsp:achievement', handleAchievement as EventListener)
@@ -102,7 +111,7 @@ function handleAchievement(event: CustomEvent) {
           >
             🔍
           </button>
-          <GamepadStatus />
+          <UserMenu />
         </nav>
       </div>
     </header>
