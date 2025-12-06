@@ -892,6 +892,7 @@ class LMSPDatabase:
         credential_id: str,
         public_key: str,
         name: str,
+        user_handle: str,  # Base64 encoded user ID for discoverable credentials
         sign_count: int = 0
     ) -> bool:
         """Add a passkey credential for the player."""
@@ -906,6 +907,7 @@ class LMSPDatabase:
             "credential_id": credential_id,
             "public_key": public_key,
             "name": name,
+            "user_handle": user_handle,  # For discoverable credential lookup
             "sign_count": sign_count,
             "created_at": datetime.now().isoformat(),
         })
@@ -950,6 +952,24 @@ class LMSPDatabase:
                 for pk in passkeys:
                     if pk["credential_id"] == credential_id:
                         return (row["player_id"], pk)
+
+            return None
+
+    def get_player_by_user_handle(self, user_handle: str) -> Optional[str]:
+        """Find a player by their WebAuthn user handle.
+
+        Used for discoverable credentials where the authenticator returns the user handle.
+        Returns player_id or None.
+        """
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT player_id, passkeys FROM players WHERE passkeys IS NOT NULL")
+
+            for row in cursor.fetchall():
+                passkeys = json.loads(row["passkeys"])
+                for pk in passkeys:
+                    if pk.get("user_handle") == user_handle:
+                        return row["player_id"]
 
             return None
 
