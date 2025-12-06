@@ -20,6 +20,7 @@
     "chartjs-plugin-zoom": "^2.2.0",
     "date-fns": "^4.1.0",
     "flexsearch": "^0.8.212",
+    "lucide-vue-next": "^0.556.0",
     "marked": "^17.0.1",
     "pinia": "^2.1.7",
     "prismjs": "^1.30.0",

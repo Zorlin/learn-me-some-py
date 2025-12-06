@@ -13,6 +13,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { usePlayerStore } from '@/stores/player'
+import { User, Users, LogOut } from 'lucide-vue-next'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -125,7 +126,7 @@ onUnmounted(() => {
             class="menu-item gamepad-focusable w-full px-4 py-2 text-left text-sm text-text-secondary hover:text-white hover:bg-oled-border/50 transition-colors flex items-center gap-3"
             @click="goToProfile"
           >
-            <span class="text-base">👤</span>
+            <User :size="18" />
             Profile
           </button>
 
@@ -133,7 +134,7 @@ onUnmounted(() => {
             class="menu-item gamepad-focusable w-full px-4 py-2 text-left text-sm text-text-secondary hover:text-white hover:bg-oled-border/50 transition-colors flex items-center gap-3"
             @click="switchUser"
           >
-            <span class="text-base">🔄</span>
+            <Users :size="18" />
             Switch User
           </button>
 
@@ -143,7 +144,7 @@ onUnmounted(() => {
             class="menu-item gamepad-focusable w-full px-4 py-2 text-left text-sm text-red-400 hover:text-red-300 hover:bg-oled-border/50 transition-colors flex items-center gap-3"
             @click="logout"
           >
-            <span class="text-base">🚪</span>
+            <LogOut :size="18" />
             Logout
           </button>
         </div>
