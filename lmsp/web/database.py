@@ -70,6 +70,11 @@ class PlayerData:
     last_active: str = ""
     gamepad_combo: Optional[str] = None  # JSON-encoded combo sequence
     is_admin: bool = False  # First created player is admin
+    # Privacy settings
+    hide_from_leaderboards: bool = False
+    hide_from_picker: bool = False
+    # Passkey/WebAuthn support (JSON-encoded list of credentials)
+    passkeys: Optional[str] = None
 
 
 @dataclass
@@ -161,6 +166,16 @@ class LMSPDatabase:
                     SELECT player_id FROM players ORDER BY created_at ASC LIMIT 1
                 )
             """)
+
+        # Migration: Add privacy columns if they don't exist
+        if "hide_from_leaderboards" not in columns:
+            cursor.execute("ALTER TABLE players ADD COLUMN hide_from_leaderboards INTEGER DEFAULT 0")
+        if "hide_from_picker" not in columns:
+            cursor.execute("ALTER TABLE players ADD COLUMN hide_from_picker INTEGER DEFAULT 0")
+
+        # Migration: Add passkeys column if it doesn't exist
+        if "passkeys" not in columns:
+            cursor.execute("ALTER TABLE players ADD COLUMN passkeys TEXT")
 
         # Completions table
         cursor.execute("""
@@ -530,18 +545,29 @@ class LMSPDatabase:
             )
             return cursor.fetchone()["total_xp"]
 
-    def list_players(self) -> list[dict]:
-        """List all players with basic profile info for the profile picker."""
+    def list_players(self, include_hidden: bool = False) -> list[dict]:
+        """List all players with basic profile info for the profile picker.
+
+        Args:
+            include_hidden: If True, includes players who have hide_from_picker enabled.
+                           Set to True for admin views, False for public profile picker.
+        """
         with self._get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("""
+            query = """
                 SELECT player_id, display_name, total_xp, created_at, last_active,
                        password_hash IS NOT NULL as has_password,
                        gamepad_combo IS NOT NULL as has_gamepad_combo,
-                       COALESCE(is_admin, 0) as is_admin
+                       passkeys IS NOT NULL as has_passkey,
+                       COALESCE(is_admin, 0) as is_admin,
+                       COALESCE(hide_from_picker, 0) as hide_from_picker
                 FROM players
-                ORDER BY last_active DESC
-            """)
+            """
+            if not include_hidden:
+                query += " WHERE COALESCE(hide_from_picker, 0) = 0"
+            query += " ORDER BY last_active DESC"
+
+            cursor.execute(query)
             rows = cursor.fetchall()
             return [
                 {
@@ -553,7 +579,9 @@ class LMSPDatabase:
                     "last_active": row["last_active"],
                     "has_password": bool(row["has_password"]),
                     "has_gamepad_combo": bool(row["has_gamepad_combo"]),
+                    "has_passkey": bool(row["has_passkey"]),
                     "is_admin": bool(row["is_admin"]),
+                    "hide_from_picker": bool(row["hide_from_picker"]),
                 }
                 for row in rows
             ]
@@ -799,6 +827,155 @@ class LMSPDatabase:
             return False
 
         return entered_combo == stored_combo
+
+    # =========================================================================
+    # Privacy Settings
+    # =========================================================================
+
+    def get_privacy_settings(self, player_id: str) -> dict:
+        """Get player privacy settings."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT hide_from_leaderboards, hide_from_picker FROM players WHERE player_id = ?",
+                (player_id,)
+            )
+            row = cursor.fetchone()
+
+            if not row:
+                return {"hide_from_leaderboards": False, "hide_from_picker": False}
+
+            return {
+                "hide_from_leaderboards": bool(row["hide_from_leaderboards"]),
+                "hide_from_picker": bool(row["hide_from_picker"]),
+            }
+
+    def set_privacy_settings(
+        self,
+        player_id: str,
+        hide_from_leaderboards: bool,
+        hide_from_picker: bool
+    ) -> bool:
+        """Set player privacy settings."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """UPDATE players
+                   SET hide_from_leaderboards = ?, hide_from_picker = ?
+                   WHERE player_id = ?""",
+                (int(hide_from_leaderboards), int(hide_from_picker), player_id)
+            )
+            return True
+
+    # =========================================================================
+    # Passkey / WebAuthn Support
+    # =========================================================================
+
+    def get_passkeys(self, player_id: str) -> list[dict]:
+        """Get player's registered passkeys."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT passkeys FROM players WHERE player_id = ?",
+                (player_id,)
+            )
+            row = cursor.fetchone()
+
+            if not row or not row["passkeys"]:
+                return []
+
+            return json.loads(row["passkeys"])
+
+    def add_passkey(
+        self,
+        player_id: str,
+        credential_id: str,
+        public_key: str,
+        name: str,
+        sign_count: int = 0
+    ) -> bool:
+        """Add a passkey credential for the player."""
+        passkeys = self.get_passkeys(player_id)
+
+        # Check for duplicate
+        for pk in passkeys:
+            if pk["credential_id"] == credential_id:
+                return False  # Already exists
+
+        passkeys.append({
+            "credential_id": credential_id,
+            "public_key": public_key,
+            "name": name,
+            "sign_count": sign_count,
+            "created_at": datetime.now().isoformat(),
+        })
+
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "UPDATE players SET passkeys = ? WHERE player_id = ?",
+                (json.dumps(passkeys), player_id)
+            )
+            return True
+
+    def remove_passkey(self, player_id: str, credential_id: str) -> bool:
+        """Remove a passkey credential."""
+        passkeys = self.get_passkeys(player_id)
+        original_count = len(passkeys)
+
+        passkeys = [pk for pk in passkeys if pk["credential_id"] != credential_id]
+
+        if len(passkeys) == original_count:
+            return False  # Not found
+
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "UPDATE players SET passkeys = ? WHERE player_id = ?",
+                (json.dumps(passkeys), player_id)
+            )
+            return True
+
+    def get_passkey_by_credential_id(self, credential_id: str) -> Optional[tuple[str, dict]]:
+        """Find a passkey by credential ID across all players.
+
+        Returns (player_id, passkey_data) or None.
+        """
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT player_id, passkeys FROM players WHERE passkeys IS NOT NULL")
+
+            for row in cursor.fetchall():
+                passkeys = json.loads(row["passkeys"])
+                for pk in passkeys:
+                    if pk["credential_id"] == credential_id:
+                        return (row["player_id"], pk)
+
+            return None
+
+    def update_passkey_sign_count(self, player_id: str, credential_id: str, sign_count: int) -> bool:
+        """Update the sign count for a passkey (anti-replay protection)."""
+        passkeys = self.get_passkeys(player_id)
+
+        for pk in passkeys:
+            if pk["credential_id"] == credential_id:
+                pk["sign_count"] = sign_count
+                break
+        else:
+            return False
+
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "UPDATE players SET passkeys = ? WHERE player_id = ?",
+                (json.dumps(passkeys), player_id)
+            )
+            return True
+
+    def has_passkey(self, player_id: str) -> bool:
+        """Check if player has any passkeys registered."""
+        passkeys = self.get_passkeys(player_id)
+        return len(passkeys) > 0
 
     # =========================================================================
     # Session Management

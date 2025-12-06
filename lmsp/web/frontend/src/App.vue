@@ -13,6 +13,7 @@ import { useGamepadStore } from '@/stores/gamepad'
 import { useSearchStore } from '@/stores/search'
 import { usePlayerStore } from '@/stores/player'
 import { useAuthStore } from '@/stores/auth'
+import { Search } from 'lucide-vue-next'
 import UserMenu from '@/components/ui/UserMenu.vue'
 import AchievementPopup from '@/components/progress/AchievementPopup.vue'
 import GamepadOverlay from '@/components/ui/GamepadOverlay.vue'
@@ -105,11 +106,12 @@ function handleAchievement(event: CustomEvent) {
             Settings
           </router-link>
           <button
-            class="search-btn gamepad-focusable px-3 py-2 rounded-lg text-text-secondary hover:text-white hover:bg-oled-panel transition-all"
+            class="search-btn gamepad-focusable p-2 rounded-lg text-text-secondary hover:text-white hover:bg-oled-panel transition-all"
+            style="box-shadow: 0 0 8px rgba(0, 255, 136, 0.15)"
             @click="searchStore.open()"
             title="Search (⌘K)"
           >
-            🔍
+            <Search :size="18" />
           </button>
           <UserMenu />
         </nav>

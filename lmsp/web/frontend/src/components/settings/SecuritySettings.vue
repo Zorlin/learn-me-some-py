@@ -3,11 +3,13 @@
  * Security Settings
  * =================
  *
- * Manage password and gamepad combo unlock options.
+ * Manage password, gamepad combo, and passkey unlock options.
  */
 
 import { ref, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import { api } from '@/api/client'
+import { Fingerprint, Key } from 'lucide-vue-next'
 import GamepadComboRecorder from './GamepadComboRecorder.vue'
 
 const authStore = useAuthStore()
@@ -23,10 +25,168 @@ const passwordSuccess = ref('')
 const showComboRecorder = ref(false)
 const comboSuccess = ref('')
 
+// Passkey state
+const passkeys = ref<Array<{ id: string; name: string; created_at: string }>>([])
+const passkeySupported = ref(false)
+const passkeyUnsupportedReason = ref('')
+const registeringPasskey = ref(false)
+const passkeyName = ref('')
+const passkeyError = ref('')
+const passkeySuccess = ref('')
+
 // Load auth status on mount
-onMounted(() => {
+onMounted(async () => {
   authStore.checkAuthStatus()
+
+  // Check if WebAuthn is supported
+  if (!window.isSecureContext) {
+    passkeySupported.value = false
+    passkeyUnsupportedReason.value = 'Passkeys require HTTPS. You\'re on an insecure connection.'
+  } else if (!window.PublicKeyCredential) {
+    passkeySupported.value = false
+    passkeyUnsupportedReason.value = 'Your browser doesn\'t support passkeys. Try Chrome, Safari, or Edge.'
+  } else {
+    // WebAuthn API exists, should work
+    passkeySupported.value = true
+  }
+
+  await loadPasskeys()
 })
+
+async function loadPasskeys() {
+  if (!passkeySupported.value) return
+
+  try {
+    const response = await api.get<{
+      passkeys: Array<{ id: string; name: string; created_at: string }>
+    }>('/auth/passkeys')
+
+    if (response.ok && response.data) {
+      passkeys.value = response.data.passkeys
+    }
+  } catch {
+    // Passkeys not set up yet, that's fine
+  }
+}
+
+async function registerPasskey() {
+  if (!passkeySupported.value) return
+
+  registeringPasskey.value = true
+  passkeyError.value = ''
+  passkeySuccess.value = ''
+
+  try {
+    // Step 1: Get registration options from server
+    const optionsResponse = await api.post<{
+      challenge: string
+      rp: { name: string; id: string }
+      user: { id: string; name: string; displayName: string }
+      pubKeyCredParams: Array<{ type: string; alg: number }>
+      timeout: number
+      authenticatorSelection: {
+        authenticatorAttachment?: string
+        requireResidentKey: boolean
+        userVerification: string
+      }
+    }>('/auth/passkey/register/begin', {
+      name: passkeyName.value || 'My Passkey',
+    })
+
+    if (!optionsResponse.ok || !optionsResponse.data) {
+      throw new Error('Failed to start passkey registration')
+    }
+
+    const options = optionsResponse.data
+
+    // Convert base64url strings to ArrayBuffer
+    const publicKeyOptions: PublicKeyCredentialCreationOptions = {
+      challenge: base64urlToBuffer(options.challenge),
+      rp: options.rp,
+      user: {
+        id: base64urlToBuffer(options.user.id),
+        name: options.user.name,
+        displayName: options.user.displayName,
+      },
+      pubKeyCredParams: options.pubKeyCredParams as PublicKeyCredentialParameters[],
+      timeout: options.timeout,
+      authenticatorSelection: options.authenticatorSelection as AuthenticatorSelectionCriteria,
+    }
+
+    // Step 2: Create credential with browser API
+    const credential = await navigator.credentials.create({
+      publicKey: publicKeyOptions,
+    }) as PublicKeyCredential
+
+    if (!credential) {
+      throw new Error('Passkey creation cancelled')
+    }
+
+    const attestationResponse = credential.response as AuthenticatorAttestationResponse
+
+    // Step 3: Send credential to server
+    const completeResponse = await api.post('/auth/passkey/register/complete', {
+      id: credential.id,
+      rawId: bufferToBase64url(credential.rawId),
+      type: credential.type,
+      response: {
+        clientDataJSON: bufferToBase64url(attestationResponse.clientDataJSON),
+        attestationObject: bufferToBase64url(attestationResponse.attestationObject),
+      },
+      name: passkeyName.value || 'My Passkey',
+    })
+
+    if (completeResponse.ok) {
+      passkeySuccess.value = 'Passkey registered successfully!'
+      passkeyName.value = ''
+      await loadPasskeys()
+    } else {
+      throw new Error('Failed to complete passkey registration')
+    }
+  } catch (e) {
+    passkeyError.value = e instanceof Error ? e.message : 'Failed to register passkey'
+  } finally {
+    registeringPasskey.value = false
+  }
+}
+
+async function removePasskey(passkeyId: string) {
+  try {
+    const response = await api.delete(`/auth/passkey/${passkeyId}`)
+    if (response.ok) {
+      await loadPasskeys()
+      passkeySuccess.value = 'Passkey removed'
+      setTimeout(() => { passkeySuccess.value = '' }, 2000)
+    }
+  } catch (e) {
+    passkeyError.value = e instanceof Error ? e.message : 'Failed to remove passkey'
+  }
+}
+
+// Helper functions for base64url encoding/decoding
+function base64urlToBuffer(base64url: string): ArrayBuffer {
+  const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/')
+  const padding = '='.repeat((4 - (base64.length % 4)) % 4)
+  const binary = atob(base64 + padding)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i)
+  }
+  return bytes.buffer
+}
+
+function bufferToBase64url(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer)
+  let binary = ''
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i])
+  }
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
+}
+
+function formatDate(isoString: string): string {
+  return new Date(isoString).toLocaleDateString()
+}
 
 // Password management
 async function setPassword() {
@@ -224,6 +384,80 @@ async function removeCombo() {
       <div v-if="comboSuccess" class="message success mt-3">{{ comboSuccess }}</div>
     </div>
 
+    <!-- Passkey Section -->
+    <div class="settings-section">
+      <h3 class="font-semibold mb-3 flex items-center gap-2">
+        <Fingerprint :size="18" class="text-accent-primary" />
+        Passkeys
+      </h3>
+      <p class="text-sm text-text-secondary mb-4">
+        Sign in securely using your device's biometrics (Touch ID, Face ID, Windows Hello) or a security key.
+        No password needed!
+      </p>
+
+      <!-- Browser Support Warning -->
+      <div v-if="!passkeySupported" class="warning-box mb-4">
+        <div class="flex items-center gap-2">
+          <span class="text-lg">⚠️</span>
+          <span>{{ passkeyUnsupportedReason }}</span>
+        </div>
+      </div>
+
+      <!-- Registered Passkeys -->
+      <div v-if="passkeys.length > 0" class="mb-4">
+        <div class="text-sm text-text-muted mb-2">Your Passkeys</div>
+        <div class="space-y-2">
+          <div
+            v-for="passkey in passkeys"
+            :key="passkey.id"
+            class="passkey-item"
+          >
+            <div class="flex items-center gap-3">
+              <Key :size="16" class="text-accent-primary" />
+              <div>
+                <div class="font-medium">{{ passkey.name }}</div>
+                <div class="text-xs text-text-muted">Added {{ formatDate(passkey.created_at) }}</div>
+              </div>
+            </div>
+            <button
+              class="text-red-400 hover:text-red-300 text-sm"
+              @click="removePasskey(passkey.id)"
+            >
+              Remove
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Register New Passkey -->
+      <div v-if="passkeySupported" class="register-passkey">
+        <div class="form-group">
+          <label>Passkey Name (optional)</label>
+          <input
+            v-model="passkeyName"
+            type="text"
+            class="oled-input"
+            placeholder="e.g., MacBook Touch ID"
+          />
+        </div>
+
+        <div class="form-actions">
+          <button
+            class="oled-button-primary flex items-center gap-2"
+            @click="registerPasskey"
+            :disabled="registeringPasskey"
+          >
+            <Fingerprint :size="16" />
+            {{ registeringPasskey ? 'Setting up...' : (passkeys.length > 0 ? 'Add Another Passkey' : 'Add Passkey') }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Passkey Messages -->
+      <div v-if="passkeyError" class="message error mt-3">{{ passkeyError }}</div>
+      <div v-if="passkeySuccess" class="message success mt-3">{{ passkeySuccess }}</div>
+    </div>
+
     <!-- Help Text -->
     <div class="help-section">
       <h4 class="font-medium mb-2">How Security Works</h4>
@@ -322,5 +556,23 @@ async function removeCombo() {
   @apply p-4 rounded-lg;
   background: var(--oled-surface);
   border: 1px solid var(--oled-border);
+}
+
+.warning-box {
+  @apply p-3 rounded-lg text-sm;
+  background: rgba(234, 179, 8, 0.1);
+  border: 1px solid rgba(234, 179, 8, 0.3);
+  color: #eab308;
+}
+
+.passkey-item {
+  @apply flex items-center justify-between p-3 rounded-lg;
+  background: var(--oled-surface);
+  border: 1px solid var(--oled-border);
+}
+
+.register-passkey {
+  @apply p-3 rounded-lg;
+  background: var(--oled-surface);
 }
 </style>

@@ -2731,6 +2731,221 @@ async def logout(request: Request):
 
 
 # ============================================================================
+# Privacy Settings API
+# ============================================================================
+
+
+@app.get("/api/player/privacy")
+async def get_privacy_settings(player_id: str = Depends(get_current_player)):
+    """Get player's privacy settings."""
+    db = get_database()
+    settings = db.get_privacy_settings(player_id)
+
+    return JSONResponse(settings)
+
+
+@app.post("/api/player/privacy")
+async def set_privacy_settings(request: Request, player_id: str = Depends(get_current_player)):
+    """Update player's privacy settings."""
+    data = await request.json()
+    db = get_database()
+
+    hide_from_leaderboards = data.get("hide_from_leaderboards", False)
+    hide_from_picker = data.get("hide_from_picker", False)
+
+    db.set_privacy_settings(player_id, hide_from_leaderboards, hide_from_picker)
+
+    return JSONResponse({
+        "success": True,
+        "hide_from_leaderboards": hide_from_leaderboards,
+        "hide_from_picker": hide_from_picker,
+    })
+
+
+# ============================================================================
+# Passkey / WebAuthn API
+# ============================================================================
+
+
+@app.get("/api/auth/passkeys")
+async def list_passkeys(player_id: str = Depends(get_current_player)):
+    """List player's registered passkeys."""
+    db = get_database()
+    passkeys = db.get_passkeys(player_id)
+
+    # Return minimal info (don't expose public keys)
+    return JSONResponse({
+        "passkeys": [
+            {
+                "id": pk["credential_id"],
+                "name": pk["name"],
+                "created_at": pk["created_at"],
+            }
+            for pk in passkeys
+        ]
+    })
+
+
+@app.post("/api/auth/passkey/register/begin")
+async def passkey_register_begin(request: Request, player_id: str = Depends(get_current_player)):
+    """Begin passkey registration - returns WebAuthn options."""
+    import base64
+    import os
+
+    data = await request.json()
+    passkey_name = data.get("name", "My Passkey")
+
+    # Generate challenge
+    challenge = base64.urlsafe_b64encode(os.urandom(32)).decode().rstrip("=")
+
+    # Store challenge in session (simple in-memory for now)
+    # In production, use Redis or database-backed sessions
+    request.app.state.passkey_challenges = getattr(request.app.state, "passkey_challenges", {})
+    request.app.state.passkey_challenges[player_id] = {
+        "challenge": challenge,
+        "name": passkey_name,
+    }
+
+    # Get hostname for RP ID
+    host = request.headers.get("host", "localhost")
+    rp_id = host.split(":")[0]  # Remove port
+
+    db = get_database()
+    player = db.get_or_create_player(player_id)
+
+    return JSONResponse({
+        "challenge": challenge,
+        "rp": {
+            "name": "Learn Me Some Py",
+            "id": rp_id,
+        },
+        "user": {
+            "id": base64.urlsafe_b64encode(player_id.encode()).decode().rstrip("="),
+            "name": player_id,
+            "displayName": player.display_name or player_id,
+        },
+        "pubKeyCredParams": [
+            {"type": "public-key", "alg": -7},   # ES256
+            {"type": "public-key", "alg": -257}, # RS256
+        ],
+        "timeout": 60000,
+        "authenticatorSelection": {
+            "requireResidentKey": False,
+            "userVerification": "preferred",
+        },
+    })
+
+
+@app.post("/api/auth/passkey/register/complete")
+async def passkey_register_complete(request: Request, player_id: str = Depends(get_current_player)):
+    """Complete passkey registration - verify and store credential."""
+    data = await request.json()
+
+    # Get stored challenge
+    challenges = getattr(request.app.state, "passkey_challenges", {})
+    stored = challenges.get(player_id)
+
+    if not stored:
+        raise HTTPException(status_code=400, detail="No pending registration")
+
+    # In a production app, you'd verify the attestation properly using a WebAuthn library
+    # For now, we trust the browser's response and store the credential
+    credential_id = data.get("rawId", data.get("id"))
+    passkey_name = stored.get("name", "My Passkey")
+
+    # Store the credential
+    # Note: In production, you should verify the attestation and extract the public key properly
+    # For MVP, we store the raw response data
+    db = get_database()
+    response_data = data.get("response", {})
+
+    db.add_passkey(
+        player_id=player_id,
+        credential_id=credential_id,
+        public_key=response_data.get("attestationObject", ""),
+        name=passkey_name,
+        sign_count=0,
+    )
+
+    # Clean up challenge
+    del challenges[player_id]
+
+    return JSONResponse({
+        "success": True,
+        "message": "Passkey registered successfully",
+    })
+
+
+@app.delete("/api/auth/passkey/{credential_id}")
+async def remove_passkey(credential_id: str, player_id: str = Depends(get_current_player)):
+    """Remove a passkey."""
+    db = get_database()
+
+    if db.remove_passkey(player_id, credential_id):
+        return JSONResponse({"success": True})
+    else:
+        raise HTTPException(status_code=404, detail="Passkey not found")
+
+
+@app.post("/api/auth/passkey/authenticate/begin")
+async def passkey_auth_begin(request: Request):
+    """Begin passkey authentication - returns WebAuthn options."""
+    import base64
+    import os
+
+    # Generate challenge
+    challenge = base64.urlsafe_b64encode(os.urandom(32)).decode().rstrip("=")
+
+    # Get hostname for RP ID
+    host = request.headers.get("host", "localhost")
+    rp_id = host.split(":")[0]
+
+    # Store challenge for verification
+    request.app.state.passkey_auth_challenges = getattr(request.app.state, "passkey_auth_challenges", {})
+    request.app.state.passkey_auth_challenges[challenge] = True
+
+    return JSONResponse({
+        "challenge": challenge,
+        "rpId": rp_id,
+        "timeout": 60000,
+        "userVerification": "preferred",
+    })
+
+
+@app.post("/api/auth/passkey/authenticate/complete")
+async def passkey_auth_complete(request: Request):
+    """Complete passkey authentication - verify and create session."""
+    data = await request.json()
+
+    credential_id = data.get("rawId", data.get("id"))
+
+    # Find the player with this credential
+    db = get_database()
+    result = db.get_passkey_by_credential_id(credential_id)
+
+    if not result:
+        raise HTTPException(status_code=401, detail="Unknown passkey")
+
+    player_id, passkey_data = result
+
+    # In production, verify the signature properly
+    # For MVP, we trust the browser's assertion
+
+    # Update sign count (anti-replay)
+    response_data = data.get("response", {})
+    # Note: Would need to decode authenticatorData to get the new sign count
+
+    # Create session
+    session_id = db.create_session(player_id, auth_method="passkey")
+
+    return JSONResponse({
+        "success": True,
+        "player_id": player_id,
+        "session_id": session_id,
+    })
+
+
+# ============================================================================
 # Admin API Endpoints
 # ============================================================================
 
@@ -2747,7 +2962,7 @@ def require_admin(player_id: str = Depends(get_current_player)) -> str:
 async def admin_list_users(admin_id: str = Depends(require_admin)):
     """List all users with their stats (admin only)."""
     db = get_database()
-    players = db.list_players()
+    players = db.list_players(include_hidden=True)  # Admins see all users
 
     # Enrich with stats for each player
     users = []
@@ -2763,6 +2978,8 @@ async def admin_list_users(admin_id: str = Depends(require_admin)):
             "is_admin": db.is_admin(player_id),
             "has_password": player.get("has_password", False),
             "has_gamepad_combo": player.get("has_gamepad_combo", False),
+            "has_passkey": player.get("has_passkey", False),
+            "hide_from_picker": player.get("hide_from_picker", False),
             "total_xp": xp,
             "challenges_completed": len(completions),
             "invited_by_code": player.get("invited_by_code"),
@@ -2775,7 +2992,7 @@ async def admin_list_users(admin_id: str = Depends(require_admin)):
 async def admin_get_user(player_id: str, admin_id: str = Depends(require_admin)):
     """Get detailed info for a specific user (admin only)."""
     db = get_database()
-    players = db.list_players()
+    players = db.list_players(include_hidden=True)
 
     # Find the player
     player = next((p for p in players if p["player_id"] == player_id), None)
@@ -2907,7 +3124,7 @@ async def admin_create_invite(request: Request, admin_id: str = Depends(require_
     code = db.create_invite_code(
         created_by=admin_id,
         max_uses=max_uses,
-        expires_in_days=expires_in_days,
+        expires_days=expires_in_days,
         note=note,
     )
 

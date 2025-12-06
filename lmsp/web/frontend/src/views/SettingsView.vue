@@ -6,6 +6,7 @@ import { useGamepadNav } from '@/composables/useGamepadNav'
 import { usePlayerStore } from '@/stores/player'
 import { api } from '@/api/client'
 import SecuritySettings from '@/components/settings/SecuritySettings.vue'
+import PrivacySettings from '@/components/settings/PrivacySettings.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -16,7 +17,7 @@ const playerStore = usePlayerStore()
 useGamepadNav({ onBack: () => router.push('/') })
 
 // Active tab
-type TabId = 'profile' | 'input' | 'security' | 'difficulty' | 'ai'
+type TabId = 'profile' | 'input' | 'security' | 'privacy' | 'difficulty' | 'ai'
 const activeTab = ref<TabId>('profile')
 
 // Map URL slugs to tab IDs (director -> ai for backwards compat)
@@ -24,6 +25,7 @@ const urlToTab: Record<string, TabId> = {
   profile: 'profile',
   input: 'input',
   security: 'security',
+  privacy: 'privacy',
   difficulty: 'difficulty',
   director: 'ai',
   ai: 'ai',
@@ -33,6 +35,7 @@ const tabToUrl: Record<TabId, string> = {
   profile: 'profile',
   input: 'input',
   security: 'security',
+  privacy: 'privacy',
   difficulty: 'difficulty',
   ai: 'director',
 }
@@ -41,6 +44,7 @@ const tabs = [
   { id: 'profile' as const, label: 'Profile', icon: '👤' },
   { id: 'input' as const, label: 'Input', icon: '🎮' },
   { id: 'security' as const, label: 'Security', icon: '🔒' },
+  { id: 'privacy' as const, label: 'Privacy', icon: '👁️' },
   { id: 'difficulty' as const, label: 'Difficulty', icon: '⚡' },
   { id: 'ai' as const, label: 'The Director', icon: '🧠' },
 ]
@@ -564,6 +568,15 @@ async function practiceConcept(concept: string) {
           <div class="oled-panel">
             <SecuritySettings />
           </div>
+        </section>
+
+        <!-- Privacy Tab -->
+        <section v-if="activeTab === 'privacy'" class="settings-section">
+          <h1 class="text-2xl lg:text-3xl font-bold mb-6">
+            <span class="text-accent-primary">👁️</span> Privacy
+          </h1>
+
+          <PrivacySettings />
         </section>
 
         <!-- Difficulty Tab -->
