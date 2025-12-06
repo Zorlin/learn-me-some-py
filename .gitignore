@@ -41,3 +41,4 @@ build/
 
 # Synthesis raw material
 synthesis/
+lmsp/web/static/dist/
