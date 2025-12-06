@@ -18,6 +18,8 @@ Usage:
 
 from pathlib import Path
 from typing import Optional
+import subprocess
+import sys
 
 from fastapi import FastAPI, Request, HTTPException, Depends, Header
 from fastapi.responses import JSONResponse, FileResponse
@@ -34,6 +36,26 @@ from lmsp.adaptive.director import Director, DirectorObservation, get_director
 from lmsp.ui.achievements import AchievementManager
 from lmsp.web.database import get_database, LMSPDatabase
 from datetime import datetime, timedelta
+
+
+def capture_player_stdout(code: str, timeout: int = 5) -> str:
+    """Run player code directly and capture its stdout.
+
+    This runs the code in a subprocess to safely capture any print() output.
+    """
+    try:
+        result = subprocess.run(
+            [sys.executable, "-c", code],
+            capture_output=True,
+            text=True,
+            timeout=timeout
+        )
+        return result.stdout
+    except subprocess.TimeoutExpired:
+        return "[Code timed out]"
+    except Exception as e:
+        return f"[Error capturing output: {e}]"
+
 
 # Create FastAPI app
 app = FastAPI(
@@ -804,6 +826,23 @@ async def get_observations(
     return JSONResponse({"observations": observations})
 
 
+@app.post("/api/code/run")
+async def run_code(request: Request):
+    """
+    Quick code execution - returns stdout immediately without running tests.
+
+    Use this for instant console output while tests are still running.
+    """
+    data = await request.json()
+    code = data.get("code", "")
+
+    if not code:
+        return JSONResponse({"stdout": ""})
+
+    stdout = capture_player_stdout(code)
+    return JSONResponse({"stdout": stdout})
+
+
 @app.post("/api/code/submit")
 async def submit_code(request: Request, player_id: str = Depends(get_current_player)):
     """Submit code for validation with XP and mastery tracking.
@@ -860,12 +899,15 @@ async def submit_code(request: Request, player_id: str = Depends(get_current_pla
                 "tests_total": 0,
             }, status_code=500)
 
+        # Capture player's print() output by running their code directly
+        player_stdout = capture_player_stdout(code)
+
         response_data = {
             "success": result.success,
             "tests_passing": result.tests_passing,
             "tests_total": result.tests_total,
             "output": result.output,
-            "stdout": result.stdout,  # User print() output, separate from test output
+            "stdout": player_stdout,  # User print() output, captured directly
             "error": result.error,
             "test_results": [
                 {
@@ -949,6 +991,9 @@ async def submit_code(request: Request, player_id: str = Depends(get_current_pla
         else:
             result = code_validator.validate(code, challenge.test_cases)
 
+        # Capture player's print() output by running their code directly
+        player_stdout = capture_player_stdout(code)
+
         engine = get_adaptive_engine(player_id)
         achievement_mgr = get_achievement_manager(player_id)
 
@@ -961,7 +1006,7 @@ async def submit_code(request: Request, player_id: str = Depends(get_current_pla
             "tests_total": result.tests_total,
             "time_seconds": actual_solve_time,  # Return the actual solve time, not test execution time
             "output": result.output,
-            "stdout": result.stdout,  # User print() output, separate from test output
+            "stdout": player_stdout,  # User print() output, captured directly
         }
 
         # Add multi-stage information

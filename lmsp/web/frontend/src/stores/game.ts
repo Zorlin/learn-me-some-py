@@ -433,6 +433,23 @@ export const useGameStore = defineStore('game', () => {
         payload.stage = currentStage.value
       }
 
+      // Quick run to get stdout immediately (non-blocking)
+      api.post('/api/code/run', { code: code.value }).then(runResponse => {
+        // Show console output immediately while tests are still running
+        if (runResponse.data.stdout && !validationResult.value) {
+          validationResult.value = {
+            success: false,
+            tests_passing: 0,
+            tests_total: 0,
+            time_seconds: 0,
+            output: '',
+            stdout: runResponse.data.stdout,
+          }
+        }
+      }).catch(() => {
+        // Ignore errors from quick run - tests will still work
+      })
+
       const response = await api.post('/api/code/submit', payload)
 
       validationResult.value = response.data

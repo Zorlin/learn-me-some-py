@@ -145,7 +145,7 @@ const statusColor = computed(() => {
 
 <template>
   <div class="test-results oled-panel">
-    <!-- Header -->
+    <!-- Results Header -->
     <div class="results-header">
       <div class="flex items-center gap-3">
         <span class="text-2xl">{{ statusIcon }}</span>
@@ -188,15 +188,6 @@ const statusColor = computed(() => {
         <CopyButton :content="results.error" label="Copy Error" />
       </div>
       <pre class="output-pre error" v-html="highlightedError"></pre>
-    </div>
-
-    <!-- User STDOUT (print statements) -->
-    <div v-if="results.stdout" class="stdout-section">
-      <div class="section-header">
-        <div class="section-label text-accent-secondary">Your Output</div>
-        <CopyButton :content="results.stdout" label="Copy Output" />
-      </div>
-      <pre class="output-pre stdout">{{ results.stdout }}</pre>
     </div>
 
     <!-- Test Output -->
@@ -314,14 +305,8 @@ const statusColor = computed(() => {
 }
 
 .error-section,
-.stdout-section,
 .output-section {
   border-top: 1px solid var(--oled-border, #1a1a1a);
-}
-
-.output-pre.stdout {
-  background: rgba(59, 130, 246, 0.05);
-  color: var(--text-primary, #e5e7eb);
 }
 
 .success-message {

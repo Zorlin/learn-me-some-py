@@ -218,6 +218,77 @@ def test_all_pages_load(route):
     assert len(response.content) > 0
 
 
+class TestStdoutCapture:
+    """Tests for capturing player's print() output."""
+
+    def test_capture_player_stdout_function(self):
+        """Test the capture_player_stdout helper function."""
+        from lmsp.web.app import capture_player_stdout
+
+        # Simple print
+        stdout = capture_player_stdout('print("Hello, World!")')
+        assert stdout.strip() == "Hello, World!"
+
+    def test_capture_multiple_prints(self):
+        """Test capturing multiple print statements."""
+        from lmsp.web.app import capture_player_stdout
+
+        code = '''
+print("Line 1")
+print("Line 2")
+print("Line 3")
+'''
+        stdout = capture_player_stdout(code)
+        lines = stdout.strip().split('\n')
+        assert len(lines) == 3
+        assert lines[0] == "Line 1"
+        assert lines[1] == "Line 2"
+        assert lines[2] == "Line 3"
+
+    def test_capture_empty_output(self):
+        """Test code with no print statements."""
+        from lmsp.web.app import capture_player_stdout
+
+        stdout = capture_player_stdout('x = 1 + 1')
+        assert stdout == ""
+
+    def test_capture_handles_errors(self):
+        """Test that errors don't crash the capture."""
+        from lmsp.web.app import capture_player_stdout
+
+        # Code with an error - should not raise exception
+        stdout = capture_player_stdout('raise ValueError("oops")')
+        # Should return something (either empty or error message)
+        assert isinstance(stdout, str)
+
+    def test_code_submit_returns_stdout(self):
+        """Test that code submission endpoint returns stdout field."""
+        from lmsp.web.app import app
+
+        client = TestClient(app)
+
+        # Submit code with print to a known challenge
+        list_response = client.get("/api/challenges")
+        challenges = list_response.json()
+
+        if len(challenges) > 0:
+            challenge_id = challenges[0]["id"]
+            response = client.post(
+                "/api/code/submit",
+                json={
+                    "challenge_id": challenge_id,
+                    "code": 'print("test output")\ndef solution():\n    return 42',
+                    "player_id": "test_player"
+                }
+            )
+
+            if response.status_code == 200:
+                data = response.json()
+                assert "stdout" in data
+                # stdout should contain our print output
+                assert "test output" in data.get("stdout", "")
+
+
 # Self-teaching note:
 #
 # This file demonstrates:

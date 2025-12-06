@@ -17,6 +17,7 @@ import { usePlayerStore } from '@/stores/player'
 import { useGamepadNav } from '@/composables/useGamepadNav'
 import CodeEditor from '@/components/game/CodeEditor.vue'
 import TestResults from '@/components/game/TestResults.vue'
+import ConsoleOutput from '@/components/game/ConsoleOutput.vue'
 import EmotionalFeedback from '@/components/input/EmotionalFeedback.vue'
 import { LogIn } from 'lucide-vue-next'
 
@@ -315,6 +316,22 @@ async function runTests() {
   testResult.value = null
 
   try {
+    // Quick run to get stdout immediately (non-blocking)
+    api.post('/code/run', { code: tryItCode.value }).then(runResponse => {
+      // Show console output immediately while tests are still running
+      if (runResponse.data.stdout && !testResult.value) {
+        testResult.value = {
+          success: false,
+          passing: 0,
+          total: 0,
+          output: '',
+          stdout: runResponse.data.stdout,
+        }
+      }
+    }).catch(() => {
+      // Ignore errors from quick run - tests will still work
+    })
+
     const response = await api.post('/code/submit', {
       lesson_id: lesson.value.id,
       code: tryItCode.value,
@@ -681,12 +698,19 @@ const conceptContext = computed(() => {
               @update:code="tryItCode = $event"
             />
 
+            <!-- Console Output (player's print statements) -->
+            <ConsoleOutput
+              v-if="testResult?.stdout && !isGuest"
+              :stdout="testResult.stdout"
+              class="mt-6"
+            />
+
             <!-- Test Results (logged-in users only) -->
             <TestResults
               v-if="testResult && !isGuest"
               :results="testResult"
               :challenge="conceptContext"
-              class="mt-6"
+              class="mt-4"
             />
 
             <!-- Director Intervention & Suggested Lessons -->

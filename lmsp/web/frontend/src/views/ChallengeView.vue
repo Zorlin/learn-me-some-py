@@ -8,6 +8,7 @@ import { usePlayerStore } from '@/stores/player'
 import { useGamepadNav } from '@/composables/useGamepadNav'
 import CodeEditor from '@/components/game/CodeEditor.vue'
 import TestResults from '@/components/game/TestResults.vue'
+import ConsoleOutput from '@/components/game/ConsoleOutput.vue'
 import EmotionalFeedback from '@/components/input/EmotionalFeedback.vue'
 import { LogIn } from 'lucide-vue-next'
 
@@ -500,12 +501,19 @@ function advanceStage() {
               @update:code="gameStore.updateCode"
             />
 
+            <!-- Console Output (player's print statements) -->
+            <ConsoleOutput
+              v-if="gameStore.validationResult?.stdout && !isGuest"
+              :stdout="gameStore.validationResult.stdout"
+              class="mt-6"
+            />
+
             <!-- Test Results (logged-in users only) -->
             <TestResults
               v-if="testResultsForDisplay && !isGuest"
               :results="testResultsForDisplay"
               :challenge="challengeContext"
-              class="mt-6"
+              class="mt-4"
             />
 
             <!-- Sample Output Preview (guests only) -->
