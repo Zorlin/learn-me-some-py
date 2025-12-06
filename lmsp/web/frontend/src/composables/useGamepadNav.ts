@@ -419,7 +419,16 @@ export function useGamepadNav(options: GamepadNavOptions = {}) {
   }
 
   // Create cursor element (No Man's Sky style - circle with center dot)
+  // Only creates when gamepad is connected and cursor doesn't already exist
   function createCursor() {
+    // Check if cursor already exists in DOM (prevents duplicates)
+    const existingCursor = document.getElementById('gamepad-cursor')
+    if (existingCursor) {
+      cursorElement.value = existingCursor
+      return
+    }
+
+    // Don't create if we already have a reference
     if (cursorElement.value) return
 
     const cursor = document.createElement('div')
@@ -435,6 +444,7 @@ export function useGamepadNav(options: GamepadNavOptions = {}) {
       pointer-events: none;
       z-index: 99999;
       transform: translate(-50%, -50%);
+      opacity: 0;
       transition: opacity 0.15s ease;
       filter: drop-shadow(0 0 6px rgba(0, 255, 136, 0.5));
     `
@@ -527,6 +537,11 @@ export function useGamepadNav(options: GamepadNavOptions = {}) {
       const cursorMag = Math.sqrt(cursorStickX * cursorStickX + cursorStickY * cursorStickY)
 
       if (cursorMag > STICK_DEADZONE) {
+        // Create cursor lazily on first right stick use
+        if (!cursorElement.value) {
+          createCursor()
+        }
+
         // Show cursor when right stick is used
         cursorVisible.value = true
 
@@ -632,10 +647,8 @@ export function useGamepadNav(options: GamepadNavOptions = {}) {
   onMounted(() => {
     window.addEventListener('keydown', handleKeydown)
 
-    // Create cursor element
-    if (enableCursor) {
-      createCursor()
-    }
+    // NOTE: Cursor is created lazily when right stick is first used
+    // This prevents phantom cursors when no gamepad is connected
 
     // Start update loop
     animationFrameId = requestAnimationFrame(updateLoop)
