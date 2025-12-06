@@ -2790,21 +2790,16 @@ async def list_passkeys(player_id: str = Depends(get_current_player)):
 async def passkey_register_begin(request: Request, player_id: str = Depends(get_current_player)):
     """Begin passkey registration - returns WebAuthn options."""
     import base64
-    import os
+    from webauthn import generate_registration_options
+    from webauthn.helpers.structs import (
+        AuthenticatorSelectionCriteria,
+        ResidentKeyRequirement,
+        UserVerificationRequirement,
+    )
+    from webauthn.helpers import bytes_to_base64url
 
     data = await request.json()
     passkey_name = data.get("name", "My Passkey")
-
-    # Generate challenge
-    challenge = base64.urlsafe_b64encode(os.urandom(32)).decode().rstrip("=")
-
-    # Store challenge in session (simple in-memory for now)
-    # In production, use Redis or database-backed sessions
-    request.app.state.passkey_challenges = getattr(request.app.state, "passkey_challenges", {})
-    request.app.state.passkey_challenges[player_id] = {
-        "challenge": challenge,
-        "name": passkey_name,
-    }
 
     # Get hostname for RP ID
     host = request.headers.get("host", "localhost")
@@ -2813,32 +2808,71 @@ async def passkey_register_begin(request: Request, player_id: str = Depends(get_
     db = get_database()
     player = db.get_or_create_player(player_id)
 
+    # Get existing credentials to exclude (prevent re-registration)
+    existing_passkeys = db.get_passkeys(player_id)
+    exclude_credentials = []
+    for pk in existing_passkeys:
+        try:
+            cred_id_bytes = base64.urlsafe_b64decode(pk["credential_id"] + "==")
+            exclude_credentials.append({"id": cred_id_bytes, "type": "public-key"})
+        except Exception:
+            pass
+
+    # Generate registration options using webauthn library
+    user_id = player_id.encode()  # Use player_id bytes as user handle
+    options = generate_registration_options(
+        rp_id=rp_id,
+        rp_name="Learn Me Some Py",
+        user_id=user_id,
+        user_name=player_id,
+        user_display_name=player.display_name or player_id,
+        authenticator_selection=AuthenticatorSelectionCriteria(
+            resident_key=ResidentKeyRequirement.REQUIRED,
+            user_verification=UserVerificationRequirement.PREFERRED,
+        ),
+        timeout=60000,
+    )
+
+    # Store challenge for verification (in-memory for now)
+    request.app.state.passkey_challenges = getattr(request.app.state, "passkey_challenges", {})
+    request.app.state.passkey_challenges[player_id] = {
+        "challenge": options.challenge,  # bytes
+        "name": passkey_name,
+        "rp_id": rp_id,
+        "user_id": user_id,
+    }
+
+    # Convert options to JSON-serializable format
     return JSONResponse({
-        "challenge": challenge,
+        "challenge": bytes_to_base64url(options.challenge),
         "rp": {
-            "name": "Learn Me Some Py",
-            "id": rp_id,
+            "name": options.rp.name,
+            "id": options.rp.id,
         },
         "user": {
-            "id": base64.urlsafe_b64encode(player_id.encode()).decode().rstrip("="),
-            "name": player_id,
-            "displayName": player.display_name or player_id,
+            "id": bytes_to_base64url(options.user.id),
+            "name": options.user.name,
+            "displayName": options.user.display_name,
         },
         "pubKeyCredParams": [
-            {"type": "public-key", "alg": -7},   # ES256
-            {"type": "public-key", "alg": -257}, # RS256
+            {"type": "public-key", "alg": param.alg} for param in options.pub_key_cred_params
         ],
-        "timeout": 60000,
+        "timeout": options.timeout,
         "authenticatorSelection": {
-            "requireResidentKey": False,
-            "userVerification": "preferred",
+            "residentKey": options.authenticator_selection.resident_key.value if options.authenticator_selection else "required",
+            "requireResidentKey": True,
+            "userVerification": options.authenticator_selection.user_verification.value if options.authenticator_selection else "preferred",
         },
     })
 
 
 @app.post("/api/auth/passkey/register/complete")
 async def passkey_register_complete(request: Request, player_id: str = Depends(get_current_player)):
-    """Complete passkey registration - verify and store credential."""
+    """Complete passkey registration - verify attestation and store credential."""
+    from webauthn import verify_registration_response
+    from webauthn.helpers.structs import RegistrationCredential
+    from webauthn.helpers import base64url_to_bytes, bytes_to_base64url
+
     data = await request.json()
 
     # Get stored challenge
@@ -2848,32 +2882,63 @@ async def passkey_register_complete(request: Request, player_id: str = Depends(g
     if not stored:
         raise HTTPException(status_code=400, detail="No pending registration")
 
-    # In a production app, you'd verify the attestation properly using a WebAuthn library
-    # For now, we trust the browser's response and store the credential
-    credential_id = data.get("rawId", data.get("id"))
     passkey_name = stored.get("name", "My Passkey")
+    expected_challenge = stored["challenge"]
+    rp_id = stored["rp_id"]
+    user_id = stored["user_id"]
 
-    # Store the credential
-    # Note: In production, you should verify the attestation and extract the public key properly
-    # For MVP, we store the raw response data
-    db = get_database()
-    response_data = data.get("response", {})
+    # Get origin from request
+    origin = request.headers.get("origin", f"https://{rp_id}")
 
-    db.add_passkey(
-        player_id=player_id,
-        credential_id=credential_id,
-        public_key=response_data.get("attestationObject", ""),
-        name=passkey_name,
-        sign_count=0,
-    )
+    try:
+        # Build the credential object from browser response
+        credential = RegistrationCredential(
+            id=data.get("id"),
+            raw_id=base64url_to_bytes(data.get("rawId", data.get("id"))),
+            response={
+                "client_data_json": base64url_to_bytes(data["response"]["clientDataJSON"]),
+                "attestation_object": base64url_to_bytes(data["response"]["attestationObject"]),
+            },
+            type=data.get("type", "public-key"),
+        )
 
-    # Clean up challenge
-    del challenges[player_id]
+        # Verify the registration response - this does REAL cryptographic verification
+        verification = verify_registration_response(
+            credential=credential,
+            expected_challenge=expected_challenge,
+            expected_rp_id=rp_id,
+            expected_origin=origin,
+            require_user_verification=False,  # Preferred, not required
+        )
 
-    return JSONResponse({
-        "success": True,
-        "message": "Passkey registered successfully",
-    })
+        # Store the verified credential
+        db = get_database()
+        credential_id = bytes_to_base64url(verification.credential_id)
+        public_key = bytes_to_base64url(verification.credential_public_key)
+        user_handle = bytes_to_base64url(user_id)
+
+        db.add_passkey(
+            player_id=player_id,
+            credential_id=credential_id,
+            public_key=public_key,  # Now storing the actual verified public key
+            name=passkey_name,
+            user_handle=user_handle,
+            sign_count=verification.sign_count,
+        )
+
+        # Clean up challenge
+        del challenges[player_id]
+
+        return JSONResponse({
+            "success": True,
+            "message": "Passkey registered successfully",
+        })
+
+    except Exception as e:
+        # Clean up challenge on failure too
+        if player_id in challenges:
+            del challenges[player_id]
+        raise HTTPException(status_code=400, detail=f"Registration verification failed: {str(e)}")
 
 
 @app.delete("/api/auth/passkey/{credential_id}")
@@ -2890,59 +2955,141 @@ async def remove_passkey(credential_id: str, player_id: str = Depends(get_curren
 @app.post("/api/auth/passkey/authenticate/begin")
 async def passkey_auth_begin(request: Request):
     """Begin passkey authentication - returns WebAuthn options."""
-    import base64
-    import os
-
-    # Generate challenge
-    challenge = base64.urlsafe_b64encode(os.urandom(32)).decode().rstrip("=")
+    from webauthn import generate_authentication_options
+    from webauthn.helpers.structs import UserVerificationRequirement
+    from webauthn.helpers import bytes_to_base64url
 
     # Get hostname for RP ID
     host = request.headers.get("host", "localhost")
     rp_id = host.split(":")[0]
 
-    # Store challenge for verification
+    # Generate authentication options - no allowCredentials = discoverable credential flow
+    options = generate_authentication_options(
+        rp_id=rp_id,
+        timeout=60000,
+        user_verification=UserVerificationRequirement.PREFERRED,
+        # No allow_credentials = discoverable credential (passkey) flow
+    )
+
+    # Store challenge for verification (keyed by challenge bytes for lookup)
     request.app.state.passkey_auth_challenges = getattr(request.app.state, "passkey_auth_challenges", {})
-    request.app.state.passkey_auth_challenges[challenge] = True
+    challenge_b64 = bytes_to_base64url(options.challenge)
+    request.app.state.passkey_auth_challenges[challenge_b64] = {
+        "challenge": options.challenge,
+        "rp_id": rp_id,
+    }
 
     return JSONResponse({
-        "challenge": challenge,
+        "challenge": challenge_b64,
         "rpId": rp_id,
-        "timeout": 60000,
-        "userVerification": "preferred",
+        "timeout": options.timeout,
+        "userVerification": options.user_verification.value if options.user_verification else "preferred",
     })
 
 
 @app.post("/api/auth/passkey/authenticate/complete")
 async def passkey_auth_complete(request: Request):
-    """Complete passkey authentication - verify and create session."""
+    """Complete passkey authentication - verify assertion and create session."""
+    from webauthn import verify_authentication_response
+    from webauthn.helpers.structs import AuthenticationCredential
+    from webauthn.helpers import base64url_to_bytes, bytes_to_base64url
+
     data = await request.json()
+    response_data = data.get("response", {})
 
-    credential_id = data.get("rawId", data.get("id"))
+    # Get the challenge from the request to look up stored data
+    # The challenge is in clientDataJSON but we need to find the stored challenge
+    credential_id_b64 = data.get("rawId", data.get("id"))
 
-    # Find the player with this credential
+    # For discoverable credentials, the authenticator returns the userHandle
+    user_handle_b64 = response_data.get("userHandle")
+
     db = get_database()
-    result = db.get_passkey_by_credential_id(credential_id)
+    player_id = None
+    passkey_data = None
 
-    if not result:
+    # Try to identify player by userHandle first (discoverable credential flow)
+    if user_handle_b64:
+        player_id = db.get_player_by_user_handle(user_handle_b64)
+        if player_id:
+            result = db.get_passkey_by_credential_id(credential_id_b64)
+            if result and result[0] == player_id:
+                passkey_data = result[1]
+
+    # Fall back to credential_id lookup if userHandle not found
+    if not player_id:
+        result = db.get_passkey_by_credential_id(credential_id_b64)
+        if result:
+            player_id, passkey_data = result
+
+    if not player_id or not passkey_data:
         raise HTTPException(status_code=401, detail="Unknown passkey")
 
-    player_id, passkey_data = result
+    # Get stored challenge - we need to find it by iterating
+    # (In production, you'd key this better or use a session store)
+    auth_challenges = getattr(request.app.state, "passkey_auth_challenges", {})
+    challenge_b64 = data.get("challenge")  # Frontend should pass this back
 
-    # In production, verify the signature properly
-    # For MVP, we trust the browser's assertion
+    # Find the matching challenge (look for recent ones)
+    stored_challenge = None
+    stored_rp_id = None
+    for chal_key, chal_data in list(auth_challenges.items()):
+        # Use the first valid challenge (in production, tie to session)
+        stored_challenge = chal_data["challenge"]
+        stored_rp_id = chal_data["rp_id"]
+        # Clean up after use
+        del auth_challenges[chal_key]
+        break
 
-    # Update sign count (anti-replay)
-    response_data = data.get("response", {})
-    # Note: Would need to decode authenticatorData to get the new sign count
+    if not stored_challenge:
+        raise HTTPException(status_code=400, detail="No pending authentication challenge")
 
-    # Create session
-    session_id = db.create_session(player_id, auth_method="passkey")
+    # Get origin from request
+    origin = request.headers.get("origin", f"https://{stored_rp_id}")
 
-    return JSONResponse({
-        "success": True,
-        "player_id": player_id,
-        "session_id": session_id,
-    })
+    try:
+        # Build the credential object from browser response
+        credential = AuthenticationCredential(
+            id=data.get("id"),
+            raw_id=base64url_to_bytes(credential_id_b64),
+            response={
+                "client_data_json": base64url_to_bytes(response_data["clientDataJSON"]),
+                "authenticator_data": base64url_to_bytes(response_data["authenticatorData"]),
+                "signature": base64url_to_bytes(response_data["signature"]),
+                "user_handle": base64url_to_bytes(user_handle_b64) if user_handle_b64 else None,
+            },
+            type=data.get("type", "public-key"),
+        )
+
+        # Get the stored public key and sign count
+        stored_public_key = base64url_to_bytes(passkey_data["public_key"])
+        stored_sign_count = passkey_data.get("sign_count", 0)
+
+        # Verify the authentication response - REAL cryptographic verification!
+        verification = verify_authentication_response(
+            credential=credential,
+            expected_challenge=stored_challenge,
+            expected_rp_id=stored_rp_id,
+            expected_origin=origin,
+            credential_public_key=stored_public_key,
+            credential_current_sign_count=stored_sign_count,
+            require_user_verification=False,
+        )
+
+        # Update sign count for replay protection
+        db.update_passkey_sign_count(player_id, credential_id_b64, verification.new_sign_count)
+
+        # Create session
+        session_id = db.create_session(player_id, auth_method="passkey")
+
+        return JSONResponse({
+            "success": True,
+            "player_id": player_id,
+            "session_id": session_id,
+        })
+
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=f"Authentication verification failed: {str(e)}")
 
 
 # ============================================================================
