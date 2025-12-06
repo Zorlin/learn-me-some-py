@@ -261,6 +261,58 @@ The invisible AI that watches the learner's journey and shapes their experience.
 
 **DO NOT hardcode error checks in pytest tests.** The Director provides intelligent, personalized feedback. Tests just validate correctness; The Director teaches.
 
+### Lesson Improvement Workflow: The Three Paths
+
+When a learner says "I struggled with this lesson", follow this decision tree:
+
+```
+Learner says "I struggled"
+        ↓
+Check: Did tests pass?
+        ↓
+   ┌────┴────┐
+   │         │
+PASSED    FAILED
+   │         │
+   ↓         ↓
+Lesson    Was the lesson
+unclear   clear?
+   │         │
+   ↓    ┌────┴────┐
+Fix      │         │
+TOML    YES       NO
+         │         │
+         ↓         ↓
+     Director   BOTH need
+     catches    fixing!
+     it (working   │
+     as intended)  ↓
+                Lesson misled
+                them INTO the
+                error
+```
+
+**Path 1: PASSED + Struggled → Lesson Problem**
+- Tests passed but learner felt lost
+- The lesson didn't clearly explain the task
+- **Fix:** Improve the TOML lesson content to match the try_it
+
+**Path 2: FAILED + Lesson Clear → Director Opportunity**
+- Learner made a common mistake the lesson DID cover
+- This is working as intended - learner needs practice
+- **Fix:** Add StruggleType detection if not already present
+
+**Path 3: FAILED + Lesson Problem → BOTH Need Fixing**
+- The lesson itself CAUSED the failure
+- Learner followed instructions correctly but still failed
+- Examples:
+  - Lesson shows wrong syntax
+  - Lesson teaches A but try_it tests for B
+  - Starter code is misleading
+- **Fix:** Fix the lesson FIRST, then evaluate if Director detection still needed
+
+**Path 3 is the worst case** - the learner did exactly what we taught and still failed. This erodes trust. Always fix Path 3 issues immediately.
+
 ### TODO: AST-Based Static Analysis for Struggle Detection 🔥🧠
 
 **Current state:** The Director uses regex pattern matching:
