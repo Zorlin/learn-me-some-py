@@ -20,6 +20,13 @@ const router = createRouter({
       meta: { public: true },
     },
     {
+      // Invite link: /invite/CODE -> ProfilePicker with invite code pre-filled
+      path: '/invite/:code',
+      name: 'invite',
+      component: () => import('@/views/ProfilePickerView.vue'),
+      meta: { public: true },
+    },
+    {
       path: '/',
       name: 'home',
       component: () => import('@/views/HomeView.vue'),

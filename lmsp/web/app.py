@@ -2359,6 +2359,28 @@ async def create_player(request: Request):
         }, status_code=400)
 
     db = get_database()
+    invite_code = data.get("invite_code", "").strip()
+
+    # Check registration mode
+    registration_mode = db.get_registration_mode()
+    if registration_mode == "closed":
+        return JSONResponse({
+            "success": False,
+            "error": "Registration is currently closed",
+        }, status_code=403)
+    elif registration_mode == "invite_only":
+        # Require valid invite code
+        if not invite_code:
+            return JSONResponse({
+                "success": False,
+                "error": "Registration requires an invite code",
+            }, status_code=403)
+        valid, error_msg = db.validate_invite_code(invite_code)
+        if not valid:
+            return JSONResponse({
+                "success": False,
+                "error": error_msg,
+            }, status_code=403)
 
     # Check if player already exists
     existing_players = db.list_players()
@@ -2374,6 +2396,10 @@ async def create_player(request: Request):
     # Set display name if provided
     if display_name:
         db.set_display_name(player_id, display_name)
+
+    # Mark invite code as used (if provided)
+    if invite_code:
+        db.use_invite_code(invite_code, player_id)
 
     return JSONResponse({
         "success": True,
@@ -3354,6 +3380,27 @@ async def admin_deactivate_invite(code: str, admin_id: str = Depends(require_adm
     return JSONResponse({
         "success": True,
         "message": f"Invite code '{code}' deactivated",
+    })
+
+
+@app.post("/api/admin/invites/{code}/add-uses")
+async def admin_add_invite_uses(code: str, request: Request, admin_id: str = Depends(require_admin)):
+    """Add more uses to an invite code (admin only)."""
+    data = await request.json()
+    additional_uses = data.get("uses", 1)
+
+    if additional_uses < 1:
+        raise HTTPException(status_code=400, detail="Must add at least 1 use")
+
+    db = get_database()
+    success = db.add_invite_uses(code, additional_uses)
+
+    if not success:
+        raise HTTPException(status_code=404, detail=f"Invite code '{code}' not found")
+
+    return JSONResponse({
+        "success": True,
+        "message": f"Added {additional_uses} use(s) to invite code '{code}'",
     })
 
 

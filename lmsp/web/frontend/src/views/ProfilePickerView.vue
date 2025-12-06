@@ -13,13 +13,14 @@
  */
 
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useGamepadStore } from '@/stores/gamepad'
 import { useGamepadNav } from '@/composables/useGamepadNav'
 import { api } from '@/api/client'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 const gamepadStore = useGamepadStore()
 
@@ -59,6 +60,12 @@ const authenticatingPasskey = ref(false)
 type RegistrationMode = 'open' | 'invite_only' | 'closed'
 const registrationMode = ref<RegistrationMode>('open')
 const isCurrentUserAdmin = ref(false)
+
+// Invite code for invite_only registration
+const inviteCode = ref('')
+const inviteCodeValid = ref<boolean | null>(null)
+const inviteCodeError = ref('')
+const validatingInvite = ref(false)
 
 // Check for existing profile to import (default profile with data)
 const existingProfileToImport = computed(() => {
@@ -118,6 +125,29 @@ async function loadRegistrationMode() {
     console.error('Failed to load registration mode:', e)
     // Default to open if can't fetch
     registrationMode.value = 'open'
+  }
+}
+
+// Validate invite code
+async function validateInviteCode() {
+  if (!inviteCode.value.trim()) {
+    inviteCodeValid.value = null
+    inviteCodeError.value = ''
+    return
+  }
+
+  validatingInvite.value = true
+  try {
+    const response = await api.post<{ valid: boolean; message: string }>('/api/validate-invite', {
+      code: inviteCode.value.trim()
+    })
+    inviteCodeValid.value = response.data.valid
+    inviteCodeError.value = response.data.valid ? '' : response.data.message
+  } catch (e) {
+    inviteCodeValid.value = false
+    inviteCodeError.value = 'Failed to validate invite code'
+  } finally {
+    validatingInvite.value = false
   }
 }
 
@@ -323,16 +353,24 @@ async function createProfile() {
       })
     } else {
       // Create mode: new profile
-      response = await api.post('/api/players', {
+      const payload: Record<string, unknown> = {
         player_id: newPlayerId.value.trim().toLowerCase(),
         display_name: newDisplayName.value.trim() || null,
-      })
+      }
+      // Include invite code if in invite_only mode
+      if (registrationMode.value === 'invite_only' && inviteCode.value) {
+        payload.invite_code = inviteCode.value.trim()
+      }
+      response = await api.post('/api/players', payload)
     }
 
     if (response.data.success) {
       showCreateProfile.value = false
       newPlayerId.value = ''
       newDisplayName.value = ''
+      inviteCode.value = ''
+      inviteCodeValid.value = null
+      inviteCodeError.value = ''
       isImportMode.value = false
       await loadProfiles()
 
@@ -467,6 +505,17 @@ onMounted(async () => {
     loadRegistrationMode(),
     checkCurrentUserAdmin(),
   ])
+
+  // Check for invite code in URL (?invite=CODE or /invite/CODE)
+  const urlParams = new URLSearchParams(window.location.search)
+  const urlInviteCode = urlParams.get('invite') || route.params.code as string
+  if (urlInviteCode) {
+    inviteCode.value = urlInviteCode
+    showCreateProfile.value = true
+    // Validate the invite code
+    await validateInviteCode()
+  }
+
   gamepadStore.startPolling()
 })
 
@@ -673,6 +722,38 @@ onUnmounted(() => {
             class="oled-input w-full"
             placeholder="e.g., Cat, Micha"
           />
+        </div>
+
+        <!-- Invite Code (required in invite_only mode) -->
+        <div v-if="registrationMode === 'invite_only'" class="mb-4">
+          <label class="block text-sm text-text-secondary mb-1">
+            Invite Code
+            <span class="text-accent-error">*</span>
+          </label>
+          <div class="relative">
+            <input
+              v-model="inviteCode"
+              type="text"
+              class="oled-input w-full pr-10"
+              :class="{
+                'border-accent-success': inviteCodeValid === true,
+                'border-red-500': inviteCodeValid === false
+              }"
+              placeholder="Enter your invite code"
+              @blur="validateInviteCode"
+            />
+            <div class="absolute right-3 top-1/2 -translate-y-1/2">
+              <span v-if="validatingInvite" class="text-text-muted">...</span>
+              <span v-else-if="inviteCodeValid === true" class="text-accent-success">✓</span>
+              <span v-else-if="inviteCodeValid === false" class="text-red-500">✗</span>
+            </div>
+          </div>
+          <div v-if="inviteCodeError" class="text-red-500 text-xs mt-1">
+            {{ inviteCodeError }}
+          </div>
+          <div v-else class="text-xs text-text-muted mt-1">
+            Registration is invite-only. Need an invite? Ask an admin.
+          </div>
         </div>
 
         <div v-if="createError" class="text-red-500 text-sm mb-4">

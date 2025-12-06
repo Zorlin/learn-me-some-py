@@ -15,7 +15,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useGamepadNav } from '@/composables/useGamepadNav'
 import { useAuthStore } from '@/stores/auth'
 import { api } from '@/api/client'
-import { Users, BarChart3, Settings, Ticket, Trash2, Shield, ShieldOff, Copy, Check, X, AlertCircle, CheckCircle } from 'lucide-vue-next'
+import { Users, BarChart3, Settings, Ticket, Trash2, Shield, ShieldOff, Copy, Check, X, AlertCircle, CheckCircle, Plus, Archive } from 'lucide-vue-next'
 
 const authStore = useAuthStore()
 
@@ -336,14 +336,29 @@ async function createInvite() {
 async function deactivateInvite(code: string) {
   try {
     await api.delete(`/admin/invites/${code}`)
-    showToast('success', `Invite code ${code} deactivated`)
+    showToast('success', `Invite code ${code} archived`)
     await fetchInvites()
   } catch (e: any) {
     const detail = e.response?.data?.detail
     if (detail) {
       showToast('error', detail)
     } else {
-      showToast('error', 'Failed to deactivate invite. Check your connection.')
+      showToast('error', 'Failed to archive invite. Check your connection.')
+    }
+  }
+}
+
+async function addInviteUses(code: string, uses: number = 1) {
+  try {
+    await api.post(`/admin/invites/${code}/add-uses`, { uses })
+    showToast('success', `Added ${uses} use(s) to ${code}`)
+    await fetchInvites()
+  } catch (e: any) {
+    const detail = e.response?.data?.detail
+    if (detail) {
+      showToast('error', detail)
+    } else {
+      showToast('error', 'Failed to add uses. Check your connection.')
     }
   }
 }
@@ -779,12 +794,15 @@ const securityRate = computed(() => {
                 v-for="invite in invites"
                 :key="invite.code"
                 class="bg-oled-black rounded-lg p-4 border border-oled-border"
-                :class="{ 'opacity-50': !invite.active }"
+                :class="{ 'opacity-50': !invite.active || invite.uses >= invite.max_uses }"
               >
                 <div class="flex items-start justify-between gap-4">
                   <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-2 mb-2">
-                      <code class="text-accent-primary font-mono text-lg">{{ invite.code }}</code>
+                      <code
+                        class="font-mono text-lg"
+                        :class="invite.active && invite.uses < invite.max_uses ? 'text-accent-primary' : 'text-text-muted'"
+                      >{{ invite.code }}</code>
                       <button
                         class="p-1 rounded hover:bg-oled-panel transition-colors"
                         @click="copyToClipboard(invite.code)"
@@ -794,14 +812,22 @@ const securityRate = computed(() => {
                         <Copy v-else :size="16" class="text-text-muted" />
                       </button>
                       <span
-                        v-if="!invite.active"
+                        v-if="invite.uses >= invite.max_uses"
+                        class="px-2 py-0.5 text-xs rounded bg-gray-500/20 text-gray-400"
+                      >
+                        Exhausted
+                      </span>
+                      <span
+                        v-else-if="!invite.active"
                         class="px-2 py-0.5 text-xs rounded bg-red-500/20 text-red-400"
                       >
                         Inactive
                       </span>
                     </div>
                     <div class="flex flex-wrap gap-x-4 gap-y-1 text-sm text-text-secondary">
-                      <span>{{ invite.uses }} / {{ invite.max_uses }} uses</span>
+                      <span :class="{ 'text-gray-500': invite.uses >= invite.max_uses }">
+                        {{ invite.uses }} / {{ invite.max_uses }} uses
+                      </span>
                       <span v-if="invite.expires_at">Expires {{ formatDate(invite.expires_at) }}</span>
                       <span v-else>Never expires</span>
                     </div>
@@ -811,14 +837,35 @@ const securityRate = computed(() => {
                     </div>
                   </div>
 
-                  <button
-                    v-if="invite.active"
-                    class="oled-button px-3 py-2 text-red-400 hover:text-red-300 gamepad-focusable"
-                    @click="deactivateInvite(invite.code)"
-                    title="Deactivate"
-                  >
-                    <X :size="18" />
-                  </button>
+                  <div class="flex items-center gap-2">
+                    <!-- Add uses button (for exhausted codes) -->
+                    <button
+                      v-if="invite.uses >= invite.max_uses"
+                      class="oled-button px-3 py-2 text-accent-success hover:text-green-300 gamepad-focusable"
+                      @click="addInviteUses(invite.code, 1)"
+                      title="Add 1 more use"
+                    >
+                      <Plus :size="18" />
+                    </button>
+                    <!-- Archive button (for exhausted codes) -->
+                    <button
+                      v-if="invite.active && invite.uses >= invite.max_uses"
+                      class="oled-button px-3 py-2 text-text-muted hover:text-text-secondary gamepad-focusable"
+                      @click="deactivateInvite(invite.code)"
+                      title="Archive"
+                    >
+                      <Archive :size="18" />
+                    </button>
+                    <!-- Deactivate button (for active codes with remaining uses) -->
+                    <button
+                      v-if="invite.active && invite.uses < invite.max_uses"
+                      class="oled-button px-3 py-2 text-red-400 hover:text-red-300 gamepad-focusable"
+                      @click="deactivateInvite(invite.code)"
+                      title="Archive"
+                    >
+                      <X :size="18" />
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

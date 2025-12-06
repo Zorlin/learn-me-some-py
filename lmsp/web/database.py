@@ -1838,6 +1838,16 @@ class LMSPDatabase:
             )
             return cursor.rowcount > 0
 
+    def add_invite_uses(self, code: str, additional_uses: int = 1) -> bool:
+        """Add more uses to an existing invite code."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "UPDATE invite_codes SET max_uses = max_uses + ? WHERE code = ?",
+                (additional_uses, code)
+            )
+            return cursor.rowcount > 0
+
     # =========================================================================
     # The Director - Adaptive AI Persistence
     # =========================================================================
