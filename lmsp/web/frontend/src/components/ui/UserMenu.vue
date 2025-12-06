@@ -49,7 +49,7 @@ function closeMenu() {
 
 function goToProfile() {
   closeMenu()
-  router.push('/progress')
+  router.push('/settings/profile')
 }
 
 function switchUser() {

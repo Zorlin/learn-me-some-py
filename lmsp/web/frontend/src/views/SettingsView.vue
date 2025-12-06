@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, onUnmounted, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useGamepadStore } from '@/stores/gamepad'
 import { useGamepadNav } from '@/composables/useGamepadNav'
 import { usePlayerStore } from '@/stores/player'
@@ -8,6 +8,7 @@ import { api } from '@/api/client'
 import SecuritySettings from '@/components/settings/SecuritySettings.vue'
 
 const router = useRouter()
+const route = useRoute()
 const gamepadStore = useGamepadStore()
 const playerStore = usePlayerStore()
 
@@ -18,6 +19,24 @@ useGamepadNav({ onBack: () => router.push('/') })
 type TabId = 'profile' | 'input' | 'security' | 'difficulty' | 'ai'
 const activeTab = ref<TabId>('profile')
 
+// Map URL slugs to tab IDs (director -> ai for backwards compat)
+const urlToTab: Record<string, TabId> = {
+  profile: 'profile',
+  input: 'input',
+  security: 'security',
+  difficulty: 'difficulty',
+  director: 'ai',
+  ai: 'ai',
+}
+
+const tabToUrl: Record<TabId, string> = {
+  profile: 'profile',
+  input: 'input',
+  security: 'security',
+  difficulty: 'difficulty',
+  ai: 'director',
+}
+
 const tabs = [
   { id: 'profile' as const, label: 'Profile', icon: '👤' },
   { id: 'input' as const, label: 'Input', icon: '🎮' },
@@ -26,9 +45,22 @@ const tabs = [
   { id: 'ai' as const, label: 'The Director', icon: '🧠' },
 ]
 
-// Persist active tab to localStorage
+// Update URL when tab changes
 watch(activeTab, (newTab) => {
-  localStorage.setItem('lmsp_settings_tab', newTab)
+  const urlSlug = tabToUrl[newTab]
+  if (route.params.tab !== urlSlug) {
+    router.replace(`/settings/${urlSlug}`)
+  }
+})
+
+// Update tab when URL changes
+watch(() => route.params.tab, (urlTab) => {
+  if (urlTab && typeof urlTab === 'string') {
+    const tabId = urlToTab[urlTab]
+    if (tabId && activeTab.value !== tabId) {
+      activeTab.value = tabId
+    }
+  }
 })
 
 // Director state
@@ -211,10 +243,13 @@ function toggleAutoSuggestions() {
 }
 
 onMounted(() => {
-  // Restore active tab
-  const savedTab = localStorage.getItem('lmsp_settings_tab')
-  if (savedTab && tabs.some(t => t.id === savedTab)) {
-    activeTab.value = savedTab as TabId
+  // Read tab from URL, fallback to profile
+  const urlTab = route.params.tab
+  if (urlTab && typeof urlTab === 'string' && urlToTab[urlTab]) {
+    activeTab.value = urlToTab[urlTab]
+  } else {
+    // Redirect to /settings/profile if no tab specified
+    router.replace('/settings/profile')
   }
 
   const savedDifficulty = localStorage.getItem('lmsp_difficulty')

@@ -58,7 +58,7 @@ const router = createRouter({
       component: () => import('@/views/SkillTreeView.vue'),
     },
     {
-      path: '/settings',
+      path: '/settings/:tab?',
       name: 'settings',
       component: () => import('@/views/SettingsView.vue'),
     },
