@@ -40,10 +40,18 @@ const avatarColor = computed(() => {
   return `hsl(${hue}, 70%, 50%)`
 })
 
-// Admin status
+// Admin status - only show if confirmed admin AND logged in
 const isAdmin = ref(false)
+const adminChecked = ref(false)
 
 async function checkAdminStatus() {
+  // Don't check if not logged in
+  if (!playerStore.playerId) {
+    isAdmin.value = false
+    adminChecked.value = true
+    return
+  }
+
   try {
     // Try to access admin endpoint - if it works, we're an admin
     await api.get('/admin/settings')
@@ -51,7 +59,11 @@ async function checkAdminStatus() {
   } catch {
     isAdmin.value = false
   }
+  adminChecked.value = true
 }
+
+// Computed to only show admin link when confirmed
+const showAdminLink = computed(() => adminChecked.value && isAdmin.value)
 
 function toggleMenu() {
   isOpen.value = !isOpen.value
@@ -71,18 +83,27 @@ function goToAdmin() {
   router.push('/admin')
 }
 
-function switchUser() {
-  closeMenu()
+async function switchUser() {
   // Clear current player ID and redirect to profile picker
   authStore.setPlayerId('')
-  authStore.logout()
+  try {
+    await authStore.logout()
+  } catch {
+    // Ignore errors
+  }
+  closeMenu()
   router.push('/profiles')
 }
 
 async function logout() {
-  closeMenu()
-  await authStore.logout()
+  // Close menu AFTER navigation to avoid potential reactivity issues
+  try {
+    await authStore.logout()
+  } catch (e) {
+    console.error('Logout API error (continuing anyway):', e)
+  }
   authStore.setPlayerId('')
+  closeMenu()
   router.push('/profiles')
 }
 
@@ -150,13 +171,13 @@ onUnmounted(() => {
             Profile
           </button>
 
-          <!-- Admin link (only shown for admins) -->
+          <!-- Admin link (only shown for confirmed admins) -->
           <button
-            v-if="isAdmin"
-            class="menu-item gamepad-focusable w-full px-4 py-2 text-left text-sm text-accent-primary hover:text-accent-primary hover:bg-oled-border/50 transition-colors flex items-center gap-3"
+            v-if="showAdminLink"
+            class="menu-item gamepad-focusable w-full px-4 py-2 text-left text-sm text-text-secondary hover:text-white hover:bg-oled-border/50 transition-colors flex items-center gap-3"
             @click="goToAdmin"
           >
-            <Shield :size="18" />
+            <Shield :size="18" class="text-accent-primary" />
             Admin Panel
           </button>
 
