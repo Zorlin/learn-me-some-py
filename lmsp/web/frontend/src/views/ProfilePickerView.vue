@@ -51,10 +51,23 @@ const createError = ref('')
 const isImportMode = ref(false)  // When true, migrate from existing profile
 const showFileImport = ref(false)  // File import wizard
 
+// Registration mode - controls whether Add Profile is shown
+type RegistrationMode = 'open' | 'invite_only' | 'closed'
+const registrationMode = ref<RegistrationMode>('open')
+const isCurrentUserAdmin = ref(false)
+
 // Check for existing profile to import (default profile with data)
 const existingProfileToImport = computed(() => {
   // Find the 'default' profile if it exists and has XP (meaning it was used)
   return profiles.value.find(p => p.player_id === 'default' && p.total_xp > 0)
+})
+
+// Can add profile? Only if registration is open/invite_only OR user is admin
+const canAddProfile = computed(() => {
+  // Admins can always add profiles
+  if (isCurrentUserAdmin.value) return true
+  // Otherwise depends on registration mode
+  return registrationMode.value !== 'closed'
 })
 
 // Gamepad combo tracking
@@ -89,6 +102,35 @@ async function loadProfiles() {
     console.error('Failed to load profiles:', e)
   } finally {
     loading.value = false
+  }
+}
+
+// Load registration mode (public endpoint)
+async function loadRegistrationMode() {
+  try {
+    const response = await api.get<{ mode: RegistrationMode }>('/api/registration-mode')
+    registrationMode.value = response.data.mode
+  } catch (e) {
+    console.error('Failed to load registration mode:', e)
+    // Default to open if can't fetch
+    registrationMode.value = 'open'
+  }
+}
+
+// Check if current user (from localStorage) is admin
+async function checkCurrentUserAdmin() {
+  const currentPlayerId = localStorage.getItem('lmsp_player_id')
+  if (!currentPlayerId) {
+    isCurrentUserAdmin.value = false
+    return
+  }
+
+  try {
+    // Try to access admin endpoint - success means we're admin
+    await api.get('/admin/settings')
+    isCurrentUserAdmin.value = true
+  } catch {
+    isCurrentUserAdmin.value = false
   }
 }
 
@@ -311,7 +353,11 @@ function cancelComboConflict() {
 }
 
 onMounted(async () => {
-  await loadProfiles()
+  await Promise.all([
+    loadProfiles(),
+    loadRegistrationMode(),
+    checkCurrentUserAdmin(),
+  ])
   gamepadStore.startPolling()
 })
 
@@ -375,8 +421,9 @@ onUnmounted(() => {
         </div>
       </button>
 
-      <!-- Add Profile tile -->
+      <!-- Add Profile tile (hidden when registration is closed, unless admin) -->
       <button
+        v-if="canAddProfile"
         class="profile-tile add-tile gamepad-focusable"
         @click="showCreateProfile = true"
       >
