@@ -35,121 +35,7 @@ interface PlayerProfile {
   last_active: string
   has_password: boolean
   has_gamepad_combo: boolean
-  has_passkey?: boolean
-}
-
-// Passkey authentication state
-const passkeySupported = ref(false)
-const passkeyLoading = ref(false)
-const passkeyError = ref('')
-
-// Check passkey support on mount
-function checkPasskeySupport() {
-  if (!window.isSecureContext) {
-    passkeySupported.value = false
-  } else if (!window.PublicKeyCredential) {
-    passkeySupported.value = false
-  } else {
-    passkeySupported.value = true
-  }
-}
-
-// Base64URL encoding/decoding helpers
-function base64urlToBuffer(base64url: string): ArrayBuffer {
-  const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/')
-  const padding = '='.repeat((4 - (base64.length % 4)) % 4)
-  const binary = atob(base64 + padding)
-  const bytes = new Uint8Array(binary.length)
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i)
-  }
-  return bytes.buffer
-}
-
-function bufferToBase64url(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer)
-  let binary = ''
-  for (let i = 0; i < bytes.length; i++) {
-    binary += String.fromCharCode(bytes[i])
-  }
-  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
-}
-
-// Sign in with passkey (discoverable credential flow)
-async function signInWithPasskey() {
-  if (!passkeySupported.value) return
-
-  passkeyLoading.value = true
-  passkeyError.value = ''
-
-  try {
-    // Step 1: Get authentication options from server
-    const optionsResponse = await api.post<{
-      challenge: string
-      rpId: string
-      timeout: number
-      userVerification: string
-    }>('/api/auth/passkey/authenticate/begin', {})
-
-    if (!optionsResponse.ok || !optionsResponse.data) {
-      throw new Error('Failed to start passkey authentication')
-    }
-
-    const options = optionsResponse.data
-
-    // Step 2: Use browser WebAuthn API - discoverable credential flow (no allowCredentials)
-    const credential = await navigator.credentials.get({
-      publicKey: {
-        challenge: base64urlToBuffer(options.challenge),
-        rpId: options.rpId,
-        timeout: options.timeout,
-        userVerification: options.userVerification as UserVerificationRequirement,
-        // No allowCredentials = discoverable credential flow - authenticator shows available accounts
-      },
-    }) as PublicKeyCredential
-
-    if (!credential) {
-      throw new Error('Passkey authentication cancelled')
-    }
-
-    const assertionResponse = credential.response as AuthenticatorAssertionResponse
-
-    // Step 3: Send assertion to server for verification
-    const completeResponse = await api.post<{
-      success: boolean
-      player_id: string
-      session_id: string
-    }>('/api/auth/passkey/authenticate/complete', {
-      id: credential.id,
-      rawId: bufferToBase64url(credential.rawId),
-      type: credential.type,
-      response: {
-        clientDataJSON: bufferToBase64url(assertionResponse.clientDataJSON),
-        authenticatorData: bufferToBase64url(assertionResponse.authenticatorData),
-        signature: bufferToBase64url(assertionResponse.signature),
-        userHandle: assertionResponse.userHandle ? bufferToBase64url(assertionResponse.userHandle) : null,
-      },
-    })
-
-    if (completeResponse.ok && completeResponse.data?.success) {
-      // Login successful!
-      const playerId = completeResponse.data.player_id
-      authStore.setPlayerId(playerId)
-      await authStore.checkAuthStatus()
-      router.push('/')
-    } else {
-      throw new Error('Passkey authentication failed')
-    }
-  } catch (e) {
-    if (e instanceof Error && e.name === 'NotAllowedError') {
-      passkeyError.value = 'Authentication cancelled'
-    } else {
-      passkeyError.value = e instanceof Error ? e.message : 'Passkey authentication failed'
-    }
-    setTimeout(() => { passkeyError.value = '' }, 3000)
-  } finally {
-    passkeyLoading.value = false
-  }
+  has_passkey: boolean
 }
 
 // State
@@ -165,6 +51,9 @@ const newDisplayName = ref('')
 const createError = ref('')
 const isImportMode = ref(false)  // When true, migrate from existing profile
 const showFileImport = ref(false)  // File import wizard
+const showPasskeyPrompt = ref(false)
+const passkeyError = ref('')
+const authenticatingPasskey = ref(false)
 
 // Registration mode - controls whether Add Profile is shown
 type RegistrationMode = 'open' | 'invite_only' | 'closed'
@@ -253,7 +142,11 @@ async function checkCurrentUserAdmin() {
 async function selectProfile(profile: PlayerProfile) {
   selectedProfile.value = profile
 
-  if (profile.has_password) {
+  if (profile.has_passkey) {
+    // Passkey required - show passkey prompt
+    showPasskeyPrompt.value = true
+    passkeyError.value = ''
+  } else if (profile.has_password) {
     // Show password prompt
     showPasswordPrompt.value = true
     passwordInput.value = ''
@@ -293,6 +186,107 @@ async function loginWithCredentials(playerId: string, password: string): Promise
   } catch {
     return false
   }
+}
+
+// Helper functions for base64url encoding/decoding (WebAuthn)
+function base64urlToBuffer(base64url: string): ArrayBuffer {
+  const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/')
+  const padding = '='.repeat((4 - (base64.length % 4)) % 4)
+  const binary = atob(base64 + padding)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i)
+  }
+  return bytes.buffer
+}
+
+function bufferToBase64url(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer)
+  let binary = ''
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i])
+  }
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
+}
+
+// Authenticate with passkey
+async function authenticateWithPasskey() {
+  if (!selectedProfile.value) return
+
+  authenticatingPasskey.value = true
+  passkeyError.value = ''
+
+  try {
+    // Step 1: Get authentication options from server
+    const optionsResponse = await api.post('/api/auth/passkey/authenticate/begin', {
+      player_id: selectedProfile.value.player_id,
+    })
+
+    if (!optionsResponse.data) {
+      throw new Error('Failed to start passkey authentication')
+    }
+
+    const options = optionsResponse.data
+
+    // Convert base64url strings to ArrayBuffer
+    const publicKeyOptions: PublicKeyCredentialRequestOptions = {
+      challenge: base64urlToBuffer(options.challenge),
+      timeout: options.timeout,
+      rpId: options.rpId,
+      allowCredentials: options.allowCredentials?.map((cred: { id: string; type: string }) => ({
+        id: base64urlToBuffer(cred.id),
+        type: cred.type,
+      })),
+      userVerification: options.userVerification,
+    }
+
+    // Step 2: Get credential from browser
+    const credential = await navigator.credentials.get({
+      publicKey: publicKeyOptions,
+    }) as PublicKeyCredential
+
+    if (!credential) {
+      throw new Error('Passkey authentication cancelled')
+    }
+
+    const assertionResponse = credential.response as AuthenticatorAssertionResponse
+
+    // Step 3: Verify with server
+    const completeResponse = await api.post('/api/auth/passkey/authenticate/complete', {
+      id: credential.id,
+      rawId: bufferToBase64url(credential.rawId),
+      type: credential.type,
+      response: {
+        clientDataJSON: bufferToBase64url(assertionResponse.clientDataJSON),
+        authenticatorData: bufferToBase64url(assertionResponse.authenticatorData),
+        signature: bufferToBase64url(assertionResponse.signature),
+        userHandle: assertionResponse.userHandle ? bufferToBase64url(assertionResponse.userHandle) : null,
+      },
+    })
+
+    if (completeResponse.data.success) {
+      showPasskeyPrompt.value = false
+      await loginAs(selectedProfile.value.player_id)
+    } else {
+      passkeyError.value = 'Passkey verification failed'
+    }
+  } catch (e: any) {
+    passkeyError.value = e.message || 'Passkey authentication failed'
+  } finally {
+    authenticatingPasskey.value = false
+  }
+}
+
+function cancelPasskeyPrompt() {
+  showPasskeyPrompt.value = false
+  selectedProfile.value = null
+  passkeyError.value = ''
+}
+
+// Use gamepad combo instead of passkey (if available)
+function useGamepadComboInstead() {
+  showPasskeyPrompt.value = false
+  // The user can enter their gamepad combo which will be detected by the combo handler
 }
 
 // Perform actual login
@@ -468,7 +462,6 @@ function cancelComboConflict() {
 }
 
 onMounted(async () => {
-  checkPasskeySupport()
   await Promise.all([
     loadProfiles(),
     loadRegistrationMode(),
@@ -531,7 +524,8 @@ onUnmounted(() => {
         </div>
 
         <!-- Security indicator -->
-        <div v-if="profile.has_password || profile.has_gamepad_combo" class="security-badge">
+        <div v-if="profile.has_password || profile.has_gamepad_combo || profile.has_passkey" class="security-badge">
+          <span v-if="profile.has_passkey">🔑</span>
           <span v-if="profile.has_password">🔒</span>
           <span v-if="profile.has_gamepad_combo">🎮</span>
         </div>
@@ -548,23 +542,8 @@ onUnmounted(() => {
       </button>
     </div>
 
-    <!-- Passkey Sign In -->
-    <div v-if="passkeySupported" class="mt-8 text-center">
-      <button
-        class="passkey-button gamepad-focusable"
-        :disabled="passkeyLoading"
-        @click="signInWithPasskey"
-      >
-        <span class="passkey-icon">🔐</span>
-        <span>{{ passkeyLoading ? 'Authenticating...' : 'Sign in with Passkey' }}</span>
-      </button>
-      <div v-if="passkeyError" class="text-red-400 text-sm mt-2">
-        {{ passkeyError }}
-      </div>
-    </div>
-
     <!-- Gamepad hint -->
-    <div v-if="gamepadStore.connected" class="mt-8 text-center">
+    <div v-if="gamepadStore.connected" class="mt-12 text-center">
       <div class="text-sm text-accent-primary mb-1">🎮 Gamepad detected!</div>
       <div class="text-xs text-text-muted">
         Enter your button combo to quick-login
@@ -604,6 +583,49 @@ onUnmounted(() => {
           </button>
           <button class="oled-button-primary flex-1" @click="submitPassword">
             Login
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Passkey Prompt Modal -->
+    <div
+      v-if="showPasskeyPrompt"
+      class="modal-overlay"
+      @click.self="cancelPasskeyPrompt"
+    >
+      <div class="modal-content oled-panel text-center">
+        <div class="text-4xl mb-4">🔑</div>
+        <h2 class="text-xl font-bold mb-2">
+          Passkey Required
+        </h2>
+        <p class="text-text-secondary mb-6">
+          {{ selectedProfile?.display_name || selectedProfile?.player_id }} requires passkey authentication
+        </p>
+
+        <div v-if="passkeyError" class="text-red-500 text-sm mb-4">
+          {{ passkeyError }}
+        </div>
+
+        <div class="flex flex-col gap-3">
+          <button
+            class="oled-button-primary w-full"
+            :disabled="authenticatingPasskey"
+            @click="authenticateWithPasskey"
+          >
+            {{ authenticatingPasskey ? 'Authenticating...' : 'Use Passkey' }}
+          </button>
+
+          <button
+            v-if="selectedProfile?.has_gamepad_combo"
+            class="oled-button-secondary w-full"
+            @click="useGamepadComboInstead"
+          >
+            🎮 Use Gamepad Combo Instead
+          </button>
+
+          <button class="oled-button w-full text-text-muted" @click="cancelPasskeyPrompt">
+            Cancel
           </button>
         </div>
       </div>
@@ -807,19 +829,5 @@ onUnmounted(() => {
   @apply bg-oled-near border border-oled-border rounded-lg px-4 py-3;
   @apply text-text-primary placeholder-text-muted;
   @apply focus:outline-none focus:border-accent-primary;
-}
-
-.passkey-button {
-  @apply inline-flex items-center gap-3 px-6 py-3 rounded-xl;
-  @apply bg-oled-panel border border-oled-border;
-  @apply text-text-primary font-medium;
-  @apply transition-all duration-200;
-  @apply hover:border-accent-primary/50 hover:bg-oled-near;
-  @apply focus:outline-none focus:ring-2 focus:ring-accent-primary;
-  @apply disabled:opacity-50 disabled:cursor-not-allowed;
-}
-
-.passkey-icon {
-  @apply text-xl;
 }
 </style>

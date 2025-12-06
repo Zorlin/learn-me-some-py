@@ -2450,12 +2450,14 @@ async def get_auth_status(player_id: str = Depends(get_current_player)):
     """Check if player has security enabled and what methods are available."""
     db = get_database()
     player = db.get_or_create_player(player_id)
+    has_passkey = db.has_passkey(player_id)
 
     return JSONResponse({
         "player_id": player_id,
         "has_password": db.has_password(player_id),
         "has_gamepad_combo": bool(player.gamepad_combo),
-        "needs_auth": db.has_password(player_id) or bool(player.gamepad_combo),
+        "has_passkey": has_passkey,
+        "needs_auth": db.has_password(player_id) or bool(player.gamepad_combo) or has_passkey,
     })
 
 
@@ -2510,6 +2512,18 @@ async def verify_password(request: Request):
     password = data.get("password", "")
 
     db = get_database()
+
+    # If passkey is set, password login is not allowed
+    # (use passkey or gamepad combo instead)
+    if db.has_passkey(player_id):
+        player = db.get_or_create_player(player_id)
+        has_gamepad = bool(player.gamepad_combo)
+        return JSONResponse({
+            "success": False,
+            "error": "Passkey required for this account",
+            "passkey_required": True,
+            "gamepad_available": has_gamepad,
+        }, status_code=401)
 
     if not db.has_password(player_id):
         return JSONResponse({
@@ -2870,7 +2884,7 @@ async def passkey_register_begin(request: Request, player_id: str = Depends(get_
 async def passkey_register_complete(request: Request, player_id: str = Depends(get_current_player)):
     """Complete passkey registration - verify attestation and store credential."""
     from webauthn import verify_registration_response
-    from webauthn.helpers.structs import RegistrationCredential
+    from webauthn.helpers.structs import RegistrationCredential, AuthenticatorAttestationResponse
     from webauthn.helpers import base64url_to_bytes, bytes_to_base64url
 
     data = await request.json()
@@ -2895,10 +2909,10 @@ async def passkey_register_complete(request: Request, player_id: str = Depends(g
         credential = RegistrationCredential(
             id=data.get("id"),
             raw_id=base64url_to_bytes(data.get("rawId", data.get("id"))),
-            response={
-                "client_data_json": base64url_to_bytes(data["response"]["clientDataJSON"]),
-                "attestation_object": base64url_to_bytes(data["response"]["attestationObject"]),
-            },
+            response=AuthenticatorAttestationResponse(
+                client_data_json=base64url_to_bytes(data["response"]["clientDataJSON"]),
+                attestation_object=base64url_to_bytes(data["response"]["attestationObject"]),
+            ),
             type=data.get("type", "public-key"),
         )
 
@@ -2991,7 +3005,7 @@ async def passkey_auth_begin(request: Request):
 async def passkey_auth_complete(request: Request):
     """Complete passkey authentication - verify assertion and create session."""
     from webauthn import verify_authentication_response
-    from webauthn.helpers.structs import AuthenticationCredential
+    from webauthn.helpers.structs import AuthenticationCredential, AuthenticatorAssertionResponse
     from webauthn.helpers import base64url_to_bytes, bytes_to_base64url
 
     data = await request.json()
@@ -3052,12 +3066,12 @@ async def passkey_auth_complete(request: Request):
         credential = AuthenticationCredential(
             id=data.get("id"),
             raw_id=base64url_to_bytes(credential_id_b64),
-            response={
-                "client_data_json": base64url_to_bytes(response_data["clientDataJSON"]),
-                "authenticator_data": base64url_to_bytes(response_data["authenticatorData"]),
-                "signature": base64url_to_bytes(response_data["signature"]),
-                "user_handle": base64url_to_bytes(user_handle_b64) if user_handle_b64 else None,
-            },
+            response=AuthenticatorAssertionResponse(
+                client_data_json=base64url_to_bytes(response_data["clientDataJSON"]),
+                authenticator_data=base64url_to_bytes(response_data["authenticatorData"]),
+                signature=base64url_to_bytes(response_data["signature"]),
+                user_handle=base64url_to_bytes(user_handle_b64) if user_handle_b64 else None,
+            ),
             type=data.get("type", "public-key"),
         )
 
@@ -3156,6 +3170,7 @@ async def admin_get_user(player_id: str, admin_id: str = Depends(require_admin))
         "is_admin": db.is_admin(player_id),
         "has_password": player.get("has_password", False),
         "has_gamepad_combo": player.get("has_gamepad_combo", False),
+        "has_passkey": player.get("has_passkey", False),
         "total_xp": xp,
         "challenges_completed": len(completions),
         "invited_by_code": player.get("invited_by_code"),
