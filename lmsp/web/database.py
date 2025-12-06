@@ -1418,18 +1418,41 @@ class LMSPDatabase:
             cursor.execute(
                 "SELECT COUNT(*) as active FROM players WHERE last_active > datetime('now', '-7 days')"
             )
-            active_players = cursor.fetchone()["active"]
+            active_players_last_7_days = cursor.fetchone()["active"]
 
             cursor.execute("SELECT SUM(total_xp) as total_xp FROM players")
-            total_xp = cursor.fetchone()["total_xp"] or 0
+            total_xp_earned = cursor.fetchone()["total_xp"] or 0
 
-            # Challenge stats
+            # Security stats
             cursor.execute(
-                "SELECT COUNT(*) as total, SUM(count) as attempts FROM completions"
+                "SELECT COUNT(*) as count FROM players WHERE password_hash IS NOT NULL"
+            )
+            players_with_password = cursor.fetchone()["count"]
+
+            cursor.execute(
+                "SELECT COUNT(*) as count FROM players WHERE gamepad_combo IS NOT NULL"
+            )
+            players_with_gamepad = cursor.fetchone()["count"]
+
+            # Players with ANY security (no double-counting)
+            cursor.execute(
+                "SELECT COUNT(*) as count FROM players WHERE password_hash IS NOT NULL OR gamepad_combo IS NOT NULL"
+            )
+            players_secured = cursor.fetchone()["count"]
+
+            # Challenge stats - total completions (sum of all completion counts)
+            cursor.execute(
+                "SELECT COUNT(*) as total, SUM(count) as total_completions FROM completions"
             )
             row = cursor.fetchone()
             unique_completions = row["total"] or 0
-            total_attempts = row["attempts"] or 0
+            total_completions = row["total_completions"] or 0
+
+            # Challenges completed in last 7 days
+            cursor.execute(
+                "SELECT COUNT(*) as count FROM completions WHERE last_completed > datetime('now', '-7 days')"
+            )
+            challenges_completed_last_7_days = cursor.fetchone()["count"]
 
             # Director stats
             cursor.execute(
@@ -1459,11 +1482,17 @@ class LMSPDatabase:
             ]
 
             return {
+                # Frontend expected fields
                 "total_players": total_players,
-                "active_players_7d": active_players,
-                "total_xp": total_xp,
+                "total_completions": total_completions,
+                "total_xp_earned": total_xp_earned,
+                "players_with_password": players_with_password,
+                "players_with_gamepad": players_with_gamepad,
+                "players_secured": players_secured,  # Has password OR gamepad (no double-counting)
+                "challenges_completed_last_7_days": challenges_completed_last_7_days,
+                "active_players_last_7_days": active_players_last_7_days,
+                # Extra fields for future use
                 "unique_completions": unique_completions,
-                "total_attempts": total_attempts,
                 "total_observations": total_observations,
                 "active_sessions": active_sessions,
                 "top_players": top_players,
