@@ -112,6 +112,10 @@ print(f"Action: {action}")
 print(f"Target: {target}")
 '''
 
+[validation]
+type = "pytest"
+test_file = "test_string_methods.py"
+
 [connections]
 prerequisites = ["strings", "lists"]
 enables = []

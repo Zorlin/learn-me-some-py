@@ -207,11 +207,14 @@ class TestStage5:
 
 # Fixture to load the user's solution
 @pytest.fixture
-def solution():
-    """Load the user's solution function"""
-    # This will be injected by the LMSP test runner
-    from user_code import solution as user_solution
-    return user_solution
+def solution(player_code):
+    """Load the user's solution function from player code."""
+    # Execute player code to get the solution function
+    ns = {}
+    exec(player_code, ns)
+    if 'solution' not in ns:
+        raise AssertionError("Define a function called 'solution'")
+    return ns['solution']
 
 
 if __name__ == "__main__":

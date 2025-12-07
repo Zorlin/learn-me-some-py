@@ -1,0 +1,114 @@
+# Pyramid Time Attack - Muscle Memory Drills
+# Hidden stage unlocked after mastering Pyramid Builder
+# Goal: Sub-10-second completions to lock in the formula
+
+[challenge]
+id = "pyramid_time_attack"
+name = "⚡ Pyramid Time Attack"
+level = 2
+prerequisites = ["pyramid_builder"]
+category = "interview_prep"
+time_attack = true
+
+[description]
+brief = "Speed drill: Print the pyramid from memory!"
+detailed = """
+## ⚡ PYRAMID TIME ATTACK
+
+You know the formula. Now make it **muscle memory**.
+
+**The Goal:** Complete in under 10 seconds.
+
+**The Formula You're Drilling:**
+```
+spaces = n - i - 1
+stars = 2 * i + 1
+```
+
+**One-Liner Bonus:** +50 XP if you use a single-line solution!
+
+```python
+for i in range(n): print(' '*(n-i-1) + '*'*(2*i+1))
+```
+
+**Rules:**
+- Code clears after each successful run
+- Keep going until you hit sub-10 seconds
+- Your best time is tracked
+
+**SAY IT:** "n minus i minus one spaces, two i plus one stars"
+
+GO GO GO! 🏃
+"""
+
+[skeleton]
+code = '''
+n = 10
+# Type the pyramid formula from memory!
+# Target: Under 10 seconds
+
+'''
+
+[validation]
+type = "pytest"
+test_file = "test_pyramid_builder.py"
+
+[[tests.case]]
+name = "pyramid_10"
+input = 10
+expected = """         *
+        ***
+       *****
+      *******
+     *********
+    ***********
+   *************
+  ***************
+ *****************
+*******************"""
+
+[hints]
+level_1 = "spaces = n - i - 1"
+level_2 = "stars = 2 * i + 1"
+level_3 = "for i in range(n): print(' '*(n-i-1) + '*'*(2*i+1))"
+
+[solution]
+code = '''
+n = 10
+for i in range(n):
+    print(' '*(n-i-1) + '*'*(2*i+1))
+'''
+
+[meta]
+time_limit_seconds = 30
+speed_run_target = 10
+points = 50
+xp_reward = 25
+one_liner_bonus = 50
+clear_on_success = true
+challenge_mode = "time_attack"
+
+[adaptive]
+fun_factor = "speed"
+weakness_signals = ["formula_recall", "muscle_memory"]
+
+[time_attack]
+target_time = 10
+mastery_threshold = 3  # Complete 3 times under target to "master"
+clear_solution_on_success = true
+show_best_time = true
+animated_completion = true  # Purple sheen when mastered
+
+[emotional_checkpoints]
+sub_30 = "Getting there! The formula is sinking in."
+sub_20 = "Nice speed! You're almost at muscle memory."
+sub_10 = "⚡ LIGHTNING FAST! Formula locked in!"
+mastered = """
+🏆 **PYRAMID MASTERED**
+
+You can now write this in your sleep:
+- spaces = n - i - 1
+- stars = 2 * i + 1
+
+This formula is YOURS. Forever.
+"""

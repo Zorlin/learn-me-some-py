@@ -1,161 +1,524 @@
-# Ada Integer Parser Challenge
-# From synthesis/RECOVERY - Advanced string parsing with base conversion
+# Ada Integer Parser - Multi-Stage Progressive Challenge
+# Gentle introduction to string validation and base conversion
 
 [challenge]
 id = "ada_integer_parser"
 name = "Ada Integer Parser"
-level = 4
-prerequisites = ["string_operations", "if_else", "type_conversion"]
+level = 3
+prerequisites = ["if_else", "type_conversion"]
 category = "interview_prep"
+codesignal_flag = true
 
 [description]
-brief = "Validate Ada-style integer representations"
+brief = "Validate Ada-style integer representations, one step at a time"
 detailed = """
-## Ada Integer Notation
+## Ada Integer Parser
 
-In the Ada programming language, integers can be represented in two ways:
+You're building a validator for Ada-style integers!
 
-### Format 1: Simple Decimal
-A sequence of digits 0-9 (can contain underscores as separators):
-- `123_456_789` ✓
-- `42` ✓
-- `1_000_000` ✓
+This is a **5-stage progressive challenge** - each stage adds complexity:
 
-### Format 2: Base Notation
-`base#digits#` where:
-- `base` is 2-16 (written in decimal)
-- `digits` are valid for that base (0-9, a-f, A-F)
-- Underscores allowed as separators
+| Stage | What You Handle | Key Concept |
+|-------|-----------------|-------------|
+| 1 | Simple digits | `.isdigit()` |
+| 2 | + Underscores | `.replace()` |
+| 3 | + Base format detection | `.split('#')` |
+| 4 | + Base range validation | `2 <= base <= 16` |
+| 5 | + Digit validation | Valid chars per base |
 
-**Examples:**
-- `16#123abc#` ✓ (hexadecimal)
-- `2#1010#` ✓ (binary)
-- `10#123#` ✓ (decimal with explicit base)
-- `10#123abc#` ✗ (a,b,c not valid in base 10)
-- `10##` ✗ (no digits)
-- `17#123#` ✗ (base > 16)
+**Return:** `True` if valid, `False` otherwise.
 
-**Valid digits by base:**
-- Base 2: 0-1
-- Base 8: 0-7
-- Base 10: 0-9
-- Base 16: 0-9, a-f, A-F
-
-**Your Task:**
-Return `True` if the string is a valid Ada integer, `False` otherwise.
+Master each stage before moving on!
 """
 
 [skeleton]
 code = '''
 def solution(line: str) -> bool:
-    """
-    Check if line is a valid Ada-style integer representation.
+    """Validate Ada-style integers."""
 
-    Valid formats:
-    1. Simple decimal: digits and underscores (e.g., "123_456")
-    2. Base notation: base#digits# (e.g., "16#abc#")
+    # === STAGE 1: Empty check ===
+    if not line:
+        return False
 
-    Args:
-        line: The string to validate
+    # === STAGE 2: Remove underscores FIRST ===
+    # Uncomment this line for Stage 2+:
+    # line = line.replace("_", "")
+    # if not line:  # Was it ALL underscores?
+    #     return False
 
-    Returns:
-        True if valid Ada integer, False otherwise
-    """
-    # Remove underscores (they're just separators)
-    line = line.replace('_', '')
-
-    # Check if it's base notation (contains #)
-    if '#' in line:
-        # Parse base#digits# format
-        # Your code here
-        pass
+    # === STAGE 3+: Two formats exist ===
+    if "#" in line:
+        # BASE NOTATION: "10#123#"
+        # Stage 3: Check structure (split on #)
+        # Stage 4: Validate base is 2-16
+        # Stage 5: Validate digits for that base
+        pass  # Replace with your code
     else:
-        # Simple decimal: just digits
-        # Your code here
-        pass
+        # SIMPLE DECIMAL: "123"
+        return line.isdigit()
 
 
 # Test cases
-print(solution("123_456_789"))  # True
-print(solution("16#123abc#"))   # True
-print(solution("10#123abc#"))   # False
-print(solution("10##"))         # False
+print(solution("123"))       # True  (Stage 1)
+print(solution(""))          # False (Stage 1)
+print(solution("123_456"))   # True  (Stage 2 - needs underscore handling!)
+print(solution("10#123#"))   # True  (Stage 3+)
 '''
 
 [validation]
 type = "pytest"
 test_file = "test_ada_integer_parser.py"
 
-[[tests.case]]
-name = "simple_decimal"
+# ═══════════════════════════════════════════════════════════════════════════════
+# STAGE 1: Simple Digits
+# ═══════════════════════════════════════════════════════════════════════════════
+[stages.stage_1]
+name = "Simple Digits"
+description = """
+## Stage 1: Is It All Digits?
+
+The simplest case - check if a string is just digits!
+
+**Your Task:**
+- `"123"` → `True` (all digits)
+- `"abc"` → `False` (letters, not digits)
+- `""` → `False` (empty string)
+- `"0"` → `True` (single digit is fine)
+
+**The Magic Method:** Python strings have `.isdigit()`!
+
+```python
+"123".isdigit()   # True
+"abc".isdigit()   # False
+"".isdigit()      # False (!)
+```
+
+**Example:**
+```python
+def solution(line: str) -> bool:
+    if not line:
+        return False
+    return line.isdigit()
+```
+
+That's it for Stage 1!
+"""
+
+[[stages.stage_1.tests.case]]
+name = "simple_number"
+input = "123"
+expected = true
+
+[[stages.stage_1.tests.case]]
+name = "single_digit"
+input = "0"
+expected = true
+
+[[stages.stage_1.tests.case]]
+name = "empty_string"
+input = ""
+expected = false
+
+[[stages.stage_1.tests.case]]
+name = "letters"
+input = "abc"
+expected = false
+
+[stages.stage_1.hints]
+level_1 = "Python strings have a `.isdigit()` method"
+level_2 = "Empty strings return False for .isdigit() but handle explicitly"
+level_3 = """
+```python
+def solution(line: str) -> bool:
+    if not line:
+        return False
+    return line.isdigit()
+```
+"""
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# STAGE 2: Underscores as Separators
+# ═══════════════════════════════════════════════════════════════════════════════
+[stages.stage_2]
+name = "+ Underscores"
+description = """
+## Stage 2: Handle Underscores
+
+Ada allows underscores as visual separators in numbers!
+
+**Examples:**
+- `"123_456_789"` → `True` (underscores are just separators)
+- `"1_000_000"` → `True`
+- `"___"` → `False` (JUST underscores = no digits!)
+
+**The Trick:** Remove underscores first, THEN check!
+
+```python
+line = line.replace('_', '')  # Remove all underscores
+```
+
+**After removing underscores:**
+- `"123_456"` becomes `"123456"` → `.isdigit()` → `True`
+- `"___"` becomes `""` → empty → `False`
+
+**Updated Solution:**
+```python
+def solution(line: str) -> bool:
+    if not line:
+        return False
+    line = line.replace('_', '')  # NEW: Remove underscores
+    if not line:                   # Check again after removal!
+        return False
+    return line.isdigit()
+```
+"""
+
+[[stages.stage_2.tests.case]]
+name = "with_underscores"
 input = "123_456_789"
 expected = true
 
-[[tests.case]]
-name = "hex_valid"
-input = "16#123abc#"
+[[stages.stage_2.tests.case]]
+name = "leading_underscore"
+input = "_123"
 expected = true
 
-[[tests.case]]
-name = "decimal_invalid_digits"
-input = "10#123abc#"
+[[stages.stage_2.tests.case]]
+name = "just_underscores"
+input = "___"
 expected = false
 
-[[tests.case]]
+[[stages.stage_2.tests.case]]
+name = "still_works_without"
+input = "42"
+expected = true
+
+[stages.stage_2.hints]
+level_1 = "Use `.replace('_', '')` to remove all underscores"
+level_2 = "After removing underscores, check if anything is left!"
+level_3 = "Just underscores '___' becomes empty string '' after replace"
+level_4 = """
+```python
+def solution(line: str) -> bool:
+    if not line:
+        return False
+    line = line.replace('_', '')
+    if not line:
+        return False
+    return line.isdigit()
+```
+"""
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# STAGE 3: Detect Base Notation Format
+# ═══════════════════════════════════════════════════════════════════════════════
+[stages.stage_3]
+name = "+ Base Format"
+description = """
+## Stage 3: Recognize Base Notation
+
+Ada also supports `base#digits#` format!
+
+**Format:** `base#digits#`
+- `"10#123#"` → base 10, digits 123
+- `"16#abc#"` → base 16, digits abc
+- `"2#1010#"` → base 2, digits 1010
+
+**How to detect:** Look for `#` in the string!
+
+**How to parse:** Split on `#`!
+```python
+"10#123#".split('#')  # → ['10', '123', '']
+```
+
+**Valid structure:** Exactly 3 parts, last part empty!
+```python
+parts = line.split('#')
+if len(parts) != 3 or parts[2] != '':
+    return False  # Invalid format!
+
+base_str = parts[0]   # "10"
+digits = parts[1]     # "123"
+```
+
+**For now:** Just validate the STRUCTURE, not the values!
+- `"10#123#"` → `True` (valid structure)
+- `"10#123"` → `False` (missing closing #)
+- `"10##"` → `False` (no digits - parts[1] is empty)
+- `"#123#"` → `False` (no base - parts[0] is empty)
+"""
+
+[[stages.stage_3.tests.case]]
+name = "valid_base_format"
+input = "10#123#"
+expected = true
+
+[[stages.stage_3.tests.case]]
+name = "hex_format"
+input = "16#abc#"
+expected = true
+
+[[stages.stage_3.tests.case]]
+name = "missing_closing_hash"
+input = "10#123"
+expected = false
+
+[[stages.stage_3.tests.case]]
 name = "empty_digits"
 input = "10##"
 expected = false
 
-[[tests.case]]
-name = "binary_valid"
-input = "2#1010#"
+[[stages.stage_3.tests.case]]
+name = "simple_still_works"
+input = "123"
 expected = true
 
-[[tests.case]]
+[stages.stage_3.hints]
+level_1 = "Use `if '#' in line:` to detect base notation"
+level_2 = "Split with `parts = line.split('#')` - should give 3 parts"
+level_3 = "Check: `len(parts) == 3` and `parts[2] == ''` and `parts[0]` and `parts[1]`"
+level_4 = """
+```python
+if '#' in line:
+    parts = line.split('#')
+    if len(parts) != 3 or parts[2] != '':
+        return False
+    base_str, digits = parts[0], parts[1]
+    if not base_str or not digits:
+        return False
+    return True  # For now, just check structure
+else:
+    return line.isdigit()
+```
+"""
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# STAGE 4: Validate Base Range
+# ═══════════════════════════════════════════════════════════════════════════════
+[stages.stage_4]
+name = "+ Base Range"
+description = """
+## Stage 4: Validate the Base
+
+The base must be a number between 2 and 16!
+
+**Rules:**
+1. Base must be digits (not letters)
+2. Base must be 2-16 (inclusive)
+
+**Examples:**
+- `"10#123#"` → `True` (base 10 is valid)
+- `"2#101#"` → `True` (base 2 is valid)
+- `"16#abc#"` → `True` (base 16 is valid)
+- `"17#123#"` → `False` (17 > 16!)
+- `"1#0#"` → `False` (1 < 2!)
+- `"abc#123#"` → `False` (base not numeric!)
+
+**Validation:**
+```python
+# Check base is numeric
+if not base_str.isdigit():
+    return False
+
+# Convert and check range
+base = int(base_str)
+if not (2 <= base <= 16):
+    return False
+```
+
+**Why 2-16?**
+- Base 2 = binary (0, 1)
+- Base 8 = octal (0-7)
+- Base 10 = decimal (0-9)
+- Base 16 = hex (0-9, a-f)
+"""
+
+[[stages.stage_4.tests.case]]
+name = "base_10_valid"
+input = "10#123#"
+expected = true
+
+[[stages.stage_4.tests.case]]
+name = "base_2_valid"
+input = "2#101#"
+expected = true
+
+[[stages.stage_4.tests.case]]
+name = "base_16_valid"
+input = "16#abc#"
+expected = true
+
+[[stages.stage_4.tests.case]]
 name = "base_too_high"
 input = "17#123#"
 expected = false
 
-[hints]
-level_1 = "First remove all underscores with .replace('_', '')"
-level_2 = "Check if '#' is in the string to determine format"
-level_3 = "For base notation, split on '#' - you should get [base, digits, '']"
+[[stages.stage_4.tests.case]]
+name = "base_too_low"
+input = "1#0#"
+expected = false
+
+[[stages.stage_4.tests.case]]
+name = "base_not_numeric"
+input = "abc#123#"
+expected = false
+
+[stages.stage_4.hints]
+level_1 = "First check `base_str.isdigit()` before converting"
+level_2 = "Use `2 <= base <= 16` to check the range"
+level_3 = "Convert with `base = int(base_str)` after checking isdigit()"
 level_4 = """
-For validating digits in a base:
+```python
+if not base_str.isdigit():
+    return False
+base = int(base_str)
+if not (2 <= base <= 16):
+    return False
+```
+"""
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# STAGE 5: Validate Digits for Base
+# ═══════════════════════════════════════════════════════════════════════════════
+[stages.stage_5]
+name = "+ Digit Validation"
+description = """
+## Stage 5: Validate Digits for the Base
+
+The final boss! Each digit must be valid for its base!
+
+**Valid digits by base:**
+- Base 2: `0`, `1` only
+- Base 8: `0-7`
+- Base 10: `0-9`
+- Base 16: `0-9`, `a-f`, `A-F`
+
+**Examples:**
+- `"2#1010#"` → `True` (only 0s and 1s)
+- `"2#1012#"` → `False` (2 not valid in binary!)
+- `"10#123#"` → `True` (0-9 valid in base 10)
+- `"10#abc#"` → `False` (letters not valid in base 10!)
+- `"16#abc#"` → `True` (a-f valid in base 16)
+- `"16#ABC#"` → `True` (case insensitive!)
+
+**The Clever Trick:**
+```python
+valid_chars = '0123456789abcdef'[:base]
+```
+
+This slices the string to get valid chars for any base!
+- `[:2]` → `"01"` (binary)
+- `[:10]` → `"0123456789"` (decimal)
+- `[:16]` → `"0123456789abcdef"` (hex)
+
+**Validation Loop:**
+```python
+for char in digits.lower():  # .lower() handles uppercase
+    if char not in valid_chars:
+        return False
+return True
+```
+"""
+
+[[stages.stage_5.tests.case]]
+name = "binary_valid"
+input = "2#1010#"
+expected = true
+
+[[stages.stage_5.tests.case]]
+name = "binary_invalid"
+input = "2#1012#"
+expected = false
+
+[[stages.stage_5.tests.case]]
+name = "decimal_valid"
+input = "10#123#"
+expected = true
+
+[[stages.stage_5.tests.case]]
+name = "decimal_invalid"
+input = "10#abc#"
+expected = false
+
+[[stages.stage_5.tests.case]]
+name = "hex_lowercase"
+input = "16#abc#"
+expected = true
+
+[[stages.stage_5.tests.case]]
+name = "hex_uppercase"
+input = "16#ABC#"
+expected = true
+
+[[stages.stage_5.tests.case]]
+name = "hex_mixed"
+input = "16#aB3#"
+expected = true
+
+[[stages.stage_5.tests.case]]
+name = "with_underscores_in_digits"
+input = "16#a_b_c#"
+expected = true
+
+[[stages.stage_5.tests.case]]
+name = "full_simple_decimal"
+input = "123_456_789"
+expected = true
+
+[stages.stage_5.hints]
+level_1 = "Use `valid_chars = '0123456789abcdef'[:base]` to get valid chars"
+level_2 = "Loop through `digits.lower()` to handle uppercase"
+level_3 = "If ANY char is not in valid_chars, return False"
+level_4 = """
 ```python
 valid_chars = '0123456789abcdef'[:base]
 for char in digits.lower():
     if char not in valid_chars:
         return False
+return True
 ```
 """
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# SOLUTION (Final complete version)
+# ═══════════════════════════════════════════════════════════════════════════════
 [solution]
 code = '''
 def solution(line: str) -> bool:
-    # Remove underscores (separators)
+    # Handle empty input
+    if not line:
+        return False
+
+    # Remove underscores (they're just visual separators)
     line = line.replace('_', '')
 
+    # Check again after removing underscores
+    if not line:
+        return False
+
+    # Check if it's base notation
     if '#' in line:
-        # Base notation: base#digits#
+        # Parse base#digits# format
         parts = line.split('#')
         if len(parts) != 3 or parts[2] != '':
             return False
 
         base_str, digits = parts[0], parts[1]
 
-        # Validate base
+        # Must have both base and digits
+        if not base_str or not digits:
+            return False
+
+        # Validate base is numeric
         if not base_str.isdigit():
             return False
+
+        # Validate base range
         base = int(base_str)
         if not (2 <= base <= 16):
             return False
 
-        # Must have at least one digit
-        if not digits:
-            return False
-
-        # Validate digits for this base
+        # Validate each digit for this base
         valid_chars = '0123456789abcdef'[:base]
         for char in digits.lower():
             if char not in valid_chars:
@@ -163,22 +526,49 @@ def solution(line: str) -> bool:
 
         return True
     else:
-        # Simple decimal: all digits
-        return line.isdigit() and len(line) > 0
-
-
-print(solution("123_456_789"))
-print(solution("16#123abc#"))
-print(solution("10#123abc#"))
-print(solution("10##"))
+        # Simple decimal: just digits
+        return line.isdigit()
 '''
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# METADATA
+# ═══════════════════════════════════════════════════════════════════════════════
 [meta]
-time_limit_seconds = 300
-speed_run_target = 180
-points = 200
-source = "RECOVERY"
+time_limit_seconds = 600
+speed_run_target = 300
+points = 300
+xp_reward = 100
+category = "interview_prep"
+
+[hints]
+level_1 = "Each stage builds on the previous - don't delete working code!"
+level_2 = "Remove underscores FIRST, then validate"
+level_3 = "The '0123456789abcdef'[:base] trick is powerful!"
 
 [adaptive]
 fun_factor = "puzzle"
-weakness_signals = ["string_split", "base_conversion", "validation_logic"]
+weakness_signals = ["string_split", "base_conversion", "range_validation"]
+project_themes = ["parser", "validator", "compiler"]
+
+[struggle_types]
+forgot_underscore_removal = "Underscores should be removed before validation"
+wrong_split_count = "line.split('#') should give exactly 3 parts for base notation"
+base_range_off_by_one = "Base must be 2-16 inclusive (2 <= base <= 16)"
+case_sensitivity = "Use .lower() when checking digits - hex can be uppercase!"
+slice_confusion = "'0123456789abcdef'[:base] gives you exactly `base` characters"
+
+[emotional_checkpoints]
+after_stage_1 = "Nice! You can check if strings are digits."
+after_stage_2 = "Underscores handled! .replace() is so useful."
+after_stage_3 = "You can parse structured formats now! .split() FTW."
+after_stage_5 = """
+You just built a PARSER for a real programming language syntax!
+
+This is the kind of string validation that appears in:
+- Compilers and interpreters
+- Configuration file parsers
+- Input validation for web forms
+- Protocol implementations
+
+You're thinking like a language designer now!
+"""

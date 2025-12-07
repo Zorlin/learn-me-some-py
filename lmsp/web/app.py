@@ -2126,6 +2126,24 @@ async def get_lessons_for_challenge(challenge_id: str, player_id: str = Depends(
 # The Director - Adaptive Learning AI
 # ============================================================================
 
+import os
+
+@app.get("/api/director/exam-mode")
+async def get_exam_mode_status():
+    """
+    Check if LMSP is running in exam mode (AI disabled).
+
+    Returns the exam mode status based on environment variables.
+    """
+    exam_mode = os.environ.get("LMSP_EXAM_MODE", "0") == "1"
+    no_ai = os.environ.get("LMSP_NO_AI", "0") == "1"
+
+    return JSONResponse({
+        "exam_mode": exam_mode or no_ai,
+        "ai_enabled": not (exam_mode or no_ai),
+        "message": "AI features disabled - exam mode active" if (exam_mode or no_ai) else "Full AI features available"
+    })
+
 
 @app.get("/api/director/state")
 async def get_director_state(player_id: str = Depends(get_current_player)):

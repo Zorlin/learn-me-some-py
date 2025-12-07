@@ -1,121 +1,167 @@
-"""Tests for Ada Integer Parser challenge."""
+"""
+Ada Integer Parser - Multi-Stage Progressive Challenge Tests
+
+Tests are organized by stage. Each stage's tests build on previous stages.
+The solution must pass ALL tests for the current stage AND all previous stages.
+"""
+
 import pytest
 
 
-def run_solution(code: str, line: str) -> bool:
-    namespace = {}
-    exec(code, namespace)
-    return namespace['solution'](line) if 'solution' in namespace else None
+class TestStage1:
+    """Stage 1: Simple digits - just check if it's all digits"""
+
+    def test_stage1_simple_number(self, solution):
+        assert solution("123") == True, "Simple digits should be valid"
+
+    def test_stage1_single_digit(self, solution):
+        assert solution("0") == True, "Single digit should be valid"
+
+    def test_stage1_empty_string(self, solution):
+        assert solution("") == False, "Empty string should be invalid"
+
+    def test_stage1_letters(self, solution):
+        assert solution("abc") == False, "Letters are not digits"
+
+    def test_stage1_mixed(self, solution):
+        assert solution("123abc") == False, "Mixed letters and digits invalid"
 
 
-class TestSimpleDecimal:
-    def test_simple_number(self, player_code):
-        assert run_solution(player_code, "123") == True
+class TestStage2:
+    """Stage 2: Handle underscores as visual separators"""
 
-    def test_with_underscores(self, player_code):
-        assert run_solution(player_code, "123_456_789") == True
+    def test_stage2_with_underscores(self, solution):
+        assert solution("123_456_789") == True, "Underscores are valid separators"
 
-    def test_single_digit(self, player_code):
-        assert run_solution(player_code, "0") == True
+    def test_stage2_leading_underscore(self, solution):
+        assert solution("_123") == True, "Leading underscore is fine"
 
-    def test_leading_underscore(self, player_code):
-        # After removing underscore, should be valid
-        assert run_solution(player_code, "_123") == True
+    def test_stage2_trailing_underscore(self, solution):
+        assert solution("123_") == True, "Trailing underscore is fine"
 
-    def test_empty_after_underscore(self, player_code):
-        # Just underscores = invalid
-        assert run_solution(player_code, "___") == False
+    def test_stage2_just_underscores(self, solution):
+        assert solution("___") == False, "Just underscores = no digits = invalid"
 
-
-class TestBaseNotation:
-    def test_hex_lowercase(self, player_code):
-        assert run_solution(player_code, "16#123abc#") == True
-
-    def test_hex_uppercase(self, player_code):
-        assert run_solution(player_code, "16#123ABC#") == True
-
-    def test_hex_mixed_case(self, player_code):
-        assert run_solution(player_code, "16#aAbBcC#") == True
-
-    def test_binary_valid(self, player_code):
-        assert run_solution(player_code, "2#1010#") == True
-
-    def test_binary_invalid_digit(self, player_code):
-        assert run_solution(player_code, "2#1012#") == False
-
-    def test_octal_valid(self, player_code):
-        assert run_solution(player_code, "8#1234567#") == True
-
-    def test_octal_invalid(self, player_code):
-        assert run_solution(player_code, "8#12345678#") == False
-
-    def test_decimal_explicit(self, player_code):
-        assert run_solution(player_code, "10#123#") == True
-
-    def test_decimal_invalid_hex_chars(self, player_code):
-        assert run_solution(player_code, "10#123abc#") == False
-
-    def test_base_zero(self, player_code):
-        assert run_solution(player_code, "10#0#") == True
-
-    def test_empty_digits(self, player_code):
-        assert run_solution(player_code, "10##") == False
-
-    def test_base_too_low(self, player_code):
-        assert run_solution(player_code, "1#1#") == False
-
-    def test_base_too_high(self, player_code):
-        assert run_solution(player_code, "17#123#") == False
-
-    def test_base_with_underscores(self, player_code):
-        assert run_solution(player_code, "16#1_2_3#") == True
+    def test_stage2_still_works_without(self, solution):
+        assert solution("42") == True, "Still works without underscores"
 
 
-class TestInvalidFormats:
-    def test_multiple_hashes(self, player_code):
-        assert run_solution(player_code, "10#10#123ABC#") == False
+class TestStage3:
+    """Stage 3: Detect and parse base#digits# format"""
 
-    def test_missing_closing_hash(self, player_code):
-        assert run_solution(player_code, "16#abc") == False
+    def test_stage3_valid_base_format(self, solution):
+        assert solution("10#123#") == True, "Valid base notation structure"
 
-    def test_empty_string(self, player_code):
-        assert run_solution(player_code, "") == False
+    def test_stage3_hex_format(self, solution):
+        assert solution("16#abc#") == True, "Hex format structure valid"
 
-    def test_just_hash(self, player_code):
-        assert run_solution(player_code, "#") == False
+    def test_stage3_missing_closing_hash(self, solution):
+        assert solution("10#123") == False, "Missing closing # is invalid"
 
-    def test_letters_in_simple(self, player_code):
-        assert run_solution(player_code, "123abc") == False
+    def test_stage3_empty_digits(self, solution):
+        assert solution("10##") == False, "Empty digits section is invalid"
+
+    def test_stage3_empty_base(self, solution):
+        assert solution("#123#") == False, "Empty base section is invalid"
+
+    def test_stage3_multiple_hashes(self, solution):
+        assert solution("10#12#34#") == False, "Too many # symbols is invalid"
+
+    def test_stage3_simple_still_works(self, solution):
+        assert solution("123") == True, "Simple decimal still works"
 
 
+class TestStage4:
+    """Stage 4: Validate base is 2-16"""
+
+    def test_stage4_base_10_valid(self, solution):
+        assert solution("10#123#") == True, "Base 10 is valid"
+
+    def test_stage4_base_2_valid(self, solution):
+        assert solution("2#101#") == True, "Base 2 is valid"
+
+    def test_stage4_base_16_valid(self, solution):
+        assert solution("16#abc#") == True, "Base 16 is valid"
+
+    def test_stage4_base_too_high(self, solution):
+        assert solution("17#123#") == False, "Base 17 > 16, invalid"
+
+    def test_stage4_base_too_low(self, solution):
+        assert solution("1#0#") == False, "Base 1 < 2, invalid"
+
+    def test_stage4_base_zero(self, solution):
+        assert solution("0#0#") == False, "Base 0 < 2, invalid"
+
+    def test_stage4_base_not_numeric(self, solution):
+        assert solution("abc#123#") == False, "Non-numeric base is invalid"
+
+
+class TestStage5:
+    """Stage 5: Validate digits are valid for the given base"""
+
+    def test_stage5_binary_valid(self, solution):
+        assert solution("2#1010#") == True, "Valid binary"
+
+    def test_stage5_binary_invalid(self, solution):
+        assert solution("2#1012#") == False, "2 is not valid in binary"
+
+    def test_stage5_octal_valid(self, solution):
+        assert solution("8#1234567#") == True, "Valid octal"
+
+    def test_stage5_octal_invalid(self, solution):
+        assert solution("8#12345678#") == False, "8 is not valid in octal"
+
+    def test_stage5_decimal_valid(self, solution):
+        assert solution("10#123#") == True, "Valid decimal"
+
+    def test_stage5_decimal_invalid(self, solution):
+        assert solution("10#abc#") == False, "Letters not valid in decimal"
+
+    def test_stage5_hex_lowercase(self, solution):
+        assert solution("16#abc#") == True, "Lowercase hex valid"
+
+    def test_stage5_hex_uppercase(self, solution):
+        assert solution("16#ABC#") == True, "Uppercase hex valid"
+
+    def test_stage5_hex_mixed_case(self, solution):
+        assert solution("16#aB3cD#") == True, "Mixed case hex valid"
+
+    def test_stage5_hex_invalid(self, solution):
+        assert solution("16#ghijk#") == False, "g-k not valid in hex"
+
+    def test_stage5_with_underscores_in_digits(self, solution):
+        assert solution("16#a_b_c#") == True, "Underscores allowed in digits"
+
+    def test_stage5_full_simple_decimal(self, solution):
+        assert solution("123_456_789") == True, "Full simple decimal still works"
+
+    def test_stage5_full_workflow(self, solution):
+        """Complete test covering all cases"""
+        # Valid cases
+        assert solution("42") == True
+        assert solution("1_000_000") == True
+        assert solution("2#1010#") == True
+        assert solution("8#777#") == True
+        assert solution("10#999#") == True
+        assert solution("16#DEADBEEF#") == True
+
+        # Invalid cases
+        assert solution("") == False
+        assert solution("2#222#") == False
+        assert solution("10#ABC#") == False
+        assert solution("17#123#") == False
+
+
+# Fixture to load the user's solution
 @pytest.fixture
-def player_code(request):
-    return getattr(request, 'param', '''
-def solution(line: str) -> bool:
-    line = line.replace('_', '')
+def solution(player_code):
+    """Load the user's solution function from player code."""
+    ns = {}
+    exec(player_code, ns)
+    if 'solution' not in ns:
+        raise AssertionError("Define a function called 'solution'")
+    return ns['solution']
 
-    if '#' in line:
-        parts = line.split('#')
-        if len(parts) != 3 or parts[2] != '':
-            return False
 
-        base_str, digits = parts[0], parts[1]
-
-        if not base_str.isdigit():
-            return False
-        base = int(base_str)
-        if not (2 <= base <= 16):
-            return False
-
-        if not digits:
-            return False
-
-        valid_chars = '0123456789abcdef'[:base]
-        for char in digits.lower():
-            if char not in valid_chars:
-                return False
-
-        return True
-    else:
-        return line.isdigit() and len(line) > 0
-''')
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])

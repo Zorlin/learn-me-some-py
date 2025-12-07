@@ -124,6 +124,24 @@ const directorLoading = ref(false)
 const directorError = ref<string | null>(null)
 let directorPollInterval: ReturnType<typeof setInterval> | null = null
 
+// Exam mode status
+interface ExamModeStatus {
+  exam_mode: boolean
+  ai_enabled: boolean
+  message: string
+}
+const examModeStatus = ref<ExamModeStatus | null>(null)
+
+async function fetchExamModeStatus() {
+  try {
+    const response = await api.get<ExamModeStatus>('/director/exam-mode')
+    examModeStatus.value = response.data
+  } catch (e) {
+    // Default to AI enabled if check fails
+    examModeStatus.value = { exam_mode: false, ai_enabled: true, message: '' }
+  }
+}
+
 async function fetchDirectorState() {
   directorLoading.value = true
   directorError.value = null
@@ -279,12 +297,14 @@ onMounted(() => {
       playerName.value = playerStore.profile.display_name
     }
     fetchDirectorState()
+    fetchExamModeStatus()
   })
 
   // Poll Director state every 5 seconds when on AI tab or difficulty tab
   directorPollInterval = setInterval(() => {
     if (activeTab.value === 'ai' || activeTab.value === 'difficulty') {
       fetchDirectorState()
+      fetchExamModeStatus()
     }
   }, 5000)
 })
@@ -763,6 +783,25 @@ async function practiceConcept(concept: string) {
 
         <!-- The Director (AI) Tab -->
         <section v-if="activeTab === 'ai'" class="settings-section">
+          <!-- Exam Mode Banner -->
+          <div
+            v-if="examModeStatus?.exam_mode"
+            class="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-lg"
+          >
+            <div class="flex items-center gap-3">
+              <span class="text-3xl">🔒</span>
+              <div>
+                <div class="font-bold text-red-400 text-lg">EXAM MODE ACTIVE</div>
+                <p class="text-red-300/80 text-sm">
+                  AI features are disabled. Hints and reference materials are still available.
+                </p>
+                <p class="text-xs text-text-muted mt-1">
+                  Run <code class="bg-oled-black px-1 rounded">lmsp-exam-mode off</code> to re-enable AI.
+                </p>
+              </div>
+            </div>
+          </div>
+
           <h1 class="text-2xl lg:text-3xl font-bold mb-2">
             <span class="text-accent-primary">🧠</span> The Director
           </h1>

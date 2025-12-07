@@ -252,7 +252,19 @@ expected = ["1", "2", "3", "true", "2"]
 [stages.stage_3.hints]
 level_1 = "Python lists have a .count() method: `my_list.count(value)`"
 level_2 = "Don't forget to convert count to string with str()!"
-level_3 = "Update ADD to return str(container.count(value)) after appending"
+level_3 = "⚠️ ADD behavior changes in Stage 3! It returns the count now, not empty string"
+level_4 = """
+```python
+# UPDATE your ADD block:
+if command == "ADD":
+    container.append(value)
+    results.append(str(container.count(value)))  # Returns count now!
+
+# ADD the COUNT block:
+elif command == "COUNT":
+    results.append(str(container.count(value)))
+```
+"""
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # STAGE 4: GET_MEDIAN
