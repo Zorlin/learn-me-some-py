@@ -24,8 +24,11 @@ const examModeStatus = ref<ExamModeStatus | null>(null)
 async function fetchExamModeStatus() {
   try {
     const response = await api.get<ExamModeStatus>('/director/exam-mode')
+    console.log('🔒 Exam mode API response:', response)
     examModeStatus.value = response.data
+    console.log('🔒 Exam mode status set to:', examModeStatus.value)
   } catch (e) {
+    console.error('🔒 Exam mode fetch failed:', e)
     // If endpoint doesn't exist, assume not in exam mode
     examModeStatus.value = { exam_mode: false, ai_enabled: true, message: '' }
   }
