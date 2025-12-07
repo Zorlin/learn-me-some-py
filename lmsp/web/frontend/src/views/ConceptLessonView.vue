@@ -21,6 +21,28 @@ import ConsoleOutput from '@/components/game/ConsoleOutput.vue'
 import EmotionalFeedback from '@/components/input/EmotionalFeedback.vue'
 import { LogIn } from 'lucide-vue-next'
 
+// Exam mode status
+interface ExamModeStatus {
+  exam_mode: boolean
+  ai_enabled: boolean
+  message: string
+}
+const examModeStatus = ref<ExamModeStatus | null>(null)
+
+async function fetchExamModeStatus() {
+  try {
+    const response = await api.get<ExamModeStatus>('/director/exam-mode')
+    console.log('🔒 Exam mode API response:', response)
+    examModeStatus.value = response.data
+    console.log('🔒 Exam mode status set to:', examModeStatus.value)
+  } catch (e) {
+    console.error('🔒 Exam mode fetch failed:', e)
+    examModeStatus.value = { exam_mode: false, ai_enabled: true, message: '' }
+  }
+}
+
+const isExamMode = computed(() => examModeStatus.value?.exam_mode ?? false)
+
 // Phase: same as ChallengeView for consistency
 type LessonPhase = 'coding' | 'feedback' | 'complete'
 
@@ -217,6 +239,9 @@ watch(() => gamepadStore.buttons, (buttons) => {
 }, { deep: true })
 
 onMounted(async () => {
+  // Check exam mode status first
+  await fetchExamModeStatus()
+
   await loadLesson()
 
   // Start timer display update interval
@@ -534,8 +559,19 @@ const conceptContext = computed(() => {
 
             <!-- Action Buttons -->
             <div class="flex flex-col gap-2 mt-4">
+              <!-- Exam Mode: Limited actions -->
+              <template v-if="isExamMode">
+                <div class="p-4 bg-red-500/10 border border-red-500/30 rounded-lg text-center">
+                  <div class="text-red-400 font-bold mb-1">🔒 EXAM MODE ACTIVE</div>
+                  <div class="text-red-300/70 text-sm">Code editing and test running disabled</div>
+                </div>
+                <button class="oled-button gamepad-focusable" @click="requestHint">
+                  💡 View Hint (Reference Only)
+                </button>
+              </template>
+
               <!-- Guest Mode: Sign in prompt (only if lesson has try_it) -->
-              <template v-if="isGuest && lesson.try_it">
+              <template v-else-if="isGuest && lesson.try_it">
                 <div class="p-4 bg-accent-primary/5 border border-accent-primary/20 rounded-lg">
                   <div class="flex items-center gap-2 mb-2">
                     <LogIn :size="18" class="text-accent-primary" />
@@ -683,8 +719,31 @@ const conceptContext = computed(() => {
         <div class="lg:col-span-2 space-y-6">
           <!-- Code Editor (if has try_it) - FIRST -->
           <div v-if="lesson.try_it">
-            <!-- Guest Preview Banner -->
-            <div v-if="isGuest" class="mb-4 p-3 bg-oled-panel border border-oled-border rounded-lg flex items-center gap-3">
+            <!-- EXAM MODE LOCKOUT - Complete editor freeze -->
+            <div v-if="isExamMode" class="exam-mode-lockout">
+              <div class="exam-lockout-banner">
+                <div class="exam-lockout-icon">🔒</div>
+                <div class="exam-lockout-title">EXAM MODE</div>
+                <div class="exam-lockout-subtitle">REFERENCE ONLY</div>
+                <div class="exam-lockout-message">
+                  Editors are disabled during exam mode.<br>
+                  Use hints and descriptions as reference material only.
+                </div>
+                <div class="exam-lockout-integrity">
+                  ✓ No code editing · ✓ No AI assistance · ✓ Academic integrity enforced
+                </div>
+              </div>
+              <!-- Show starter code as read-only reference -->
+              <div class="exam-code-reference">
+                <div class="exam-code-header">
+                  <span class="text-xs font-mono text-text-muted">📝 Starting template (read-only reference)</span>
+                </div>
+                <pre class="exam-code-display"><code>{{ lesson.try_it?.starter || '# No starter code' }}</code></pre>
+              </div>
+            </div>
+
+            <!-- Normal mode: Guest Preview Banner -->
+            <div v-else-if="isGuest" class="mb-4 p-3 bg-oled-panel border border-oled-border rounded-lg flex items-center gap-3">
               <div class="text-2xl">👀</div>
               <div>
                 <div class="text-sm font-medium text-text-primary">Preview Mode</div>
@@ -692,7 +751,9 @@ const conceptContext = computed(() => {
               </div>
             </div>
 
+            <!-- Normal mode: Code Editor -->
             <CodeEditor
+              v-if="!isExamMode"
               :code="tryItCode"
               :readonly="isGuest || isRunning"
               @update:code="tryItCode = $event"
@@ -1032,5 +1093,68 @@ const conceptContext = computed(() => {
 .struggle-card {
   @apply w-full p-3 rounded-lg;
   @apply bg-accent-warning/5 border border-accent-warning/30;
+}
+
+/* Exam Mode Lockout Styles */
+.exam-mode-lockout {
+  @apply space-y-4;
+}
+
+.exam-lockout-banner {
+  @apply p-8 rounded-lg text-center;
+  @apply bg-gradient-to-b from-red-900/30 to-red-950/50;
+  @apply border-2 border-red-500/50;
+  box-shadow: 0 0 40px rgba(239, 68, 68, 0.2), inset 0 0 60px rgba(239, 68, 68, 0.05);
+}
+
+.exam-lockout-icon {
+  @apply text-6xl mb-4;
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { filter: drop-shadow(0 0 10px rgba(239, 68, 68, 0.5)); }
+  50% { filter: drop-shadow(0 0 20px rgba(239, 68, 68, 0.8)); }
+}
+
+.exam-lockout-title {
+  @apply text-4xl font-black text-red-400 tracking-widest mb-1;
+  text-shadow: 0 0 20px rgba(239, 68, 68, 0.5);
+}
+
+.exam-lockout-subtitle {
+  @apply text-2xl font-bold text-red-300/80 tracking-wider mb-4;
+}
+
+.exam-lockout-message {
+  @apply text-red-200/70 text-sm leading-relaxed mb-4;
+}
+
+.exam-lockout-integrity {
+  @apply text-xs text-red-300/50 font-mono tracking-wide;
+  @apply pt-4 border-t border-red-500/20;
+}
+
+.exam-code-reference {
+  @apply rounded-lg overflow-hidden;
+  @apply border border-red-500/30;
+  @apply bg-oled-black/80;
+}
+
+.exam-code-header {
+  @apply px-4 py-2;
+  @apply bg-red-900/20 border-b border-red-500/20;
+}
+
+.exam-code-display {
+  @apply p-4 m-0 overflow-x-auto;
+  @apply text-sm text-text-muted font-mono;
+  @apply bg-transparent;
+  user-select: none;
+  pointer-events: none;
+}
+
+.exam-code-display code {
+  @apply text-red-300/60;
 }
 </style>
