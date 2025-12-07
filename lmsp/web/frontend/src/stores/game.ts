@@ -530,23 +530,44 @@ export const useGameStore = defineStore('game', () => {
 
   function useHint(): string | null {
     if (!currentChallenge.value) return null
-    if (!currentChallenge.value.hints) return null
+
+    // For multi-stage challenges, use stage-specific hints
+    let hints = currentChallenge.value.hints
+    if (currentChallenge.value.is_multi_stage && currentChallenge.value.stages) {
+      const stageData = currentChallenge.value.stages[currentStage.value - 1]
+      if (stageData?.hints) {
+        hints = stageData.hints
+      }
+    }
+
+    if (!hints) return null
 
     // Hints are freely available - no artificial limits!
     // This isn't Duolingo. We want learners to succeed.
     hintsUsed.value++
 
     // Progressively reveal hints (more specific as you ask more)
-    const hintKeys = Object.keys(currentChallenge.value.hints).sort()
+    const hintKeys = Object.keys(hints).sort()
     const hintIndex = Math.min(hintsUsed.value - 1, hintKeys.length - 1)
     const hintKey = hintKeys[hintIndex]
 
-    return hintKey ? currentChallenge.value.hints[hintKey] : null
+    return hintKey ? hints[hintKey] : null
   }
 
   function getAllHints(): string[] {
-    if (!currentChallenge.value?.hints) return []
-    return Object.values(currentChallenge.value.hints)
+    if (!currentChallenge.value) return []
+
+    // For multi-stage challenges, use stage-specific hints
+    let hints = currentChallenge.value.hints
+    if (currentChallenge.value.is_multi_stage && currentChallenge.value.stages) {
+      const stageData = currentChallenge.value.stages[currentStage.value - 1]
+      if (stageData?.hints) {
+        hints = stageData.hints
+      }
+    }
+
+    if (!hints) return []
+    return Object.values(hints)
   }
 
   function updateCode(newCode: string) {

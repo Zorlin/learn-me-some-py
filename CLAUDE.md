@@ -258,6 +258,7 @@ The invisible AI that watches the learner's journey and shapes their experience.
 - `STRING_VS_IDENTIFIER` - `if op == add` instead of `if op == 'add'`
 - `OPERATOR_ORDER_TYPO` - `health =- damage` instead of `health -= damage`
 - `OUTPUT_FORMAT_MISMATCH` - printed `5` when expected `Your name has 5 letters`
+- `RETURN_VS_APPEND` - using `return "value"` inside loop instead of `results.append("value")` when building a list of results
 
 **DO NOT hardcode error checks in pytest tests.** The Director provides intelligent, personalized feedback. Tests just validate correctness; The Director teaches.
 
