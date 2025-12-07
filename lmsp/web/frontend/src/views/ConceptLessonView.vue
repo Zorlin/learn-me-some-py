@@ -294,6 +294,21 @@ function generateHint(level: number): string | null {
   if (!lesson.value?.try_it) return null
 
   const solution = lesson.value.try_it.solution
+
+  // If no solution available, provide generic hints based on lesson content
+  if (!solution) {
+    switch (level) {
+      case 1:
+        return `📖 **Hint:** Review the lesson content above - the examples show exactly what to do.`
+      case 2:
+        return `💡 **Hint:** Look at the code examples in the lesson. Copy the pattern and adapt it to the starter code.`
+      case 3:
+        return `🎯 **Hint:** The lesson's "Your Mission" section lists the exact steps. Follow them one by one.`
+      default:
+        return null
+    }
+  }
+
   const lines = solution.split('\n').filter(l => l.trim())
 
   switch (level) {
